@@ -1,0 +1,9 @@
+{
+  "kernel": "full_image_threshold",
+  "width": 64,
+  "height": 64,
+  "pixels": 4096,
+  "threshold": 128,
+  "cycles": 155657,
+  "cycles_per_pixel": 38.002197
+}

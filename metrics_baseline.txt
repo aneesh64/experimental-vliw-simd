@@ -1,0 +1,81 @@
+==============================================================================
+BASELINE METRICS - Phase 0 to Phase 1
+Measured: Feb 20, 2026, 21:15 UTC
+==============================================================================
+
+## Source Code Complexity (Lines of Code)
+
+VliwCore.scala:              477 LOC
+MemoryEngine.scala:          370 LOC  
+BankedScratchMemory.scala:   403 LOC
+----------------------------------------
+SUBTOTAL:                   1250 LOC (hazard/memory-related)
+
+Total Scala files (estimated): ~1500 LOC
+
+## Integration Test Results
+
+Total Tests:       23
+Passing:           22
+Failing:            1 (test_long_memory_accumulate_golden - TIMEOUT)
+Pass Rate:      95.7%
+
+Passing Tests:
+  ✓ test_add_sub
+  ✓ test_mul_logic
+  ✓ test_shift_compare
+  ✓ test_division
+  ✓ test_load_store_roundtrip
+  ✓ test_load_preloaded_memory
+  ✓ test_counting_loop
+  ✓ test_unconditional_jump
+  ✓ test_select
+  ✓ test_zero_operations
+  ✓ test_large_values
+  ✓ test_add_imm_sequence
+  ✓ test_coreid
+  ✓ test_dual_issue
+  ✓ test_fibonacci
+  ✓ test_memory_scatter_gather
+  ✓ test_cycle_count
+  ✓ test_valu_short_opcode_coverage_golden
+  ✓ test_valu_long_iterative_golden
+  ✓ test_long_scalar_recurrence_golden
+  ✓ test_vstore_roundtrip_golden
+  ✓ test_valu_src3_ops_multicycle_golden
+
+Failing Tests:
+  ✗ test_long_memory_accumulate_golden (64-iteration memory loop, hangs after 200k cycles)
+
+Total Simulation Time: 2051.17 seconds (34 minutes)
+
+## Known Complex Regions
+
+### VliwCore.scala - Hazard Tracking (~80 LOC)
+  Lines 263-312: pendingLoadDest[], pendingHazard logic, hazard-based stall
+
+### MemoryEngine.scala - Complex FSM (~200 LOC)
+  Lines 80-185: LoadReqFifo, LoadPendingFifo, LOAD_AR/LOAD_R states
+  Issue: 2-cycle latency + AXI 1-cycle response = timing mismatch
+
+### BankedScratchMemory.scala - Forwarding (~100 LOC)
+  Per-bank write forwarding (defensive against write-read conflicts)
+  Compiler should ensure 1-cycle gap
+
+## Synthesis Metrics
+
+LUT Count:         [PENDING - vivado not available]
+Timing Slack:      [PENDING - vivado not available]
+Max Clock Speed:   [PENDING - vivado not available]
+
+## Next Milestones
+
+Phase 1.1: ✅ COMPLETE - Baseline metrics captured
+Phase 1.2: IN-PROGRESS - Implement scheduler validation
+Phase 1.3: PENDING - Confirm tests still passing after validation setup
+Phase 2: PENDING - Remove hazard detection
+Phase 3: PENDING - Simplify memory engine
+Phase 4: PENDING - Implement driver
+Phase 5: PENDING - Final documentation & metrics
+
+==============================================================================

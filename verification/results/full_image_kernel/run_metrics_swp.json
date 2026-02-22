@@ -1,0 +1,9 @@
+{
+  "kernel": "full_image_threshold_swp",
+  "width": 64,
+  "height": 64,
+  "pixels": 4096,
+  "threshold": 128,
+  "cycles": 137232,
+  "cycles_per_pixel": 33.503906
+}

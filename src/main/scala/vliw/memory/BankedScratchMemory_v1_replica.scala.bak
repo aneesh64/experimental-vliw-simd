@@ -1,0 +1,326 @@
+package vliw.memory
+
+import spinal.core._
+import spinal.lib._
+import vliw.config.VliwSocConfig
+
+/**
+ * Single BRAM replica within one scratch bank.
+ *
+ * True dual-port: Port A = synchronous read, Port B = synchronous write.
+ * readFirst policy ensures read-before-write semantics: a read and write
+ * to the same address in the same cycle returns the OLD value.
+ */
+class BankReplica(cfg: VliwSocConfig) extends Component {
+  val io = new Bundle {
+    // Port A: synchronous read (1-cycle latency)
+    val rdAddr = in  UInt(cfg.bankAddrWidth bits)
+    val rdEn   = in  Bool()
+    val rdData = out UInt(cfg.dataWidth bits)
+    // Port B: synchronous write
+    val wrAddr = in  UInt(cfg.bankAddrWidth bits)
+    val wrData = in  UInt(cfg.dataWidth bits)
+    val wrEn   = in  Bool()
+  }
+
+  val mem = Mem(UInt(cfg.dataWidth bits), cfg.wordsPerBank)
+  mem.setTechnology(ramBlock)
+
+  // Synchronous read with readFirst (read-before-write)
+  io.rdData := mem.readSync(
+    address        = io.rdAddr,
+    enable         = io.rdEn,
+    readUnderWrite = readFirst
+  )
+
+  // Synchronous write
+  mem.write(
+    address = io.wrAddr,
+    data    = io.wrData,
+    enable  = io.wrEn
+  )
+}
+
+/**
+ * One logical bank = N replicas with shared (broadcast) write
+ * and independent read ports.
+ *
+ * Replica 0 : VALU operand A read (1 lane of the vector)
+ * Replica 1 : VALU operand B read
+ * Replica 2 : Scalar muxed read (ALU / Load / Store / Flow)
+ *
+ * All replicas receive the same write data (broadcast),
+ * keeping contents identical at all times.
+ */
+class ScratchBank(cfg: VliwSocConfig) extends Component {
+  val io = new Bundle {
+    // One read port per replica
+    val reads = Vec(new Bundle {
+      val addr = in  UInt(cfg.bankAddrWidth bits)
+      val en   = in  Bool()
+      val data = out UInt(cfg.dataWidth bits)
+    }, cfg.scratchReplicas)
+
+    // Single logical write port (broadcast to all replicas)
+    val write = new Bundle {
+      val addr = in  UInt(cfg.bankAddrWidth bits)
+      val data = in  UInt(cfg.dataWidth bits)
+      val en   = in  Bool()
+    }
+  }
+
+  val replicas = Array.fill(cfg.scratchReplicas)(new BankReplica(cfg))
+
+  for (r <- 0 until cfg.scratchReplicas) {
+    // Independent read
+    replicas(r).io.rdAddr := io.reads(r).addr
+    replicas(r).io.rdEn   := io.reads(r).en
+    io.reads(r).data      := replicas(r).io.rdData
+
+    // Broadcast write
+    replicas(r).io.wrAddr := io.write.addr
+    replicas(r).io.wrData := io.write.data
+    replicas(r).io.wrEn   := io.write.en
+  }
+}
+
+/**
+ * Banked scratch memory: 8 banks × 3 replicas.
+ *
+ * Provides three categories of read access:
+ *   1. VALU reads (dedicated replicas 0 and 1) — vector operands stripe
+ *      naturally: lane i reads bank i, so no conflict.
+ *   2. VALU src3 / broadcast reads — use replica 2 with static routing.
+ *   3. Scalar reads (ALU/Load/Store/Flow) — dynamic routing via addr[2:0]
+ *      to the correct bank's replica 2. Bank-conflict → stall.
+ *
+ * Write access: each write is routed to the correct bank by addr[2:0]
+ * and broadcast to all 3 replicas. Compiler guarantees ≤1 write per bank per cycle.
+ *
+ * Address mapping:
+ *   bank_index = addr[bankSelWidth-1 : 0]    (addr mod scratchBanks)
+ *   bank_row   = addr[scratchAddrWidth-1 : bankSelWidth]  (addr / scratchBanks)
+ */
+class BankedScratchMemory(cfg: VliwSocConfig) extends Component {
+  val io = new Bundle {
+    // ---- VALU vector reads: nValuSlots * 2 operand groups, each VLEN lanes ----
+    // The VALU has up to 3 source operands, but src3 (multiply_add/broadcast)
+    // is handled via the scalar read port or a dedicated path.
+    val valuReadAddr = in  Vec(Vec(UInt(cfg.scratchAddrWidth bits), cfg.vlen), cfg.nValuSlots * 2)
+    val valuReadEn   = in  Vec(Vec(Bool(), cfg.vlen), cfg.nValuSlots * 2)
+    val valuReadData = out Vec(Vec(UInt(cfg.dataWidth bits), cfg.vlen), cfg.nValuSlots * 2)
+
+    // ---- Scalar reads: ALU + Load + Store + Flow + VALU src3 ----
+    val scalarReadAddr = in  Vec(UInt(cfg.scratchAddrWidth bits), cfg.scalarReadPorts + cfg.nValuSlots)
+    val scalarReadEn   = in  Vec(Bool(), cfg.scalarReadPorts + cfg.nValuSlots)
+    val scalarReadData = out Vec(UInt(cfg.dataWidth bits), cfg.scalarReadPorts + cfg.nValuSlots)
+
+    // ---- Write ports (from all engines) ----
+    val writeAddr = in Vec(UInt(cfg.scratchAddrWidth bits), cfg.totalWritePorts)
+    val writeData = in Vec(UInt(cfg.dataWidth bits), cfg.totalWritePorts)
+    val writeEn   = in Vec(Bool(), cfg.totalWritePorts)
+
+    // ---- VALU active flag (scalar reads use replicas 0,1,2 when False;
+    //       only replica 2 when True because VALU claims replicas 0,1) ----
+    val valuActive = in Bool()
+
+    // ---- Bank conflict stall (scalar reads) ----
+    val conflict = out Bool()
+  }
+
+  val banks = Array.tabulate(cfg.scratchBanks)(b => new ScratchBank(cfg))
+
+  // ---------- Helper: decompose address into bank/row ----------
+  def bankOf(addr: UInt): UInt = addr(cfg.bankSelWidth - 1 downto 0)
+  def rowOf(addr: UInt): UInt  = addr(cfg.scratchAddrWidth - 1 downto cfg.bankSelWidth)
+
+  // ---------- Default all bank read ports to disabled ----------
+  for (b <- 0 until cfg.scratchBanks) {
+    for (r <- 0 until cfg.scratchReplicas) {
+      banks(b).io.reads(r).addr := 0
+      banks(b).io.reads(r).en   := False
+    }
+  }
+
+  // ---------- VALU vector reads (replicas 0 and 1) ----------
+  // For VALU operand group g, lane i reads bank (baseAddr + i) mod scratchBanks.
+  // If base is VLEN-aligned: lane i reads bank i. We support unaligned bases
+  // by routing through bankOf().
+  for (g <- 0 until cfg.nValuSlots * 2) {
+    val replicaIdx = g % 2  // alternate between replica 0 and 1
+    for (lane <- 0 until cfg.vlen) {
+      val addr     = io.valuReadAddr(g)(lane)
+      val en       = io.valuReadEn(g)(lane)
+      val bankIdx  = bankOf(addr)
+      val row      = rowOf(addr)
+
+      // Register the bank index for the output data mux (1-cycle BRAM latency).
+      val bankIdxReg = RegNext(bankIdx) init 0
+
+      // Drive the read port on the matching bank's replica
+      for (b <- 0 until cfg.scratchBanks) {
+        when(bankIdx === b) {
+          banks(b).io.reads(replicaIdx).addr := row
+          banks(b).io.reads(replicaIdx).en   := en
+        }
+      }
+
+      // Output mux: use the REGISTERED bank index so it aligns with the
+      // 1-cycle-delayed BRAM output data.
+      val readData = UInt(cfg.dataWidth bits)
+      readData := 0
+      for (b <- 0 until cfg.scratchBanks) {
+        when(bankIdxReg === b) {
+          readData := banks(b).io.reads(replicaIdx).data
+        }
+      }
+      io.valuReadData(g)(lane) := readData
+    }
+  }
+
+  // ---------- Scalar reads (multi-replica with VALU-aware fallback) ----------
+  // When VALU is inactive: distribute scalar ports across replicas 0,1,2
+  // using round-robin (port i → replica i%3). This gives 3× read bandwidth
+  // per bank and eliminates most intra-slot bank conflicts.
+  // When VALU is active: replicas 0,1 are occupied by VALU vector reads,
+  // so all scalar ports fall back to replica 2 only.
+
+  val scalarCount = cfg.scalarReadPorts + cfg.nValuSlots
+  val scalarBankReq  = Vec(UInt(cfg.bankSelWidth bits), scalarCount)
+  val scalarBankRow  = Vec(UInt(cfg.bankAddrWidth bits), scalarCount)
+
+  // Replica assignment per scalar read port
+  val scalarReplica = Vec(UInt(2 bits), scalarCount)
+  for (i <- 0 until scalarCount) {
+    scalarBankReq(i) := bankOf(io.scalarReadAddr(i))
+    scalarBankRow(i) := rowOf(io.scalarReadAddr(i))
+    scalarReplica(i) := Mux(io.valuActive, U(2, 2 bits), U(i % 3, 2 bits))
+  }
+
+  // Default outputs
+  io.conflict := False
+  for (i <- 0 until scalarCount) {
+    io.scalarReadData(i) := 0
+  }
+
+  // Priority-based grant: reader i is granted if no higher-priority reader
+  // (j < i) is also active and targets the same bank AND same replica.
+  for (i <- 0 until scalarCount) {
+    val conflictsWithHigher = if (i == 0) {
+      False
+    } else {
+      val checks = for (j <- 0 until i) yield {
+        io.scalarReadEn(j) &&
+          (scalarBankReq(j) === scalarBankReq(i)) &&
+          (scalarReplica(j) === scalarReplica(i))
+      }
+      checks.reduce(_ || _)
+    }
+
+    when(io.scalarReadEn(i) && !conflictsWithHigher) {
+      // Grant: drive the assigned replica of the matching bank
+      for (b <- 0 until cfg.scratchBanks) {
+        for (r <- 0 until cfg.scratchReplicas) {
+          when(scalarBankReq(i) === b && scalarReplica(i) === r) {
+            banks(b).io.reads(r).addr := scalarBankRow(i)
+            banks(b).io.reads(r).en   := True
+          }
+        }
+      }
+    }
+
+    when(io.scalarReadEn(i) && conflictsWithHigher) {
+      io.conflict := True
+    }
+  }
+
+  // Register bank index AND replica for output data mux (1-cycle BRAM latency).
+  // At cycle N the BRAM output corresponds to cycle N-1's address/replica.
+  val scalarBankReqReg = Vec(Reg(UInt(cfg.bankSelWidth bits)) init 0, scalarCount)
+  val scalarReplicaReg = Vec(Reg(UInt(2 bits)) init 2, scalarCount)
+  for (i <- 0 until scalarCount) {
+    scalarBankReqReg(i) := scalarBankReq(i)
+    scalarReplicaReg(i) := scalarReplica(i)
+  }
+
+  // Output data mux: select the correct bank and replica
+  for (i <- 0 until scalarCount) {
+    val bk  = scalarBankReqReg(i)
+    val rep = scalarReplicaReg(i)
+    for (b <- 0 until cfg.scratchBanks) {
+      for (r <- 0 until cfg.scratchReplicas) {
+        when(bk === b && rep === r) {
+          io.scalarReadData(i) := banks(b).io.reads(r).data
+        }
+      }
+    }
+  }
+
+  // ---------- Write forwarding (bypass) ----------
+  // BRAM readFirst returns the OLD value when a read and write target the
+  // same address on the same clock edge.  This means a producer at bundle N
+  // (writing in EX at cycle N+1) and a consumer at bundle N+1 (reading in
+  // IF at cycle N+1) would see stale data.
+  //
+  // Fix: register all write-port signals from the previous cycle.  At the
+  // output stage, compare registered write addresses against registered read
+  // addresses.  On a match, forward the write data instead of BRAM output.
+  //
+  // This reduces effective RAW latency from 2 bundles to 1 bundle.
+
+  val totalWrites = cfg.totalWritePorts
+  val prevWriteEn   = Vec(Reg(Bool()) init False, totalWrites)
+  val prevWriteAddr = Vec(Reg(UInt(cfg.scratchAddrWidth bits)) init 0, totalWrites)
+  val prevWriteData = Vec(Reg(UInt(cfg.dataWidth bits)) init 0, totalWrites)
+
+  for (w <- 0 until totalWrites) {
+    prevWriteEn(w)   := io.writeEn(w)
+    prevWriteAddr(w) := io.writeAddr(w)
+    prevWriteData(w) := io.writeData(w)
+  }
+
+  // Register previous-cycle read addresses for forwarding comparison
+  val prevScalarReadAddr = Vec(Reg(UInt(cfg.scratchAddrWidth bits)) init 0, scalarCount)
+  for (i <- 0 until scalarCount) {
+    prevScalarReadAddr(i) := io.scalarReadAddr(i)
+  }
+
+  // Apply forwarding: DISABLED for now — testing multi-replica routing
+  // for (i <- 0 until scalarCount) {
+  //   for (w <- 0 until totalWrites) {
+  //     when(prevWriteEn(w) && prevWriteAddr(w) === prevScalarReadAddr(i)) {
+  //       io.scalarReadData(i) := prevWriteData(w)
+  //     }
+  //   }
+  // }
+
+  // ---------- Write crossbar ----------
+  // Default: all bank write enables off
+  for (b <- 0 until cfg.scratchBanks) {
+    banks(b).io.write.en   := False
+    banks(b).io.write.addr := 0
+    banks(b).io.write.data := 0
+  }
+
+  for (w <- 0 until totalWrites) {
+    when(io.writeEn(w)) {
+      val bk  = bankOf(io.writeAddr(w))
+      val row = rowOf(io.writeAddr(w))
+      for (b <- 0 until cfg.scratchBanks) {
+        when(bk === b) {
+          banks(b).io.write.en   := True
+          banks(b).io.write.addr := row
+          banks(b).io.write.data := io.writeData(w)
+        }
+      }
+    }
+  }
+
+  // Default unused read enables
+  for (b <- 0 until cfg.scratchBanks) {
+    for (r <- 0 until cfg.scratchReplicas) {
+      // defaults handled by SpinalHDL's last-assignment-wins;
+      // make sure undriven replicas don't toggle
+    }
+  }
+}

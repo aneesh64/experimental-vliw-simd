@@ -1,0 +1,87 @@
+[info] welcome to sbt 1.10.6 (AdoptOpenJDK Java 1.8.0_292)
+[info] loading settings for project vliw_simd-build-build-build from metals.sbt...
+[info] loading project definition from E:\Projects\anthropic\vliw_simd\project\project\project
+[info] loading settings for project vliw_simd-build-build from metals.sbt...
+[info] loading project definition from E:\Projects\anthropic\vliw_simd\project\project
+[success] Generated .bloop\vliw_simd-build-build.json
+[success] Total time: 8 s, completed 21 Feb, 2026 11:28:37 AM
+[info] loading settings for project vliw_simd-build from metals.sbt, plugins.sbt...
+[info] loading project definition from E:\Projects\anthropic\vliw_simd\project
+[success] Generated .bloop\vliw_simd-build.json
+[success] Total time: 4 s, completed 21 Feb, 2026 11:28:41 AM
+[info] loading settings for project root from build.sbt...
+[info] set current project to vliw-simd (in build file:/E:/Projects/anthropic/vliw_simd/)
+[info] running (fork) vliw.gen.GenerateCore 
+[info] [Runtime] SpinalHDL v1.10.2a    git head : a348a60b7e8b6a455c72e1536ec3d74a2ea16935
+[info] [Runtime] JVM max memory : 3620.0MiB
+[info] [Runtime] Current date : 2026.02.21 11:28:48
+[info] [Progress] at 0.000 : Elaborate components
+[info] [Progress] at 3.305 : Checks and transforms
+[info] [Progress] at 5.207 : Generate Verilog to generated_rtl/modules
+[info] [Warning] 195 signals were pruned. You can call printPruned on the backend report to get more informations.
+[info] [Done] at 6.747
+[info] [GenerateCore] Generated VliwCore in generated_rtl/modules/
+[success] Total time: 12 s, completed 21 Feb, 2026 11:28:55 AM
+E:\Projects\anthropic\vliw_simd\verification\cocotb\integration\run_integration.py:203: DeprecationWarning: Simulator.build *verilog_sources* parameter is deprecated. Use the language-agnostic *sources* parameter instead.
+  runner.build(
+     -.--ns INFO     gpi                                ..mbed\gpi_embed.cpp:94   in _embed_init_python              Using Python 3.13.0rc1 interpreter at C:\Users\uanee\miniconda3\python.exe
+     -.--ns INFO     gpi                                ..\gpi\GpiCommon.cpp:79   in gpi_print_registered_impl       VPI registered
+     0.00ns INFO     cocotb                             Running on Icarus Verilog version 12.0 (devel)
+     0.00ns INFO     cocotb                             Seeding Python random module with 1771653541
+     0.00ns INFO     cocotb                             Initialized cocotb v2.0.1 from C:\Users\uanee\miniconda3\Lib\site-packages\cocotb
+     0.00ns INFO     cocotb                             Running tests
+     0.00ns INFO     cocotb.regression                  running test_algorithms.test_dsp_moving_average4_golden (1/8)
+                                                            DSP kernel: 2-tap moving average over 64 samples.
+     0.00ns WARNING  py.warnings                        E:\Projects\anthropic\vliw_simd\verification\cocotb\integration\harness.py:55: DeprecationWarning: The 'units' argument has been renamed to 'unit'.
+                                                          cocotb.start_soon(Clock(self.dut.clk, self.clock_period, units="ns").start())
+ 34290.00ns INFO     cocotb.VliwCore                    [cycles] halted after 3346 cycles
+ 34290.00ns WARNING  py.warnings                        E:\Projects\anthropic\vliw_simd\verification\cocotb\integration\axi_mem_model.py:99: DeprecationWarning: `task.kill()` is deprecated in favor of `task.cancel()`
+                                                          task.kill()
+ 34290.00ns INFO     cocotb.VliwCore                    test_dsp_moving_average4_golden: cycles=3346, n=64
+ 34290.00ns INFO     cocotb.regression                  test_algorithms.test_dsp_moving_average4_golden passed
+ 34290.00ns INFO     cocotb.regression                  running test_algorithms.test_dsp_moving_average4_sw_pipeline_golden (2/8)
+                                                            DSP kernel (software-pipelined): 2-tap moving average over 64 samples.
+ 68590.00ns INFO     cocotb.VliwCore                    [cycles] halted after 3346 cycles
+ 68590.00ns INFO     cocotb.VliwCore                    test_dsp_moving_average4_sw_pipeline_golden: cycles=3346, n=64
+ 68590.00ns INFO     cocotb.regression                  test_algorithms.test_dsp_moving_average4_sw_pipeline_golden passed
+ 68590.00ns INFO     cocotb.regression                  running test_algorithms.test_ml_dense1_inference_golden (3/8)
+                                                            ML kernel: single dense neuron inference y=sum(x*w)+b.
+ 83420.00ns INFO     cocotb.VliwCore                    [cycles] halted after 1396 cycles
+ 83420.00ns WARNING  ...test_ml_dense1_inference_golden ml dense1 expected 13883, got 0
+                                                        assert 0 == 13883
+                                                        Traceback (most recent call last):
+                                                          File "E:\Projects\anthropic\vliw_simd\verification\cocotb\integration\test_algorithms.py", line 223, in test_ml_dense1_inference_golden
+                                                            assert got == golden, f"ml dense1 expected {golden}, got {got}"
+                                                        AssertionError: ml dense1 expected 13883, got 0
+                                                        assert 0 == 13883
+ 83420.00ns WARNING  cocotb.regression                  test_algorithms.test_ml_dense1_inference_golden failed
+ 83420.00ns INFO     cocotb.regression                  running test_algorithms.test_ml_dense1_inference_sw_pipeline_golden (4/8)
+                                                            ML kernel (software-pipelined): single dense neuron inference y=sum(x*w)+b.
+ 98250.00ns INFO     cocotb.VliwCore                    [cycles] halted after 1396 cycles
+ 98250.00ns WARNING  ..se1_inference_sw_pipeline_golden ml dense1 swp expected 13883, got 17696
+                                                        assert 17696 == 13883
+                                                        Traceback (most recent call last):
+                                                          File "E:\Projects\anthropic\vliw_simd\verification\cocotb\integration\test_algorithms.py", line 270, in test_ml_dense1_inference_sw_pipeline_golden
+                                                            assert got == golden, f"ml dense1 swp expected {golden}, got {got}"
+                                                        AssertionError: ml dense1 swp expected 13883, got 17696
+                                                        assert 17696 == 13883
+ 98250.00ns WARNING  cocotb.regression                  test_algorithms.test_ml_dense1_inference_sw_pipeline_golden failed
+ 98250.00ns INFO     cocotb.regression                  running test_algorithms.test_cv_threshold_segmentation_golden (5/8)
+                                                            CV kernel: pixel threshold segmentation outputting 0/1 mask.
+111590.00ns INFO     cocotb.VliwCore                    [cycles] halted after 1263 cycles
+111590.00ns WARNING  ..cv_threshold_segmentation_golden cv idx=39: expected 1, got 0
+                                                        assert 0 == 1
+                                                        Traceback (most recent call last):
+                                                          File "E:\Projects\anthropic\vliw_simd\verification\cocotb\integration\test_algorithms.py", line 323, in test_cv_threshold_segmentation_golden
+                                                            assert got == exp, f"cv idx={i}: expected {exp}, got {got}"
+                                                        AssertionError: cv idx=39: expected 1, got 0
+                                                        assert 0 == 1
+111590.00ns WARNING  cocotb.regression                  test_algorithms.test_cv_threshold_segmentation_golden failed
+111590.00ns INFO     cocotb.regression                  running test_algorithms.test_cv_threshold_segmentation_sw_pipeline_golden (6/8)
+                                                            CV kernel (software-pipelined): threshold segmentation, 4 pixels/iteration.
+144640.01ns INFO     cocotb.VliwCore                    [cycles] halted after 3073 cycles
+144640.01ns WARNING  cocotb.VliwCore                    DEBUG cv swp: cycles=3073, reg14_pre_incr=1, counter=64, limit=64, step=4, lt_result=0
+144640.01ns INFO     cocotb.VliwCore                    test_cv_threshold_segmentation_sw_pipeline_golden: cycles=3073, n=64
+144640.01ns INFO     cocotb.regression                  test_algorithms.test_cv_threshold_segmentation_sw_pipeline_golden passed
+144640.01ns INFO     cocotb.regression                  running test_algorithms.test_full_image_threshold_kernel_with_artifacts (7/8)
+                                                            Full-image kernel: threshold 64x64 image; emit input/golden/vliw image files and verify exact output.

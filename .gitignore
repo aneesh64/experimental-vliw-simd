@@ -1,0 +1,53 @@
+# ------------------------------
+# OS / Editor
+# ------------------------------
+.DS_Store
+Thumbs.db
+
+.idea/
+.vscode/
+*.iml
+
+# ------------------------------
+# Scala / SBT / Metals / Bloop
+# ------------------------------
+target/
+project/target/
+project/project/
+
+.bsp/
+.metals/
+.bloop/
+
+# ------------------------------
+# Python
+# ------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# ------------------------------
+# Simulation / Verification outputs
+# ------------------------------
+*.vcd
+*.fst
+*.wlf
+*.vvp
+sim_build/
+verification/cocotb/**/sim_build/
+results.xml
+
+# ------------------------------
+# Local generated artifacts
+# ------------------------------
+generated/
+null/
+
+# Local-only writing / social drafts (moved from docs)
+local/

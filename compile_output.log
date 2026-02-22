@@ -1,0 +1,110 @@
+[info] welcome to sbt 1.10.6 (AdoptOpenJDK Java 1.8.0_292)
+[info] loading settings for project vliw_simd-build-build-build from metals.sbt...
+[info] loading project definition from E:\Projects\anthropic\vliw_simd\project\project\project
+[info] loading settings for project vliw_simd-build-build from metals.sbt...
+[info] loading project definition from E:\Projects\anthropic\vliw_simd\project\project
+[success] Generated .bloop\vliw_simd-build-build.json
+[success] Total time: 5 s, completed 20 Feb, 2026 9:55:18 PM
+[info] loading settings for project vliw_simd-build from metals.sbt, plugins.sbt...
+[info] loading project definition from E:\Projects\anthropic\vliw_simd\project
+[success] Generated .bloop\vliw_simd-build.json
+[success] Total time: 3 s, completed 20 Feb, 2026 9:55:21 PM
+[info] loading settings for project root from build.sbt...
+[info] set current project to vliw-simd (in build file:/E:/Projects/anthropic/vliw_simd/)
+[info] running (fork) vliw.gen.GenerateCore 
+[info] [Runtime] SpinalHDL v1.10.2a    git head : a348a60b7e8b6a455c72e1536ec3d74a2ea16935
+[info] [Runtime] JVM max memory : 3620.0MiB
+[info] [Runtime] Current date : 2026.02.20 21:55:26
+[info] [Progress] at 0.000 : Elaborate components
+[info] [Progress] at 3.931 : Checks and transforms
+[info] spinal.core.SpinalExit$.apply(Misc.scala:455)
+[info] spinal.core.SpinalError$.apply(Misc.scala:510)
+[info] spinal.core.internals.PhaseContext.checkPendingErrors(Phase.scala:178)
+[info] spinal.core.internals.PhaseContext.doPhase(Phase.scala:194)
+[info] spinal.core.internals.SpinalVerilogBoot$.$anonfun$singleShot$12(Phase.scala:2936)
+[info] spinal.core.internals.SpinalVerilogBoot$.$anonfun$singleShot$12$adapted(Phase.scala:2934)
+[info] scala.collection.IterableOnceOps.foreach(IterableOnce.scala:619)
+[info] scala.collection.IterableOnceOps.foreach$(IterableOnce.scala:617)
+[info] scala.collection.AbstractIterable.foreach(Iterable.scala:935)
+[info] spinal.core.internals.SpinalVerilogBoot$.$anonfun$singleShot$7(Phase.scala:2934)
+[info] spinal.core.ScopeProperty$.sandbox(ScopeProperty.scala:71)
+[info] spinal.core.internals.SpinalVerilogBoot$.singleShot(Phase.scala:2866)
+[info] spinal.core.internals.SpinalVerilogBoot$.apply(Phase.scala:2835)
+[info] spinal.core.Spinal$.apply(Spinal.scala:420)
+[info] spinal.core.SpinalConfig.generate(Spinal.scala:184)
+[info] vliw.gen.GenerateCore$.delayedEndpoint$vliw$gen$GenerateCore$1(GenerateModules.scala:131)
+[info] vliw.gen.GenerateCore$delayedInit$body.apply(GenerateModules.scala:129)
+[info] scala.Function0.apply$mcV$sp(Function0.scala:42)
+[info] scala.Function0.apply$mcV$sp$(Function0.scala:42)
+[info] scala.runtime.AbstractFunction0.apply$mcV$sp(AbstractFunction0.scala:17)
+[info] scala.App.$anonfun$main$1(App.scala:98)
+[info] scala.App.$anonfun$main$1$adapted(App.scala:98)
+[info] scala.collection.IterableOnceOps.foreach(IterableOnce.scala:619)
+[info] scala.collection.IterableOnceOps.foreach$(IterableOnce.scala:617)
+[info] scala.collection.AbstractIterable.foreach(Iterable.scala:935)
+[info] scala.App.main(App.scala:98)
+[info] scala.App.main$(App.scala:96)
+[info] vliw.gen.GenerateCore$.main(GenerateModules.scala:129)
+[info] vliw.gen.GenerateCore.main(GenerateModules.scala)
+[info] **********************************************************************************************
+[info] [Warning] Elaboration failed (4 errors).
+[info]           Spinal will restart with scala trace to help you to find the problem.
+[info] **********************************************************************************************
+[info] [Progress] at 5.064 : Elaborate components
+[info] [Progress] at 5.351 : Checks and transforms
+[error] Exception in thread "main" spinal.core.SpinalExit: 
+[error]  Error detected in phase PhaseCheck_noLatchNoOverride
+[error] ********************************************************************************
+[error] ********************************************************************************
+[error] ASSIGNMENT OVERLAP completely the previous one of (toplevel/mem/io_axiMaster_ar_valid : out Bool)
+[error]     vliw.engine.MemoryEngine.<init>(MemoryEngine.scala:284)
+[error]     vliw.core.VliwCore.<init>(VliwCore.scala:55)
+[error]     vliw.gen.GenerateCore$.$anonfun$new$10(GenerateModules.scala:131)
+[error] ********************************************************************************
+[error] ********************************************************************************
+[error] ASSIGNMENT OVERLAP completely the previous one of (toplevel/mem/io_axiMaster_ar_payload_addr : out UInt[32 bits])
+[error]     vliw.engine.MemoryEngine.<init>(MemoryEngine.scala:285)
+[error]     vliw.core.VliwCore.<init>(VliwCore.scala:55)
+[error]     vliw.gen.GenerateCore$.$anonfun$new$10(GenerateModules.scala:131)
+[error] ********************************************************************************
+[error] ********************************************************************************
+[error] ASSIGNMENT OVERLAP completely the previous one of (toplevel/mem/io_axiMaster_r_ready : out Bool)
+[error]     vliw.engine.MemoryEngine.<init>(MemoryEngine.scala:288)
+[error]     vliw.core.VliwCore.<init>(VliwCore.scala:55)
+[error]     vliw.gen.GenerateCore$.$anonfun$new$10(GenerateModules.scala:131)
+[error] ********************************************************************************
+[error] ********************************************************************************
+[error] Design's errors are listed above.
+[error] SpinalHDL compiler exit stack : 
+[error] 	at spinal.core.SpinalExit$.apply(Misc.scala:455)
+[error] 	at spinal.core.SpinalError$.apply(Misc.scala:510)
+[error] 	at spinal.core.internals.PhaseContext.checkPendingErrors(Phase.scala:178)
+[error] 	at spinal.core.internals.PhaseContext.doPhase(Phase.scala:194)
+[error] 	at spinal.core.internals.SpinalVerilogBoot$.$anonfun$singleShot$12(Phase.scala:2936)
+[error] 	at spinal.core.internals.SpinalVerilogBoot$.$anonfun$singleShot$12$adapted(Phase.scala:2934)
+[error] 	at scala.collection.IterableOnceOps.foreach(IterableOnce.scala:619)
+[error] 	at scala.collection.IterableOnceOps.foreach$(IterableOnce.scala:617)
+[error] 	at scala.collection.AbstractIterable.foreach(Iterable.scala:935)
+[error] 	at spinal.core.internals.SpinalVerilogBoot$.$anonfun$singleShot$7(Phase.scala:2934)
+[error] 	at spinal.core.ScopeProperty$.sandbox(ScopeProperty.scala:71)
+[error] 	at spinal.core.internals.SpinalVerilogBoot$.singleShot(Phase.scala:2866)
+[error] 	at spinal.core.internals.SpinalVerilogBoot$.apply(Phase.scala:2861)
+[error] 	at spinal.core.Spinal$.apply(Spinal.scala:420)
+[error] 	at spinal.core.SpinalConfig.generate(Spinal.scala:184)
+[error] 	at vliw.gen.GenerateCore$.delayedEndpoint$vliw$gen$GenerateCore$1(GenerateModules.scala:131)
+[error] 	at vliw.gen.GenerateCore$delayedInit$body.apply(GenerateModules.scala:129)
+[error] 	at scala.Function0.apply$mcV$sp(Function0.scala:42)
+[error] 	at scala.Function0.apply$mcV$sp$(Function0.scala:42)
+[error] 	at scala.runtime.AbstractFunction0.apply$mcV$sp(AbstractFunction0.scala:17)
+[error] 	at scala.App.$anonfun$main$1(App.scala:98)
+[error] 	at scala.App.$anonfun$main$1$adapted(App.scala:98)
+[error] 	at scala.collection.IterableOnceOps.foreach(IterableOnce.scala:619)
+[error] 	at scala.collection.IterableOnceOps.foreach$(IterableOnce.scala:617)
+[error] 	at scala.collection.AbstractIterable.foreach(Iterable.scala:935)
+[error] 	at scala.App.main(App.scala:98)
+[error] 	at scala.App.main$(App.scala:96)
+[error] 	at vliw.gen.GenerateCore$.main(GenerateModules.scala:129)
+[error] 	at vliw.gen.GenerateCore.main(GenerateModules.scala)
+[error] Nonzero exit code returned from runner: 1
+[error] (Compile / runMain) Nonzero exit code returned from runner: 1
+[error] Total time: 10 s, completed 20 Feb, 2026 9:55:32 PM
