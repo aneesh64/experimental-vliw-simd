@@ -150,8 +150,4 @@ See [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md) for build instructions and [docs/ARCH
 
 ## License
 
-[Specify your license here]
-
-## Contact
-
-[Specify contact information here]
+[MIT]
