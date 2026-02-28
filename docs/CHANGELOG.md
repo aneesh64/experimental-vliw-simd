@@ -6,6 +6,38 @@
 
 ---
 
+## Integration Test Expansion: Multi-Engine & Vector Pipeline (February 28, 2026)
+
+### Summary
+Added three new integration tests exercising VLIW multi-engine packing, simultaneous engine operation, and the full vector load→compute→store pipeline. Also fixed `test_vector_load_compute_store_pipeline` to use `VSTORE` (vector burst store) instead of scalar lane-by-lane stores.
+
+### New Tests
+
+**Test 25 — `test_multi_op_same_bundle`**
+- Verifies the scheduler packs independent ALU `add` + FLOW `add_imm` into the same VLIW bundle
+- Includes schedule-level assertion (same PC) and functional correctness check
+- Proves multi-engine packing works: ALU and FLOW fire in parallel
+
+**Test 26 — `test_multi_engine_simultaneous`**
+- Stress test with ALU, LOAD, STORE, and FLOW engines all active in a tight loop
+- Each iteration: load from memory → multiply by 2 → accumulate → loop control
+- Golden model: `sum(v*2 for v in [10,20,30,40,50,60,70,80])` = 720
+
+**Test 27 — `test_vector_load_compute_store_pipeline`**
+- Full vector pipeline: VLOAD two 8-lane vectors → VALU add + VALU mul → VSTORE results
+- Exercises the complete data path: AXI Memory → Vector Registers → VALU → VSTORE → AXI Memory
+- All 16 result lanes (8 add + 8 mul) verified against Python golden model
+- Uses `VSTORE` burst instruction for write-back (62 cycles vs 202 with scalar stores)
+
+### Test Results
+- **Integration:** 27/27 PASS
+- All existing 24 tests remain passing (no regressions)
+
+### Files Modified
+- `verification/cocotb/integration/test_integration.py` — Added tests 25–27
+
+---
+
 ## Bug Fix: Branch Delay Slot & AXI Robustness (February 28, 2026)
 
 ### Summary

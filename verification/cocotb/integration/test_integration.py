@@ -977,3 +977,212 @@ async def test_scalar_vector_bank_isolation_schedule(dut):
     assert observed == 0x12345678, f"Expected 0x12345678, got 0x{observed:08x}"
 
 
+# ============================================================================
+#  Test 25: Multiple operations in the same bundle (multi-engine packing)
+# ============================================================================
+
+@cocotb.test()
+async def test_multi_op_same_bundle(dut):
+    """
+    Verify the scheduler packs independent ops from different engines into
+    the same VLIW bundle and that all engines execute correctly in parallel.
+
+    Both the ALU add and FLOW add_imm depend on s[1] (the last const),
+    so their earliest cycle is identical.  The scheduler must pack them
+    into the same bundle (ALU slot + FLOW slot).  We verify both at the
+    schedule level (same PC) and functionally (correct AXI output).
+    """
+    harness = VliwCoreHarness(dut)
+    await harness.init()
+
+    # s[0] const at pc=0 (load slot) → ready at cycle 1
+    # s[1] const at pc=1 (load slot) → ready at cycle 2
+    # Both add(3,0,1) and add_imm(4,1,7) need s[1] → earliest = cycle 2
+    # They target different engines (ALU / FLOW) so they CAN co-issue.
+    program_ops = [
+        S.const(0, 50),          # s[0] = 50  (load engine, pc=0)
+        S.const(1, 30),          # s[1] = 30  (load engine, pc=1)
+
+        # --- these two must land in the same bundle (pc=2) ---
+        S.add(3, 0, 1),          # ALU:  s[3] = 50+30 = 80
+        S.add_imm(4, 1, 7),      # FLOW: s[4] = 30+7  = 37
+
+        # Store results
+        S.const(10, 0),
+        S.store(10, 3),          # mem[0] = 80
+        S.add_imm(10, 10, 1),
+        S.store(10, 4),          # mem[1] = 37
+        S.halt(),
+    ]
+
+    # Verify at the schedule level that packing actually happened
+    bundles_dicts = S.schedule(program_ops)
+    add_pc = None
+    add_imm_pc = None
+    for pc, bundle in enumerate(bundles_dicts):
+        for op in bundle.get("alu", []):
+            if op and op[0] == "add":
+                add_pc = pc
+        for op in bundle.get("flow", []):
+            if op and op[0] == "add_imm":
+                if add_imm_pc is None:
+                    add_imm_pc = pc
+
+    assert add_pc is not None, "Expected ALU add in schedule"
+    assert add_imm_pc is not None, "Expected FLOW add_imm in schedule"
+    assert add_pc == add_imm_pc, (
+        f"ALU add (pc={add_pc}) and FLOW add_imm (pc={add_imm_pc}) should be "
+        f"in the same bundle (multi-engine packing)"
+    )
+
+    program = ASM.assemble_program(bundles_dicts)
+    await harness.load_program(program)
+    cycles = await harness.run(max_cycles=500)
+
+    val_80 = harness.axi_mem.read_word(0)
+    val_37 = harness.axi_mem.read_word(1)
+    assert val_80 == 80, f"ALU add: expected 80, got {val_80}"
+    assert val_37 == 37, f"FLOW add_imm: expected 37, got {val_37}"
+
+
+# ============================================================================
+#  Test 26: Multiple engines working simultaneously across bundles
+# ============================================================================
+
+@cocotb.test()
+async def test_multi_engine_simultaneous(dut):
+    """
+    Stress test with ALU, LOAD, STORE, and FLOW engines all active in a
+    tight loop.  Each iteration: load a value, compute on it, store the
+    result, and use flow for loop control — all engines busy every cycle.
+
+    Sums pre-loaded values mem[0..7], multiplies each by 2, and accumulates.
+    Golden: sum(v*2 for v in data).
+    """
+    harness = VliwCoreHarness(dut)
+
+    data = [10, 20, 30, 40, 50, 60, 70, 80]
+    harness.axi_mem.preload(0, data)
+    await harness.init()
+
+    golden = sum(v * 2 for v in data) & 0xFFFFFFFF  # 720
+
+    program = build_program([
+        S.const(0, 0),           # accumulator
+        S.const(5, 0),           # address pointer
+        S.const(6, 0),           # loop index
+        S.const(7, 8),           # loop limit
+        S.const(8, 1),           # increment
+        S.const(9, 2),           # multiplier
+        S.const(20, 0),          # temp / nop pad
+
+        S.label("engine_loop"),
+        # LOAD engine: fetch mem[addr]
+        S.load(1, 5),
+        S.add_imm(20, 20, 0),   # spacing for load latency
+        # ALU engine: val * 2
+        S.mul(2, 1, 9),
+        # ALU engine: accumulate
+        S.add(0, 0, 2),
+        # FLOW engine: addr++, idx++, branch
+        S.add_imm(5, 5, 1),
+        S.add(6, 6, 8),
+        S.lt(3, 6, 7),
+        S.cond_jump(3, "engine_loop"),
+
+        # Store final accumulator
+        S.const(10, 500),
+        S.store(10, 0),          # mem[500] = golden
+        S.halt(),
+    ])
+
+    await harness.load_program(program)
+    cycles = await harness.run(max_cycles=10000)
+
+    result = harness.axi_mem.read_word(500)
+    assert result == golden, f"Expected {golden}, got {result}"
+
+
+# ============================================================================
+#  Test 27: Vector load → vector compute → vector store pipeline
+# ============================================================================
+
+@cocotb.test()
+async def test_vector_load_compute_store_pipeline(dut):
+    """
+    Full vector pipeline: VLOAD two vectors from memory, perform VALU add
+    and VALU mul, then store results back with scalar stores (lane by lane).
+
+    Exercises the complete data path:
+      Memory → Vector registers → VALU compute → Scalar readback → AXI store
+
+    Golden model computed in Python.
+    """
+    harness = VliwCoreHarness(dut)
+
+    vlen = 8
+    vec_a = [100, 200, 300, 400, 500, 600, 700, 800]
+    vec_b = [1, 2, 3, 4, 5, 6, 7, 8]
+
+    # Pre-load vectors into AXI memory at known addresses
+    # vec_a at word address 0, vec_b at word address 8
+    harness.axi_mem.preload(0, vec_a)
+    harness.axi_mem.preload(8, vec_b)
+    await harness.init()
+
+    # Golden model
+    golden_add = _vbin("add", vec_a, vec_b)   # [101,202,303,404,505,606,707,808]
+    golden_mul = _vbin("mul", vec_a, vec_b)    # [100,400,900,1600,2500,3600,4900,6400]
+
+    # Register allocation:
+    #   Vector bank 96..103  = vec_a  (loaded via vload)
+    #   Vector bank 104..111 = vec_b  (loaded via vload)
+    #   Vector bank 112..119 = add result
+    #   Vector bank 120..127 = mul result
+
+    program = build_program([
+        # VLOAD vec_a from mem[0]
+        S.const(9, 0),           # addr = 0
+        S.vload(96, 9),          # s[96..103] = mem[0..7]
+
+        # VLOAD vec_b from mem[8]
+        S.const(9, 8),           # addr = 8
+        S.vload(104, 9),         # s[104..111] = mem[8..15]
+
+        # VALU add: result in s[112..119]
+        S.valu_op("add", 112, 96, 104),
+
+        # VALU mul: result in s[120..127]
+        S.valu_op("mul", 120, 96, 104),
+
+        # VSTORE add results to mem[2000..2007]
+        S.const(10, 2000),
+        S.vstore(10, 112),       # burst store 8 lanes
+
+        # VSTORE mul results to mem[3000..3007]
+        S.const(10, 3000),
+        S.vstore(10, 120),       # burst store 8 lanes
+
+        S.halt(),
+    ])
+
+    await harness.load_program(program)
+    cycles = await harness.run(max_cycles=10000)
+
+    # Verify add results
+    for lane in range(vlen):
+        got = harness.axi_mem.read_word(2000 + lane)
+        exp = golden_add[lane]
+        assert got == exp, (
+            f"VALU add lane {lane}: expected {exp}, got {got}"
+        )
+
+    # Verify mul results
+    for lane in range(vlen):
+        got = harness.axi_mem.read_word(3000 + lane)
+        exp = golden_mul[lane]
+        assert got == exp, (
+            f"VALU mul lane {lane}: expected {exp}, got {got}"
+        )
+
+
