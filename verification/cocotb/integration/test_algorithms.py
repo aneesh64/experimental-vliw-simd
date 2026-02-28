@@ -193,33 +193,37 @@ async def test_ml_dense1_inference_golden(dut):
     await harness.init()
 
     program = build_program([
-        S.const(0, 0),
-        S.const(1, 32),
-        S.const(2, 8),
-        S.const(3, 0),
-        S.const(4, 128),
+        # Running address pointers (eliminates per-iteration const+add chains)
+        S.const(10, 0),          # x_addr = 0 (running)
+        S.const(11, 128),        # w_addr = 128 (running)
+        S.const(0, 0),           # counter = 0
+        S.const(1, 32),          # limit = 32
+        S.const(2, 8),           # step = 8
 
+        # Zero accumulator vector
         S.const(360, 0), S.const(361, 0), S.const(362, 0), S.const(363, 0),
         S.const(364, 0), S.const(365, 0), S.const(366, 0), S.const(367, 0),
 
         S.label("dense_vec_loop"),
-        S.const(10, 0), S.add(10, 10, 3), S.add(10, 10, 0),
-        S.const(11, 0), S.add(11, 11, 4), S.add(11, 11, 0),
-        S.vload(320, 10),
-        S.vload(328, 11),
-        S.valu_op("mul", 368, 320, 328),
-        S.valu_op("add", 360, 360, 368),
-        S.add(0, 0, 2),
-        S.lt(12, 0, 1),
+        S.vload(320, 10),        # load 8 x values from x_addr
+        S.vload(328, 11),        # load 8 w values from w_addr
+        S.valu_op("mul", 368, 320, 328),  # temp = x * w
+        S.valu_op("add", 360, 360, 368),  # acc += temp
+        S.add_imm(10, 10, 8),   # x_addr += 8
+        S.add_imm(11, 11, 8),   # w_addr += 8
+        S.add(0, 0, 2),         # counter += 8
+        S.lt(12, 0, 1),         # counter < 32?
         S.cond_jump(12, "dense_vec_loop"),
 
-        S.add(22, 360, 361),
-        S.add(22, 22, 362),
-        S.add(22, 22, 363),
-        S.add(22, 22, 364),
-        S.add(22, 22, 365),
-        S.add(22, 22, 366),
-        S.add(22, 22, 367),
+        # Tree reduction: sum all 8 lanes using distinct dest registers
+        # to avoid tight read-after-write hazard on the same register.
+        S.add(40, 360, 361),     # pair01 = lane0 + lane1
+        S.add(41, 362, 363),     # pair23 = lane2 + lane3
+        S.add(42, 364, 365),     # pair45 = lane4 + lane5
+        S.add(43, 366, 367),     # pair67 = lane6 + lane7
+        S.add(44, 40, 41),       # quad0123
+        S.add(45, 42, 43),       # quad4567
+        S.add(22, 44, 45),       # total
 
         S.const(24, bias),
         S.add(22, 22, 24),
@@ -252,33 +256,37 @@ async def test_ml_dense1_inference_sw_pipeline_golden(dut):
     await harness.init()
 
     program = build_program([
-        S.const(0, 0),
-        S.const(1, 32),
-        S.const(2, 8),
-        S.const(3, 0),
-        S.const(4, 128),
+        # Running address pointers
+        S.const(10, 0),          # x_addr = 0 (running)
+        S.const(11, 128),        # w_addr = 128 (running)
+        S.const(0, 0),           # counter = 0
+        S.const(1, 32),          # limit = 32
+        S.const(2, 8),           # step = 8
 
+        # Zero accumulator vector
         S.const(360, 0), S.const(361, 0), S.const(362, 0), S.const(363, 0),
         S.const(364, 0), S.const(365, 0), S.const(366, 0), S.const(367, 0),
 
         S.label("dense_vec_swp_loop"),
-        S.const(10, 0), S.add(10, 10, 3), S.add(10, 10, 0),
-        S.const(11, 0), S.add(11, 11, 4), S.add(11, 11, 0),
-        S.vload(320, 10),
-        S.vload(328, 11),
+        S.vload(320, 10),        # load 8 x values
+        S.vload(328, 11),        # load 8 w values
         S.valu_op("mul", 368, 320, 328),
         S.valu_op("add", 360, 360, 368),
-        S.add(0, 0, 2),
+        S.add_imm(10, 10, 8),   # x_addr += 8
+        S.add_imm(11, 11, 8),   # w_addr += 8
+        S.add(0, 0, 2),         # counter += 8
         S.lt(12, 0, 1),
         S.cond_jump(12, "dense_vec_swp_loop"),
 
-        S.add(22, 360, 361),
-        S.add(22, 22, 362),
-        S.add(22, 22, 363),
-        S.add(22, 22, 364),
-        S.add(22, 22, 365),
-        S.add(22, 22, 366),
-        S.add(22, 22, 367),
+        # Tree reduction: sum all 8 lanes using distinct dest registers
+        # to avoid tight read-after-write hazard on the same register.
+        S.add(40, 360, 361),     # pair01
+        S.add(41, 362, 363),     # pair23
+        S.add(42, 364, 365),     # pair45
+        S.add(43, 366, 367),     # pair67
+        S.add(44, 40, 41),       # quad0123
+        S.add(45, 42, 43),       # quad4567
+        S.add(22, 44, 45),       # total
 
         S.const(24, bias),
         S.add(22, 22, 24),
@@ -367,8 +375,6 @@ async def test_cv_threshold_segmentation_sw_pipeline_golden(dut):
 
     out_base = 900
 
-    # Debug: use scratch addr 990-999 for debug dumps
-    dbg_base = 990
     program = build_program([
         # ---- Setup ----
         S.const(0,  0),          # counter = 0
@@ -376,7 +382,6 @@ async def test_cv_threshold_segmentation_sw_pipeline_golden(dut):
         S.const(9,  1),          # constant 1
         S.const(49, 4),          # step = 4
         S.const(3,  threshold),  # threshold
-        S.const(50, dbg_base),   # debug store addr
         # Running addresses: one base for each of 4 pixels per iteration
         S.const(10, 0),            # in0
         S.const(16, 1),            # in1 = in0+1
@@ -389,8 +394,6 @@ async def test_cv_threshold_segmentation_sw_pipeline_golden(dut):
 
         # ---- Unrolled loop body: 4 pixels per iteration ----
         S.label("th_swp_loop"),
-        # DEBUG: store counter at debug addr (each iter overwrites)
-        S.store(50, 0),
         # pixel 0
         S.load(11, 10),
         S.lt(12, 11, 3),
@@ -408,9 +411,6 @@ async def test_cv_threshold_segmentation_sw_pipeline_golden(dut):
         S.lt(28, 27, 3),
         S.store(29, 28),
 
-        # DEBUG: store lt reg14, counter reg0, limit reg1, step reg49
-        S.store(50, 14),         # debug: reg14 value
-
         # Advance all 4 address pairs by 4 (dual-ALU per bundle)
         S.add(10, 10, 49),  S.add(13, 13, 49),   # in0 += 4, out0 += 4
         S.add(16, 16, 49),  S.add(19, 19, 49),   # in1 += 4, out1 += 4
@@ -420,33 +420,12 @@ async def test_cv_threshold_segmentation_sw_pipeline_golden(dut):
         # Loop control
         S.add(0, 0, 49),         # counter += 4
         S.lt(14, 0, 1),          # counter < limit?
-        # DEBUG: store more debug data
-        S.const(51, dbg_base+1),
-        S.store(51, 0),          # debug: counter after add
-        S.const(52, dbg_base+2),
-        S.store(52, 1),          # debug: limit reg1
-        S.const(53, dbg_base+3),
-        S.store(53, 49),         # debug: step reg49
-        S.const(54, dbg_base+4),
-        S.store(54, 14),         # debug: lt result
         S.cond_jump(14, "th_swp_loop"),
         S.halt(),
     ])
 
     await harness.load_program(program)
     cycles = await harness.run(max_cycles=50000)
-
-    # Read debug info
-    dbg_reg14_pre = harness.axi_mem.read_word(dbg_base)
-    dbg_counter = harness.axi_mem.read_word(dbg_base + 1)
-    dbg_limit = harness.axi_mem.read_word(dbg_base + 2)
-    dbg_step = harness.axi_mem.read_word(dbg_base + 3)
-    dbg_lt_res = harness.axi_mem.read_word(dbg_base + 4)
-    dut._log.warning(
-        f"DEBUG cv swp: cycles={cycles}, "
-        f"reg14_pre_incr={dbg_reg14_pre}, counter={dbg_counter}, "
-        f"limit={dbg_limit}, step={dbg_step}, lt_result={dbg_lt_res}"
-    )
 
     for i, exp in enumerate(golden):
         got = harness.axi_mem.read_word(900 + i)
@@ -658,5 +637,211 @@ async def test_full_image_threshold_kernel_sw_pipeline_with_artifacts(dut):
 
     dut._log.info(
         f"test_full_image_threshold_kernel_sw_pipeline_with_artifacts: cycles={cycles}, "
+        f"cpp={cycles / total:.4f}, artifacts={artifact_dir}"
+    )
+
+
+# ============================================================================
+#  Vector DSP kernel: affine transform with VLOAD + VBROADCAST + MADD + VSTORE
+# ============================================================================
+
+@cocotb.test()
+async def test_dsp_vector_affine_golden(dut):
+    """DSP kernel: vector affine transform out[i] = samples[i] * alpha + beta.
+
+    Exercises: VLOAD, VBROADCAST, VALU MUL, VALU ADD, VSTORE.
+    Processes 64 samples in groups of 8 (8 iterations).
+    """
+    harness = VliwCoreHarness(dut)
+
+    alpha = 3
+    beta = 17
+    samples = [((i * 11 + 7) & 0xFF) for i in range(64)]
+    golden = [_u32(s * alpha + beta) for s in samples]
+
+    harness.axi_mem.preload(0, samples)
+    await harness.init()
+
+    out_base = 800
+
+    program = build_program([
+        # Broadcast alpha and beta into vector registers
+        S.const(50, alpha),
+        S.vbroadcast(400, 50),       # v_alpha = [3,3,3,3,3,3,3,3]
+        S.const(51, beta),
+        S.vbroadcast(408, 51),       # v_beta  = [17,17,...,17]
+
+        # Running pointers
+        S.const(10, 0),              # in_addr
+        S.const(11, out_base),       # out_addr
+        S.const(0, 0),              # counter
+        S.const(1, 64),             # limit
+        S.const(2, 8),              # step
+
+        S.label("affine_loop"),
+        S.vload(320, 10),            # load 8 samples
+        S.valu_op("mul", 328, 320, 400),  # v_tmp = samples * alpha
+        S.valu_op("add", 336, 328, 408),  # v_out = v_tmp + beta
+        S.vstore(11, 336),           # store 8 results
+        S.add_imm(10, 10, 8),       # in_addr += 8
+        S.add_imm(11, 11, 8),       # out_addr += 8
+        S.add(0, 0, 2),             # counter += 8
+        S.lt(12, 0, 1),
+        S.cond_jump(12, "affine_loop"),
+        S.halt(),
+    ])
+
+    await harness.load_program(program)
+    cycles = await harness.run(max_cycles=50000)
+
+    for i, exp in enumerate(golden):
+        got = harness.axi_mem.read_word(out_base + i)
+        assert got == exp, f"dsp affine idx={i}: expected {exp}, got {got}"
+
+    dut._log.info(f"test_dsp_vector_affine_golden: cycles={cycles}, n={len(samples)}")
+
+
+# ============================================================================
+#  Vector CV kernel: threshold segmentation with VLOAD + VBROADCAST + VALU LT + VSTORE
+# ============================================================================
+
+@cocotb.test()
+async def test_cv_threshold_vector_golden(dut):
+    """CV kernel: vectorised pixel threshold segmentation.
+
+    Exercises: VLOAD, VBROADCAST, VALU LT, VSTORE.
+    Processes 64 pixels in groups of 8 (8 iterations) — 8× fewer than scalar.
+    """
+    harness = VliwCoreHarness(dut)
+
+    pixels = [((i * 13 + 17) & 0xFF) for i in range(64)]
+    threshold = 128
+    golden = _golden_threshold(pixels, threshold)
+
+    harness.axi_mem.preload(0, pixels)
+    await harness.init()
+
+    # out_base must satisfy (base % 16) in {0, 8} so that every
+    # VSTORE (8 lanes, step-8 loop) keeps wordOff + 7 <= 15.
+    out_base = 1024
+
+    program = build_program([
+        # Broadcast threshold into vector register
+        S.const(50, threshold),
+        S.vbroadcast(400, 50),       # v_threshold = [128]*8
+
+        # Running pointers
+        S.const(10, 0),              # in_addr
+        S.const(11, out_base),       # out_addr
+        S.const(0, 0),              # counter
+        S.const(1, 64),             # limit
+        S.const(2, 8),              # step
+
+        S.label("cv_vec_loop"),
+        S.vload(320, 10),            # load 8 pixels
+        S.valu_op("lt", 328, 320, 400),   # mask = pixel < threshold
+        S.vstore(11, 328),           # store 8 mask values
+        S.add_imm(10, 10, 8),       # in_addr += 8
+        S.add_imm(11, 11, 8),       # out_addr += 8
+        S.add(0, 0, 2),             # counter += 8
+        S.lt(12, 0, 1),
+        S.cond_jump(12, "cv_vec_loop"),
+        S.halt(),
+    ])
+
+    await harness.load_program(program)
+    cycles = await harness.run(max_cycles=50000)
+
+    for i, exp in enumerate(golden):
+        got = harness.axi_mem.read_word(out_base + i)
+        assert got == exp, f"cv vec idx={i}: expected {exp}, got {got}"
+
+    dut._log.info(f"test_cv_threshold_vector_golden: cycles={cycles}, n={len(pixels)}")
+
+
+# ============================================================================
+#  Vector full-image kernel: 64×64 threshold with VLOAD + VALU LT + VSTORE
+# ============================================================================
+
+@cocotb.test()
+async def test_full_image_threshold_vector_golden(dut):
+    """Full-image kernel (vectorised): threshold 64×64 image using VLOAD/VALU/VSTORE.
+
+    Processes 4096 pixels in groups of 8 (512 iterations) vs 4096 scalar iterations.
+    Emits same artifacts for direct comparison with scalar versions.
+    """
+    harness = VliwCoreHarness(dut)
+
+    width = 64
+    height = 64
+    total = width * height
+    in_base = 0
+    out_base = 5000
+    threshold = 128
+
+    input_pixels = [((row * 37 + col * 13 + 17) & 0xFF)
+                    for row in range(height) for col in range(width)]
+    golden_pixels = _golden_threshold(input_pixels, threshold)
+
+    harness.axi_mem.preload(in_base, input_pixels)
+    await harness.init()
+
+    program = build_program([
+        # Broadcast threshold
+        S.const(50, threshold),
+        S.vbroadcast(400, 50),       # v_threshold = [128]*8
+
+        # Running pointers
+        S.const(10, in_base),        # in_addr
+        S.const(11, out_base),       # out_addr
+        S.const(0, 0),              # counter
+        S.const(1, total),          # limit = 4096
+        S.const(2, 8),              # step
+
+        S.label("img_vec_loop"),
+        S.vload(320, 10),            # load 8 pixels
+        S.valu_op("lt", 328, 320, 400),   # mask = pixel < threshold
+        S.vstore(11, 328),           # store 8 mask values
+        S.add_imm(10, 10, 8),       # in_addr += 8
+        S.add_imm(11, 11, 8),       # out_addr += 8
+        S.add(0, 0, 2),             # counter += 8
+        S.lt(12, 0, 1),
+        S.cond_jump(12, "img_vec_loop"),
+        S.halt(),
+    ])
+
+    await harness.load_program(program)
+    cycles = await harness.run(max_cycles=200000)
+
+    vliw_pixels = [harness.axi_mem.read_word(out_base + i) & 0xFF for i in range(total)]
+    for i, exp in enumerate(golden_pixels):
+        got = vliw_pixels[i]
+        assert got == exp, f"full-image vec idx={i}: expected {exp}, got {got}"
+
+    # Emit vector version artifacts
+    artifact_dir = PROJECT_ROOT / "verification" / "results" / "full_image_kernel"
+    vec_pgm = artifact_dir / "output_vliw_vec_64x64.pgm"
+    vec_csv = artifact_dir / "output_vliw_vec_64x64_u32.csv"
+    vec_metrics = artifact_dir / "run_metrics_vec.json"
+
+    _write_pgm(vec_pgm, width, height, vliw_pixels)
+    _write_u32_csv(vec_csv, width, height, vliw_pixels)
+    vec_metrics.write_text(
+        (
+            "{\n"
+            f'  "kernel": "full_image_threshold_vec",\n'
+            f'  "width": {width},\n'
+            f'  "height": {height},\n'
+            f'  "pixels": {total},\n'
+            f'  "threshold": {threshold},\n'
+            f'  "cycles": {cycles},\n'
+            f'  "cycles_per_pixel": {cycles / total:.6f}\n'
+            "}\n"
+        ),
+        encoding="utf-8",
+    )
+
+    dut._log.info(
+        f"test_full_image_threshold_vector_golden: cycles={cycles}, "
         f"cpp={cycles / total:.4f}, artifacts={artifact_dir}"
     )
