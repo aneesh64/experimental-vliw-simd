@@ -3,9 +3,15 @@ Integration test runner for VliwCore.
 
 Runs the full VliwCore Verilog with scheduler-based integration tests.
 
+RTL generation is auto-detected: Scala sources and config properties are
+hashed and compared against the last successful build.  RTL is only
+regenerated when changes are detected (or when --rebuild-rtl is given).
+
 Usage:
-    python run_integration.py                      # regenerate RTL, then run all tests
-    python run_integration.py test_add_sub         # regenerate RTL, run selected tests
+    python run_integration.py                      # auto-detect RTL changes, run all tests
+    python run_integration.py --no-rtl             # skip RTL generation entirely
+    python run_integration.py --rebuild-rtl        # force RTL regeneration
+    python run_integration.py test_add_sub         # run selected tests (auto RTL)
     python run_integration.py --config path/to/test_config.properties
     python run_integration.py --modules test_slot_configs
 """
@@ -34,11 +40,12 @@ INTEGRATION_DIR = Path(__file__).parent
 RTL_DIR = PROJECT_ROOT / "generated_rtl" / "modules"
 
 
-def _parse_args(argv: list[str]) -> tuple[Path, list[str], str, Path, str]:
+def _parse_args(argv: list[str]) -> tuple[Path, list[str], str, Path, str, str]:
     cfg_path = default_config_path(PROJECT_ROOT)
     run_label = "manual"
     log_file = PROJECT_ROOT / "verification" / "results" / "integration_runs_v2.csv"
     modules = "test_slot_configs"
+    rtl_mode = "auto"   # "auto" | "force" | "skip"
     tests: list[str] = []
     idx = 0
     while idx < len(argv):
@@ -67,9 +74,17 @@ def _parse_args(argv: list[str]) -> tuple[Path, list[str], str, Path, str]:
             modules = argv[idx + 1]
             idx += 2
             continue
+        if token == "--rebuild-rtl":
+            rtl_mode = "force"
+            idx += 1
+            continue
+        if token == "--no-rtl":
+            rtl_mode = "skip"
+            idx += 1
+            continue
         tests.append(token)
         idx += 1
-    return cfg_path, tests, run_label, log_file, modules
+    return cfg_path, tests, run_label, log_file, modules, rtl_mode
 
 
 def _append_run_log(
@@ -133,6 +148,55 @@ def _append_run_log(
         writer.writerow(row)
 
 
+# ── RTL change detection ────────────────────────────────────────────────────
+
+import hashlib
+
+_RTL_HASH_FILE = RTL_DIR / ".rtl_source_hash"
+_SCALA_SRC_DIR = PROJECT_ROOT / "src"
+
+
+def _compute_source_hash(cfg) -> str:
+    """Hash all Scala sources + config properties to detect changes."""
+    h = hashlib.sha256()
+
+    # Hash Scala source files
+    if _SCALA_SRC_DIR.exists():
+        for p in sorted(_SCALA_SRC_DIR.rglob("*.scala")):
+            h.update(str(p.relative_to(PROJECT_ROOT)).encode())
+            h.update(p.read_bytes())
+
+    # Hash the test config (slot counts, etc.)
+    cfg_path = Path(cfg.config_path)
+    if cfg_path.exists():
+        h.update(cfg_path.read_bytes())
+
+    # Hash build.sbt for dependency changes
+    build_sbt = PROJECT_ROOT / "build.sbt"
+    if build_sbt.exists():
+        h.update(build_sbt.read_bytes())
+
+    return h.hexdigest()
+
+
+def _rtl_needs_rebuild(cfg) -> bool:
+    """Return True if RTL sources changed since last generation."""
+    verilog_file = RTL_DIR / "VliwCore.v"
+    if not verilog_file.exists():
+        return True
+    if not _RTL_HASH_FILE.exists():
+        return True
+    stored = _RTL_HASH_FILE.read_text(encoding="utf-8").strip()
+    current = _compute_source_hash(cfg)
+    return stored != current
+
+
+def _save_source_hash(cfg):
+    """Persist current source hash after successful RTL generation."""
+    _RTL_HASH_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _RTL_HASH_FILE.write_text(_compute_source_hash(cfg), encoding="utf-8")
+
+
 def _regenerate_rtl(cfg):
     env = dict(os.environ.copy())
     env.update(slot_env(cfg))
@@ -161,6 +225,8 @@ def _regenerate_rtl(cfg):
             check=True,
         )
 
+    _save_source_hash(cfg)
+
 
 def main():
     from cocotb_tools.runner import get_runner
@@ -168,17 +234,31 @@ def main():
     started = time.perf_counter()
 
     try:
-        cfg_path, requested_tests, run_label, log_file, modules = _parse_args(sys.argv[1:])
+        cfg_path, requested_tests, run_label, log_file, modules, rtl_mode = _parse_args(sys.argv[1:])
         cfg = load_test_config(config_path=cfg_path, project_root=PROJECT_ROOT)
     except (ValueError, FileNotFoundError) as e:
         print(f"ERROR: {e}")
         sys.exit(1)
 
-    try:
-        _regenerate_rtl(cfg)
-    except subprocess.CalledProcessError as e:
-        print(f"ERROR: RTL generation failed with exit code {e.returncode}")
-        sys.exit(e.returncode)
+    # RTL generation: skip / force / auto-detect
+    if rtl_mode == "skip":
+        print("RTL generation skipped (--no-rtl)")
+    elif rtl_mode == "force":
+        try:
+            _regenerate_rtl(cfg)
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: RTL generation failed with exit code {e.returncode}")
+            sys.exit(e.returncode)
+    else:  # auto
+        if _rtl_needs_rebuild(cfg):
+            print("Source changes detected — regenerating RTL …")
+            try:
+                _regenerate_rtl(cfg)
+            except subprocess.CalledProcessError as e:
+                print(f"ERROR: RTL generation failed with exit code {e.returncode}")
+                sys.exit(e.returncode)
+        else:
+            print("RTL up-to-date (no source/config changes detected)")
 
     verilog_file = RTL_DIR / "VliwCore.v"
     if not verilog_file.exists():

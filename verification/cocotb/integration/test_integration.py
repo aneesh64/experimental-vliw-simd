@@ -916,3 +916,64 @@ async def test_valu_src3_ops_multicycle_golden(dut):
     assert b7 == expected_broadcast[7], f"vbroadcast lane7 expected {expected_broadcast[7]}, got {b7}"
 
 
+# ============================================================================
+#  Test 24: Scalar-on-vector-bank scheduling isolation
+# ============================================================================
+
+@cocotb.test()
+async def test_scalar_vector_bank_isolation_schedule(dut):
+    """
+    Scalar memory ops targeting vector banks must not co-issue with vector ops.
+
+    This test constructs a schedule that would otherwise co-issue under relaxed
+    post-gaps, then verifies scheduler isolation and functional execution.
+    """
+    harness = VliwCoreHarness(dut)
+    harness.axi_mem.preload(0, [0x12345678])
+    await harness.init()
+
+    local_sched = VliwScheduler(SchedulerConfig(
+        n_alu_slots=N_ALU_SLOTS,
+        n_valu_slots=N_VALU_SLOTS,
+        n_load_slots=N_LOAD_SLOTS,
+        n_store_slots=N_STORE_SLOTS,
+        n_flow_slots=N_FLOW_SLOTS,
+        mem_post_gap=-1,
+        valu_post_gap=-1,
+    ))
+
+    ops = [
+        local_sched.const(15, 0),
+        local_sched.valu_op("add", 327, 330, 331, vlen=1),
+        local_sched.load_from_vector_bank(1, 15),
+        local_sched.const(10, 1400),
+        local_sched.store(10, 1),
+        local_sched.halt(),
+    ]
+
+    bundles_dicts = local_sched.schedule(ops)
+
+    valu_pc = -1
+    scalar_vec_load_pc = -1
+    for pc, bundle in enumerate(bundles_dicts):
+        for op in bundle.get("valu", []):
+            if op and op[0] == "add":
+                valu_pc = pc
+        for op in bundle.get("load", []):
+            if op and op[0] == "load" and len(op) >= 3 and op[1] == 1 and op[2] == 15:
+                scalar_vec_load_pc = pc
+
+    assert valu_pc >= 0, "Expected VALU op in schedule"
+    assert scalar_vec_load_pc >= 0, "Expected scalar vector-bank LOAD in schedule"
+    assert scalar_vec_load_pc > valu_pc, (
+        "Scalar LOAD targeting vector bank must not co-issue with vector instructions"
+    )
+
+    program = ASM.assemble_program(bundles_dicts)
+    await harness.load_program(program)
+    await harness.run(max_cycles=8000)
+
+    observed = harness.axi_mem.read_word(1400)
+    assert observed == 0x12345678, f"Expected 0x12345678, got 0x{observed:08x}"
+
+

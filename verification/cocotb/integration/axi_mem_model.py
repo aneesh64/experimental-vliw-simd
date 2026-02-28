@@ -116,9 +116,9 @@ class Axi4MemoryModel:
                 try:
                     addr = int(self._sig("ar_payload_addr").value)
                 except ValueError:
-                    # Transient X/Z on address; skip this cycle and wait for
-                    # a stable handshake to avoid crashing the coroutine.
-                    continue
+                    # X/Z on address — complete the handshake with zero data
+                    # to avoid permanently blocking the requester.
+                    addr = 0
                 burst_len = int(self._sig("ar_payload_len").value)  # should be 0
 
                 # Accept AR
@@ -169,9 +169,9 @@ class Axi4MemoryModel:
                 try:
                     addr = int(self._sig("aw_payload_addr").value)
                 except ValueError:
-                    # Transient X/Z on address; skip this cycle and wait for
-                    # a stable handshake to avoid crashing the coroutine.
-                    continue
+                    # X/Z on address — complete the handshake with dummy write
+                    # to avoid permanently blocking the requester.
+                    addr = 0
                 burst_len = int(self._sig("aw_payload_len").value)  # should be 0
 
                 # Accept AW

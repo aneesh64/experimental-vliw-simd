@@ -59,7 +59,8 @@ A compiler-trusted VLIW processor with SIMD capabilities, optimized for simplici
 **1× Flow Engine**
 - Operations: JAL, JALR, BEQ, BNE, BLT, BGE, BLTU, BGEU
 - Target: PC-relative or register-based
-- Latency: 1 cycle (taken branch updates PC immediately)
+- Latency: 3-cycle branch delay slot (IF→Decode→EX pipeline depth)
+- Scheduler inserts 3 NOP bundles after taken branches (`JUMP_BUBBLE=3`)
 
 ### Register File
 - **Scalar Registers:** 32 × 32-bit general-purpose registers (r0-r31)
@@ -256,8 +257,8 @@ VliwSocConfig(
 ```
 
 ### Tested Configurations
-- **Baseline (test_config.properties):** 1-1-1-1-1 → ✅ 22/23 tests PASS
-- **Dual-ALU (test_config_alu2.properties):** 2-1-1-1-1 → ⚠️ 20/23 tests (writeback issue)
+- **Baseline (test_config.properties):** 1-1-1-1-1 → ✅ 24/24 tests PASS
+- **Dual-ALU (test_config_alu2.properties):** 2-1-1-1-1 → ⚠️ Writeback issue (see KNOWN_ISSUES.md)
 - **Expanded (test_config_expanded.properties):** 2-2-1-1-1 → ⏳ Not tested
 
 ---
@@ -273,7 +274,7 @@ VliwSocConfig(
 | Load (cache hit) | 2-3 | AXI latency dependent |
 | Load AR drive | 0 | Combinatorial (Phase 3) |
 | Store | 1 | Fire-and-forget |
-| Branch taken | 1 | PC update immediate |
+| Branch taken | 3 | 3-cycle delay slot (IF→Decode→EX depth) |
 | Branch not taken | 0 | Falls through |
 
 ---
@@ -356,6 +357,9 @@ Cycle 2: Writeback r3 (scalar) and v1 (vector) simultaneously
   - No hazards (compiler enforced)
   - Max 1 operation per engine per bundle
   - Single pending load limitation
+  - Scalar load/store default to scalar memory domain
+  - Vector ops (`vload`/`vstore`/`valu`) target vector memory domain
+  - Scalar memory ops explicitly targeting vector banks must not co-issue with vector instructions in the same bundle
 
 ### Assembler (tools/assembler.py)
 - **Input:** Scheduled bundles (JSON format)
@@ -367,13 +371,13 @@ Cycle 2: Writeback r3 (scalar) and v1 (vector) simultaneously
 ## Verification Status
 
 **Baseline Configuration:**
-- 22/23 tests PASS ✅
+- 24/24 tests PASS ✅
 - Comprehensive coverage:
   - ALU operations (10+ tests)
   - Memory operations (5+ tests)
   - Control flow (3+ tests)
   - Vector operations (4+ tests)
-- Known timeout: test_long_memory_accumulate_golden (non-critical)
+- All tests complete within cycle budgets (no timeouts)
 
 **Simulation Performance:**
 - Throughput: 23,272 ns/s

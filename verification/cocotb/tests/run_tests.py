@@ -2,8 +2,14 @@
 Python-based cocotb test runner for all VLIW SIMD modules.
 Uses cocotb_tools.runner instead of Makefiles (better Windows support).
 
+RTL generation is auto-detected: Scala sources and config properties are
+hashed and compared against the last successful build.  RTL is only
+regenerated when changes are detected (or when --rebuild-rtl is given).
+
 Usage:
-    python run_tests.py                    # run all tests
+    python run_tests.py                    # auto-detect RTL changes, run all
+    python run_tests.py --no-rtl           # skip RTL generation entirely
+    python run_tests.py --rebuild-rtl      # force RTL regeneration
     python run_tests.py divider            # run only the divider test
     python run_tests.py divider alu flow   # run specific modules
 """
@@ -43,6 +49,46 @@ MODULE_DEFS = {
 }
 
 
+# ── RTL change detection ────────────────────────────────────────────────────
+
+import hashlib
+
+_RTL_HASH_FILE = RTL_DIR / ".rtl_source_hash"
+_SCALA_SRC_DIR = PROJECT_ROOT / "src"
+
+
+def _compute_source_hash(cfg) -> str:
+    """Hash all Scala sources + config properties to detect changes."""
+    h = hashlib.sha256()
+    if _SCALA_SRC_DIR.exists():
+        for p in sorted(_SCALA_SRC_DIR.rglob("*.scala")):
+            h.update(str(p.relative_to(PROJECT_ROOT)).encode())
+            h.update(p.read_bytes())
+    cfg_path = Path(cfg.config_path)
+    if cfg_path.exists():
+        h.update(cfg_path.read_bytes())
+    build_sbt = PROJECT_ROOT / "build.sbt"
+    if build_sbt.exists():
+        h.update(build_sbt.read_bytes())
+    return h.hexdigest()
+
+
+def _rtl_needs_rebuild(cfg) -> bool:
+    """Return True if RTL sources changed since last generation."""
+    # Check for any generated Verilog file (VliwCore.v is the main output)
+    if not (RTL_DIR / "VliwCore.v").exists():
+        return True
+    if not _RTL_HASH_FILE.exists():
+        return True
+    stored = _RTL_HASH_FILE.read_text(encoding="utf-8").strip()
+    return stored != _compute_source_hash(cfg)
+
+
+def _save_source_hash(cfg):
+    _RTL_HASH_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _RTL_HASH_FILE.write_text(_compute_source_hash(cfg), encoding="utf-8")
+
+
 def _regenerate_rtl(cfg):
     env = dict(os.environ.copy())
     env.update(slot_env(cfg))
@@ -69,6 +115,7 @@ def _regenerate_rtl(cfg):
             env=env,
             check=True,
         )
+    _save_source_hash(cfg)
 
 
 def run_test(name: str, info: dict, cfg, sim: str = "icarus") -> dict:
@@ -125,6 +172,7 @@ def run_test(name: str, info: dict, cfg, sim: str = "icarus") -> dict:
 def main():
     args = sys.argv[1:]
     cfg_path = default_config_path(PROJECT_ROOT)
+    rtl_mode = "auto"   # "auto" | "force" | "skip"
     filtered_args = []
     idx = 0
     while idx < len(args):
@@ -135,6 +183,14 @@ def main():
             cfg_path = Path(args[idx + 1])
             idx += 2
             continue
+        if args[idx] == "--rebuild-rtl":
+            rtl_mode = "force"
+            idx += 1
+            continue
+        if args[idx] == "--no-rtl":
+            rtl_mode = "skip"
+            idx += 1
+            continue
         filtered_args.append(args[idx])
         idx += 1
 
@@ -144,11 +200,24 @@ def main():
         print(f"ERROR: {e}")
         sys.exit(1)
 
-    try:
-        _regenerate_rtl(cfg)
-    except subprocess.CalledProcessError as e:
-        print(f"ERROR: RTL generation failed with exit code {e.returncode}")
-        sys.exit(e.returncode)
+    if rtl_mode == "skip":
+        print("RTL generation skipped (--no-rtl)")
+    elif rtl_mode == "force":
+        try:
+            _regenerate_rtl(cfg)
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: RTL generation failed with exit code {e.returncode}")
+            sys.exit(e.returncode)
+    else:  # auto
+        if _rtl_needs_rebuild(cfg):
+            print("Source changes detected — regenerating RTL …")
+            try:
+                _regenerate_rtl(cfg)
+            except subprocess.CalledProcessError as e:
+                print(f"ERROR: RTL generation failed with exit code {e.returncode}")
+                sys.exit(e.returncode)
+        else:
+            print("RTL up-to-date (no source/config changes detected)")
 
     # Determine which modules to run
     if filtered_args:

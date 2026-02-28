@@ -6,6 +6,76 @@
 
 ---
 
+## Bug Fix: Branch Delay Slot & AXI Robustness (February 28, 2026)
+
+### Summary
+Fixed critical scheduler bug where `JUMP_BUBBLE=1` was insufficient for the 3-cycle hardware branch delay, causing `test_long_memory_accumulate_golden` to deadlock. Also hardened the AXI memory model against X/Z addresses and added smart RTL rebuild to the verification infrastructure.
+
+### Root Cause
+The VLIW pipeline has a 3-cycle branch delay (IF→Decode→EX depth). With `JUMP_BUBBLE=1`, only 1 NOP was inserted after jumps, leaving 2 post-jump bundles executing in the delay window. In the memory accumulation test, a post-loop STORE instruction executed every iteration within the branch delay, issuing AXI writes with X/Z addresses. The AXI model silently skipped these handshakes (`aw_ready` never asserted), leaving the MemoryEngine's store state machine stuck in `STORE_AW_W` forever — pipeline deadlock.
+
+### Changes
+
+**Scheduler Fix (`tools/scheduler.py`)**
+- `JUMP_BUBBLE`: 1 → 3 (matches actual 3-cycle hardware branch delay)
+- All schedules now emit 3 NOP bundles after conditional/unconditional jumps
+- All 24 integration tests pass, no regressions
+
+**AXI Memory Model Robustness (`verification/cocotb/integration/axi_mem_model.py`)**
+- AR channel: X/Z addresses now treated as `addr=0` with handshake completion (was: silent `continue`)
+- AW channel: Same defensive fix — prevents store state machine deadlock
+- Both channels log a warning when X/Z address is encountered
+
+**Smart RTL Rebuild (`verification/cocotb/integration/run_integration.py`, `verification/cocotb/tests/run_tests.py`)**
+- Added auto-detection of RTL source changes via SHA256 hash of all Scala sources + config + build.sbt
+- Hash stored at `generated_rtl/modules/.rtl_source_hash`
+- New CLI flags: `--rebuild-rtl` (force), `--no-rtl` (skip), default is "auto"
+- RTL only regenerated when sources change, saving ~30s per test run
+
+**Scheduler Memory Domain Isolation (`tools/scheduler.py`)**
+- Scalar memory ops targeting vector banks are now isolated from vector instructions
+- Prevents co-issuing scalar loads/stores on vector bank addresses with VALU ops in the same bundle
+- New test: `test_scalar_vector_bank_isolation_schedule` (test 24)
+
+### Test Results
+- **Integration:** 24/24 PASS (was 22/23 + 1 timeout)
+- **Module-level:** 47/47 PASS
+- **Previously failing:** `test_long_memory_accumulate_golden` — now completes in 1,749 cycles
+
+### Files Modified
+- `tools/scheduler.py` — JUMP_BUBBLE=3, memory domain isolation
+- `verification/cocotb/integration/axi_mem_model.py` — X/Z address handling
+- `verification/cocotb/integration/run_integration.py` — Smart RTL rebuild
+- `verification/cocotb/tests/run_tests.py` — Smart RTL rebuild
+- `verification/cocotb/integration/test_integration.py` — New test 24 (bank isolation)
+
+### Files Added
+- `tools/test_scheduler_memory_domains.py` — Unit tests for memory domain scheduling
+
+---
+
+## Maintenance: Toolchain Upgrade (February 28, 2026)
+
+### Summary
+Upgraded global development toolchain and aligned project build pins to current versions.
+
+### Changes
+- **Global Java:** Upgraded to Temurin JDK 21 (`21.0.10`)
+- **Global Scala launcher:** Updated via Coursier (`scala` default now Scala `3.8.2`)
+- **Global SBT runner:** Updated via Coursier (`1.12.4`)
+- **Project Scala pin:** Updated `build.sbt` from `2.13.14` → `2.13.16`
+- **Project SBT pin:** Updated `project/build.properties` from `1.10.6` → `1.12.4`
+
+### Validation
+- `sbt --batch compile` completed successfully on updated toolchain
+- Build loaded and compiled all Scala sources with no migration changes required
+
+### Files Modified
+- `build.sbt`
+- `project/build.properties`
+
+---
+
 ## Phase 3: Memory Engine Simplification (February 2026)
 
 ### Summary
@@ -304,13 +374,14 @@ Result: 1,105 LOC RTL + 290 LOC driver = Production Ready
 
 ---
 
-## Current Status (February 21, 2026)
+## Current Status (February 28, 2026)
 
 ### Production Ready ✅
 - **Baseline Config:** 22/23 tests passing
 - **RTL:** Simplified and verified
 - **Driver:** Complete C API
 - **Documentation:** Comprehensive
+- **Toolchain:** Java 21 + sbt 1.12.4 + Scala 2.13.16 (project)
 
 ### Known Issues ⚠️
 - **Multi-ALU:** Requires investigation (4-6 hours)

@@ -1,7 +1,7 @@
 # Known Issues and Limitations
 
-**Last Updated:** February 21, 2026  
-**Current Version:** Baseline Production-Ready (Phase 3 Complete)
+**Last Updated:** February 28, 2026  
+**Current Version:** Baseline Production-Ready (Phase 3 Complete + Branch Delay Fix)
 
 ---
 
@@ -45,38 +45,20 @@ Use baseline single-ALU configuration for production deployment.
 
 ## Non-Critical Issues
 
-### 2. Long Memory Accumulate Timeout ⏱️
+### ~~2. Long Memory Accumulate Timeout~~ ✅ RESOLVED
 
-**Priority:** LOW  
-**Impact:** 1 test times out, does not indicate functional failure  
-**Severity:** Non-blocking for deployment
+**Status:** RESOLVED (February 28, 2026)  
+**Resolution:** Scheduler `JUMP_BUBBLE` corrected from 1 → 3
 
-**Description:**  
-Test `test_long_memory_accumulate_golden` times out at 2,000,000 simulation cycles.
+**Root Cause:**  
+The scheduler's `JUMP_BUBBLE=1` was insufficient for the hardware's 3-cycle branch delay (IF→Decode→EX pipeline depth). Post-loop STORE instructions executed within the branch delay window every iteration, issuing AXI writes with X/Z addresses. The AXI memory model silently skipped these handshakes, leaving the MemoryEngine's store state machine permanently stuck in `STORE_AW_W` — causing pipeline deadlock.
 
-**Affected Tests:**
-- `test_long_memory_accumulate_golden`: Timeout (affects all configurations including baseline)
+**Fix Applied:**
+1. `JUMP_BUBBLE = 3` in `tools/scheduler.py` — matches actual hardware branch delay
+2. AXI model: X/Z addresses treated as `addr=0` with handshake completion (defensive fix)
 
-**Configuration Impact:**
-- Baseline: 1/23 timeout
-- Dual-ALU: 1/23 timeout (+ 2 other failures)
-- All configs affected equally
-
-**Root Cause Analysis:**
-This appears to be expected behavior for a high-compute accumulation workload. The test performs many memory accesses and accumulations, which may legitimately require > 2M cycles.
-
-**Possible Optimizations:**
-1. Increase timeout threshold (if workload is valid)
-2. Optimize scheduler for better loop unrolling
-3. Use vector operations instead of scalar accumulation
-4. Check if test golden model expectations are correct
-
-**Time Estimate:** 2+ hours if optimization pursued
-
-**Workaround:**  
-Not needed - test timeout is non-critical for production use cases.
-
-**Status:** Accepted as known limitation
+**Verification:**  
+`test_long_memory_accumulate_golden` now completes in 1,749 cycles with correct result (7,392). All 24/24 integration tests pass.
 
 ---
 
@@ -224,7 +206,7 @@ All memory operations pass in baseline configuration (22/23 tests).
 | Issue ID | Description | Priority | Status | Target Fix |
 |----------|-------------|----------|--------|------------|
 | #1 | Dual-ALU writeback | HIGH | Investigation | Next sprint |
-| #2 | Long memory timeout | LOW | Accepted | Optional |
+| #2 | Long memory timeout | — | RESOLVED | — |
 | #3 | Single pending load | MEDIUM | Accepted | Future enhancement |
 | #4 | No store response | MEDIUM | Accepted | Future enhancement |
 | #5 | Driver API mismatch | MEDIUM | Identified | Quick fix available |
@@ -239,7 +221,7 @@ All memory operations pass in baseline configuration (22/23 tests).
 - **Blockers:** None
 - **Workarounds Required:** None
 - **Known Limitations:** Single pending load (compiler handles)
-- **Test Coverage:** 22/23 PASS (95.7%)
+- **Test Coverage:** 24/24 PASS (100%)
 - **Recommendation:** ✅ Production ready
 
 ### Multi-ALU Scaling
@@ -266,5 +248,5 @@ All memory operations pass in baseline configuration (22/23 tests).
 
 ---
 
-**Last Review:** February 21, 2026  
+**Last Review:** February 28, 2026  
 **Next Review:** After dual-ALU fix investigation

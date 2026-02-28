@@ -26,7 +26,7 @@ Usage:
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Tuple, Any
+from typing import List, Optional, Dict, Tuple, Any, Literal
 import math
 
 
@@ -53,7 +53,7 @@ DIV_LATENCY = 34
 DIV_BUSY_CYCLES = 33
 
 # Jump: 1 dead slot after branch (fetch invalidates in-flight instruction).
-JUMP_BUBBLE = 1
+JUMP_BUBBLE = 3
 
 # Async memory read completion to scratch (queue + AXI handshake + writeback).
 # Conservative value to keep dependent consumers from reading too early.
@@ -71,6 +71,8 @@ DEFAULT_MEM_POST_GAP = 2
 # A 1-bundle post-gap avoids back-to-back VALU bundles that would otherwise
 # overlap src2 reads with prior bundle writes.
 DEFAULT_VALU_POST_GAP = 2
+
+MemoryDomain = Literal["scalar", "vector"]
 
 
 # ============================================================================
@@ -289,17 +291,21 @@ class VliwScheduler:
                   params={"dest": dest, "value": value},
                   latency=CONST_RESULT_LATENCY)
 
-    def load(self, dest: int, addr_reg: int) -> Op:
+    def load(self, dest: int, addr_reg: int,
+             memory_domain: MemoryDomain = "scalar") -> Op:
         """LOAD scratch[dest] = mem[scratch[addr_reg]]."""
         return Op(engine="load", op="load", dests=[dest], srcs=[addr_reg],
-                  params={"dest": dest, "addr_reg": addr_reg},
+                  params={"dest": dest, "addr_reg": addr_reg,
+                          "memory_domain": memory_domain},
                   latency=LOAD_RESULT_LATENCY)
 
-    def load_offset(self, dest: int, addr_reg: int, offset: int) -> Op:
+    def load_offset(self, dest: int, addr_reg: int, offset: int,
+                    memory_domain: MemoryDomain = "scalar") -> Op:
         """LOAD_OFFSET scratch[dest+offset] = mem[scratch[addr_reg]+offset]."""
         return Op(engine="load", op="load_offset",
                   dests=[dest + offset], srcs=[addr_reg],
-                  params={"dest": dest, "addr_reg": addr_reg, "offset": offset},
+                  params={"dest": dest, "addr_reg": addr_reg,
+                          "offset": offset, "memory_domain": memory_domain},
                   latency=LOAD_RESULT_LATENCY)
 
     def vload(self, dest_base: int, addr_reg: int, vlen: int = 8) -> Op:
@@ -307,19 +313,31 @@ class VliwScheduler:
         return Op(engine="load", op="vload",
                   dests=list(range(dest_base, dest_base + vlen)),
                   srcs=[addr_reg],
-                  params={"dest": dest_base, "addr_reg": addr_reg},
+                  params={"dest": dest_base, "addr_reg": addr_reg,
+                          "memory_domain": "vector"},
                   latency=LOAD_RESULT_LATENCY)
 
-    def store(self, addr_reg: int, src_reg: int) -> Op:
+    def store(self, addr_reg: int, src_reg: int,
+              memory_domain: MemoryDomain = "scalar") -> Op:
         """STORE mem[scratch[addr_reg]] = scratch[src_reg]."""
         return Op(engine="store", op="store", dests=[], srcs=[addr_reg, src_reg],
-                  params={"addr_reg": addr_reg, "src_reg": src_reg})
+                  params={"addr_reg": addr_reg, "src_reg": src_reg,
+                          "memory_domain": memory_domain})
 
     def vstore(self, addr_reg: int, src_base: int, vlen: int = 8) -> Op:
         """VSTORE mem burst from scratch[src..src+VLEN-1]."""
         return Op(engine="store", op="vstore", dests=[],
                   srcs=[addr_reg] + list(range(src_base, src_base + vlen)),
-                  params={"addr_reg": addr_reg, "src_reg": src_base})
+                  params={"addr_reg": addr_reg, "src_reg": src_base,
+                          "memory_domain": "vector"})
+
+    def load_from_vector_bank(self, dest: int, addr_reg: int) -> Op:
+        """Scalar LOAD from vector memory bank (serialized vs vector ops)."""
+        return self.load(dest, addr_reg, memory_domain="vector")
+
+    def store_to_vector_bank(self, addr_reg: int, src_reg: int) -> Op:
+        """Scalar STORE to vector memory bank (serialized vs vector ops)."""
+        return self.store(addr_reg, src_reg, memory_domain="vector")
 
     # ---- ALU operations ----
 
@@ -523,13 +541,13 @@ class VliwScheduler:
 
         return result
 
-    def _split_basic_blocks(self, items: List) -> List[List]:
+    def _split_basic_blocks(self, items: List) -> List[List[Any]]:
         """
         Split items into basic blocks.
         A new block starts after a jump and at each label.
         """
-        blocks = []
-        current_block = []
+        blocks: List[List[Any]] = []
+        current_block: List[Any] = []
 
         for item in items:
             if isinstance(item, Label):
@@ -548,6 +566,52 @@ class VliwScheduler:
             blocks.append(current_block)
 
         return blocks
+
+    @staticmethod
+    def _memory_domain(op: Op) -> Optional[str]:
+        """Return the memory domain for memory ops, else None."""
+        if op.engine not in ("load", "store"):
+            return None
+        if op.op == "const":
+            return None
+        if op.op in ("vload", "vstore"):
+            return "vector"
+        return op.params.get("memory_domain", "scalar")
+
+    @classmethod
+    def _is_vector_instruction(cls, op: Op) -> bool:
+        """Vector instruction classes that may contend with vector banks."""
+        return op.engine == "valu" or op.op in ("vload", "vstore")
+
+    @classmethod
+    def _is_scalar_mem_on_vector_bank(cls, op: Op) -> bool:
+        """Scalar memory op explicitly targeting vector banks."""
+        if op.op not in ("load", "load_offset", "store"):
+            return False
+        return cls._memory_domain(op) == "vector"
+
+    @classmethod
+    def _has_vector_bank_contention(cls, existing_ops: List[Op], new_op: Op) -> bool:
+        """
+        Prevent scalar-on-vector-bank memory ops from co-issuing with vector ops.
+
+        This isolates scalar probes/copies into vector memory from active
+        vector compute/memory traffic in the same bundle.
+        """
+        if not existing_ops:
+            return False
+
+        new_is_scalar_vecmem = cls._is_scalar_mem_on_vector_bank(new_op)
+        new_is_vector_instr = cls._is_vector_instruction(new_op)
+
+        if not (new_is_scalar_vecmem or new_is_vector_instr):
+            return False
+
+        existing_has_scalar_vecmem = any(cls._is_scalar_mem_on_vector_bank(op) for op in existing_ops)
+        existing_has_vector_instr = any(cls._is_vector_instruction(op) for op in existing_ops)
+
+        return (new_is_scalar_vecmem and existing_has_vector_instr) or \
+               (new_is_vector_instr and existing_has_scalar_vecmem)
 
     def _schedule_block(
         self,
@@ -632,6 +696,19 @@ class VliwScheduler:
                     # Non-blocking memory: FLOW + memory ops CAN coexist in
                     # the same bundle. Memory pushes to FIFO without stalling,
                     # so control ops are not re-observed.
+
+                    # Scalar accesses to vector memory banks must not co-issue
+                    # with vector instructions (memory or VALU) to avoid
+                    # contention on vector-bank traffic.
+                    if cycle in cycle_bundles:
+                        existing_ops = [
+                            placed
+                            for ops_list in cycle_bundles[cycle].values()
+                            for placed in ops_list
+                        ]
+                        if self._has_vector_bank_contention(existing_ops, op):
+                            cycle += 1
+                            continue
 
                     # WAW check: no two ops write same register in same cycle
                     waw_conflict = False

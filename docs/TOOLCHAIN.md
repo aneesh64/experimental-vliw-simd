@@ -184,7 +184,7 @@ s = VliwScheduler(cfg)
 | `VALU_SRC3_LATENCY` | 3 | For VBROADCAST, MULTIPLY_ADD (extra pipeline stage) |
 | `DIV_LATENCY` | 35 | Issue to readable: 33 busy + 2 scratch readback |
 | `DIV_BUSY_CYCLES` | 33 | Divider occupied cycles |
-| `JUMP_BUBBLE` | 1 | Dead slot after taken branch |
+| `JUMP_BUBBLE` | 3 | Dead slots after taken branch (3-cycle delay) |
 | `DEFAULT_MEM_POST_GAP` | 2 | NOP bundles after memory ops |
 
 ### Operation Constructors
@@ -589,9 +589,10 @@ After a bundle containing a non-CONST memory op, the scheduler advances `current
 
 After a jump op at cycle `C`:
 ```
-current_cycle = C + 1 + JUMP_BUBBLE = C + 2
+current_cycle = C + 1 + JUMP_BUBBLE = C + 4
 ```
-The bubble cycle is emitted as a NOP bundle.
+Three NOP bundles are emitted to fill the 3-cycle branch delay slot
+(matching the IF→Decode→EX pipeline depth).
 
 ### Loop-Carried Dependency Verification
 
