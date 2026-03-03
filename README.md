@@ -2,13 +2,12 @@
 
 A simplified VLIW (Very Long Instruction Word) processor with SIMD capabilities, optimized for embedded SoC deployment.
 
-**This repository contains a production-ready baseline VLIW SIMD processor design with full verification coverage (24/24 tests passing).**
+**This repository contains a production-ready baseline VLIW SIMD processor design with multi-width VALU support and grouped verification suites.**
 
 ## Status: Production Ready (Baseline)
 
-**Test Results:** 24/24 PASS (100%)  
+**Verification Snapshot (Mar 2026):** 55/55 PASS (100%) across grouped integration + algorithm suites  
 **Architecture:** 3-stage pipeline, compiler-trusted design  
-**RTL Size:** 1,105 LOC (15.3% reduction from original)  
 **Configuration:** 1 ALU, 1 VALU, 1 Load, 1 Store engines
 
 ## Quick Start
@@ -29,7 +28,10 @@ python verification/cocotb/integration/run_integration.py --modules test_integra
 # python verification/cocotb/integration/run_integration.py --modules test_integration_vector
 # python verification/cocotb/integration/run_integration.py --modules test_algorithms_kernels
 # python verification/cocotb/integration/run_integration.py --modules test_algorithms_multiwidth
-# Expected: 24/24 PASS (RTL auto-rebuilds only when sources change)
+# Recent verified status:
+# - test_integration: 27/27 PASS
+# - test_algorithms_kernels: 13/13 PASS
+# - test_algorithms_multiwidth: 15/15 PASS
 ```
 
 ### Use C Driver
@@ -52,10 +54,16 @@ uint32_t result = vliw_read_dmem(0); // Read result
 
 ### Execution Engines (Baseline Config)
 - **1× ALU:** Add, sub, mul, shift, compare, divide
-- **1× VALU:** 16-lane vector operations
+- **1× VALU:** 16-lane vector operations with multi-width packed execution
 - **1× Load:** Combinatorial AR drive, single pending request
 - **1× Store:** Direct memory write
 - **1× Flow:** Branches, jumps, conditionals
+
+### VALU Capabilities
+- **Element widths:** EW32, EW16, EW8, EW4, EW64 (lane pairing for 64-bit)
+- **Opcodes:** lane-wise ALU ops + `VBROADCAST`, `MULTIPLY_ADD`, `VCAST`
+- **Width-aware fields:** VALU slot includes `ewidth`, `dwidth`, and `signed`
+- **Widening paths:** `MUL`/`MULTIPLY_ADD` with widening and cast conversion paths
 
 ### Memory
 - **Banked Scratch:** 16KB (4 banks × 4KB)
@@ -95,18 +103,19 @@ uint32_t result = vliw_read_dmem(0); // Read result
 
 ```
 vliw_simd/
-├── src/main/scala/vliw/          # RTL source (Chisel)
-│   ├── VliwCore.scala            # Core (361 LOC)
-│   ├── MemoryEngine.scala        # Memory (367 LOC)
-│   ├── BankedScratchMemory.scala # Scratch (403 LOC)
-│   └── soc/                      # SoC integration
-│       ├── VliwSimdSoc.scala     # Top-level (244 LOC)
-│       └── HostInterface.scala   # CSR block (~150 LOC)
-├── vliw_driver.h/c               # C driver library (230 LOC)
+├── src/main/scala/vliw/                    # RTL source (SpinalHDL)
+│   ├── core/                               # Core pipeline + decode/fetch/writeback
+│   ├── engine/                             # ALU/VALU/Flow/Memory engines
+│   │   └── valu/                           # VALU helper abstractions (packed/widen/cast)
+│   ├── memory/                             # Scratch + memory subsystems
+│   └── gen/                                # RTL generators
+├── drivers/                                # C driver library
 ├── example_count.c               # Example program
 ├── tools/                        # Assembler, scheduler
+│   └── tests/                    # Toolchain scheduler tests
 ├── verification/                 # Test infrastructure
 │   ├── cocotb/                   # Python/cocotb tests
+│   │   └── integration/           # Grouped suites: scalar/memory/control/vector + algorithms
 │   └── config/                   # Configuration variants
 ├── generated_rtl/                # Generated Verilog
 └── docs/                         # Documentation
@@ -116,7 +125,7 @@ vliw_simd/
 
 Configuration files in `verification/config/`:
 
-- **test_config.properties** (Baseline): 1 ALU, 1 VALU - ✅ 24/24 PASS
+- **test_config.properties** (Baseline): 1 ALU, 1 VALU - ✅ current grouped suites passing
 - **test_config_alu2.properties**: 2 ALU - ⚠️ Known writeback issue
 - **test_config_expanded.properties**: 2 ALU, 2 VALU - ⏳ Not tested
 
@@ -139,12 +148,16 @@ python verification/cocotb/tests/run_tests.py
 
 # 3. Run integration suite (auto-detects RTL changes)
 python verification/cocotb/integration/run_integration.py --modules test_integration
+python verification/cocotb/integration/run_integration.py --modules test_algorithms_kernels
+python verification/cocotb/integration/run_integration.py --modules test_algorithms_multiwidth
 
 # Optional grouped runs
 python verification/cocotb/integration/run_integration.py --modules test_integration_scalar
-python verification/cocotb/integration/run_integration.py --modules test_algorithms_multiwidth
+python verification/cocotb/integration/run_integration.py --modules test_integration_memory
+python verification/cocotb/integration/run_integration.py --modules test_integration_control
+python verification/cocotb/integration/run_integration.py --modules test_integration_vector
 
-# 4. Check results (expect 24/24 PASS)
+# 4. Check results
 # Use --rebuild-rtl to force RTL regeneration, --no-rtl to skip
 ```
 
@@ -152,7 +165,7 @@ python verification/cocotb/integration/run_integration.py --modules test_algorit
 
 **Baseline Configuration:**
 - Throughput: ~19,000 ns/s (simulation)
-- Test Suite: ~3.7s (24 tests)
+- Integration + algorithm grouped suites verified (see Status section)
 - Signal Count: 195 signals
 - Load Latency: 0-cycle AR drive
 
