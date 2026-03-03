@@ -13,7 +13,14 @@ Usage:
     python run_integration.py --rebuild-rtl        # force RTL regeneration
     python run_integration.py test_add_sub         # run selected tests (auto RTL)
     python run_integration.py --config path/to/test_config.properties
-    python run_integration.py --modules test_slot_configs
+    python run_integration.py --modules test_integration
+    python run_integration.py --modules test_algorithms
+    python run_integration.py --modules test_integration_scalar
+    python run_integration.py --modules test_integration_memory
+    python run_integration.py --modules test_integration_control
+    python run_integration.py --modules test_integration_vector
+    python run_integration.py --modules test_algorithms_kernels
+    python run_integration.py --modules test_algorithms_multiwidth
 """
 
 import sys
@@ -38,6 +45,25 @@ if os.path.isdir(iverilog_bin) and iverilog_bin not in os.environ.get("PATH", ""
 
 INTEGRATION_DIR = Path(__file__).parent
 RTL_DIR = PROJECT_ROOT / "generated_rtl" / "modules"
+
+USAGE_TEXT = """Usage:
+    python run_integration.py                      # auto-detect RTL changes, run all tests
+    python run_integration.py --help              # show this help
+    python run_integration.py --no-rtl            # skip RTL generation entirely
+    python run_integration.py --rebuild-rtl       # force RTL regeneration
+    python run_integration.py test_add_sub        # run selected tests (auto RTL)
+    python run_integration.py --config path/to/test_config.properties
+    python run_integration.py --modules test_integration
+    python run_integration.py --modules test_algorithms
+    python run_integration.py --modules test_integration_scalar
+    python run_integration.py --modules test_integration_memory
+    python run_integration.py --modules test_integration_control
+    python run_integration.py --modules test_integration_vector
+    python run_integration.py --modules test_algorithms_kernels
+    python run_integration.py --modules test_algorithms_multiwidth
+
+Default module if --modules is omitted: test_slot_configs
+"""
 
 
 def _parse_args(argv: list[str]) -> tuple[Path, list[str], str, Path, str, str]:
@@ -230,6 +256,10 @@ def _regenerate_rtl(cfg):
 
 def main():
     from cocotb_tools.runner import get_runner
+
+    if any(arg in ("--help", "-h") for arg in sys.argv[1:]):
+        print(USAGE_TEXT)
+        sys.exit(0)
 
     started = time.perf_counter()
 

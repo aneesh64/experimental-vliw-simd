@@ -1,7 +1,7 @@
 # Known Issues and Limitations
 
 **Last Updated:** February 28, 2026  
-**Current Version:** Baseline Production-Ready (Phase 3 Complete + Branch Delay Fix)
+**Current Version:** Multi-Width Vector Extensions (Phase 3 + Multi-Width)
 
 ---
 
@@ -93,7 +93,87 @@ Could restore 2-3 item FIFO if load throughput becomes critical.
 
 ---
 
-### 4. No Store Response Tracking
+### 4a. VSTORE/VLOAD AXI Alignment Constraint
+
+**Priority:** MEDIUM  
+**Impact:** VSTORE/VLOAD addresses must be 16-word aligned to avoid data corruption  
+**Severity:** Design constraint (can cause silent data corruption)
+
+**Description:**  
+VSTORE and VLOAD pack 8 lanes into a single 512-bit AXI beat (16 × 32-bit words).
+The lane data is placed starting at the word offset within the beat:
+`wpos = (word_offset + lane) % 16`. When `word_offset + VLEN > 16`, lane positions
+wrap around within the 16-word beat, causing data to be written to/read from incorrect
+memory locations.
+
+**Technical Details:**
+- AXI data bus: 512 bits = 16 × 32-bit words per beat
+- VLEN = 8 lanes, each 32-bit
+- `word_offset = (byte_addr / 4) % 16`
+- **Constraint:** `word_offset + VLEN ≤ 16`, i.e., `word_offset ≤ 8`
+- Safe addresses: any byte address where `(addr % 64) ≤ 32`
+
+**Example:**
+- Address 700 (words): `word_offset = 700 % 16 = 12` → lanes 4–7 wrap to positions 0–3 ❌
+- Address 1104 (words): `word_offset = 1104 % 16 = 0` → all lanes fit ✓
+
+**Workaround:**  
+Ensure VSTORE/VLOAD word addresses satisfy `addr % 16 ≤ 8`. The simplest approach
+is to use addresses that are multiples of 16 (word-aligned to AXI beat boundary).
+
+**Future Enhancement:**  
+Split VSTORE/VLOAD into 2 AXI beats when data crosses the beat boundary, or
+always align to beat boundaries in hardware.
+
+**Status:** Accepted design constraint, documented
+
+---
+
+### 4b. VALU 3-Operand FMA: src3 Scalar Read Blocked During Vector Execution
+
+**Priority:** MEDIUM  
+**Impact:** MULTIPLY_ADD instruction's accumulator operand reads stale data  
+**Severity:** Functional limitation — FMA requires 2-instruction workaround
+
+**Description:**  
+The VALU MULTIPLY_ADD instruction (FMA: dest = a × b + c) needs 3 operand reads:
+src1 (a) via vector Port A, src2 (b) via vector Port B, and src3 (c) via scalar
+read. However, when VALU is active, `blockScalarReads` is asserted, blocking ALL
+scalar reads including the VALU's own src3 read. The scalar output MUX then returns
+stale Port A data (src1's value) instead of src3, making operandC = operandA.
+
+**Root Cause:**  
+The BankedScratchMemory uses TDP BRAM with 2 ports per bank:
+- Port A: used for VALU vsrc1 vector reads (all 8 banks occupied)
+- Port B: used for VALU vsrc2 vector reads (all 8 banks occupied)
+
+With both ports fully utilized by vector reads, there is no available read port
+for a 3rd operand. The `blockScalarReads` flag prevents the src3 read from
+contending with vector reads, but this means src3 data is never actually read.
+
+**Affected Instructions:**
+- `MULTIPLY_ADD` (opcode 14) with src3 ≠ src1 — always incorrect
+- `VBROADCAST` (opcode 13) — works correctly because src3 == src1 by encoding
+
+**Workaround (implemented in tests):**  
+Use a 2-instruction sequence instead of single-instruction FMA:
+```
+# Instead of: multiply_add(dest, a, b, c, ew=8, dw=16)
+# Use:
+valu_op("mul", dest, a, b, ew=8, dw=16)    # widening multiply
+valu_op("add", dest, dest, c, ew=16)        # packed accumulate
+```
+
+**Future Enhancement Options:**
+1. Add a 3rd BRAM port via separate register file for operandC
+2. Pipeline stalling: read src3 in separate cycle before VALU execution
+3. Register-file replication: duplicate scratch for independent src3 reads
+
+**Status:** Accepted design limitation, workaround documented
+
+---
+
+### 5. No Store Response Tracking
 
 **Priority:** MEDIUM  
 **Impact:** Fire-and-forget stores, no completion confirmation  
@@ -209,6 +289,8 @@ All memory operations pass in baseline configuration (22/23 tests).
 | #2 | Long memory timeout | — | RESOLVED | — |
 | #3 | Single pending load | MEDIUM | Accepted | Future enhancement |
 | #4 | No store response | MEDIUM | Accepted | Future enhancement |
+| #4a | VSTORE/VLOAD alignment | MEDIUM | Accepted | Future enhancement |
+| #4b | VALU FMA src3 blocked | MEDIUM | Accepted | Future enhancement |
 | #5 | Driver API mismatch | MEDIUM | Identified | Quick fix available |
 | #6 | Phase 3 duplicates | — | RESOLVED | — |
 | #7 | Phase 3 AXI conflicts | — | RESOLVED | — |
@@ -220,8 +302,8 @@ All memory operations pass in baseline configuration (22/23 tests).
 ### Production Deployment (Baseline Config)
 - **Blockers:** None
 - **Workarounds Required:** None
-- **Known Limitations:** Single pending load (compiler handles)
-- **Test Coverage:** 24/24 PASS (100%)
+- **Known Limitations:** Single pending load (compiler handles), VSTORE alignment (compiler handles), FMA uses 2-instruction sequence
+- **Test Coverage:** 28/28 PASS (100%) — includes 16 multi-width vector tests
 - **Recommendation:** ✅ Production ready
 
 ### Multi-ALU Scaling

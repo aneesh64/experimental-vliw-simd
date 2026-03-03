@@ -1,8 +1,8 @@
 # VLIW SIMD Architecture - Current Implementation
 
-**Status:** Phase 3 Complete (Memory Engine Simplified)  
-**Version:** Baseline Production-Ready Configuration  
-**Last Updated:** February 21, 2026
+**Status:** Phase 4 Complete (Multi-Width Vector ISA)  
+**Version:** Multi-Width Vector Extension  
+**Last Updated:** March 3, 2026
 
 ---
 
@@ -37,12 +37,25 @@ A compiler-trusted VLIW processor with SIMD capabilities, optimized for simplici
 - Input: rs1, rs2 (registers or immediates)
 - Output: rd (destination register)
 
-**1× VALU Engine (Vector ALU)**
-- Operations: VADD, VSUB, VMUL, VMAC (multiply-accumulate)
-- Lanes: 16 parallel 32-bit lanes
-- Latency: 1 cycle (VMAC: 3 cycles for full MAC operation)
-- Input: Vector registers (vrs1, vrs2, vrs3 for VMAC)
-- Output: Vector destination register (vrd)
+**1× VALU Engine (Vector ALU) — Multi-Width**
+- **Element Widths:** 4, 8, 16, 32 (default), 64-bit
+- Operations: ADD, SUB, MUL, XOR, AND, OR, SHL, SHR, LT, EQ, VBROADCAST, MULTIPLY_ADD, VCAST
+- Lanes: 8 parallel 32-bit lanes
+- **Packed Sub-Element Processing:**
+  - EW32: 1 element/lane → 8 total (default, backward compatible)
+  - EW16: 2 elements/lane → 16 total
+  - EW8: 4 elements/lane → 32 total
+  - EW4: 8 elements/lane → 64 total
+  - EW64: lane pairing (even=lo, odd=hi) → 4 total
+- **Widening Operations:** MUL/MULTIPLY_ADD with ew→dw (e.g., 8→16, 8→32, 16→32)
+  - **Note:** Widening MULTIPLY_ADD (FMA) has a hardware limitation — see Known Issues #4b.
+    Use 2-instruction sequence (widening MUL + packed ADD) as workaround.
+- **VCAST:** Type conversion (sign/zero extend or truncate) across widths
+- **64-bit:** Carry/borrow chains between lane pairs; no MUL/DIV
+- **Signed Mode:** Affects LT→SLT, SHR→SAR, MUL→SMUL, VCAST→sign-extension
+- Latency: 1 cycle (except DIV/MOD/CDIV: multi-cycle, EW32 only)
+- Input: Vector registers (src1, src2, src3 for MULTIPLY_ADD)
+- Output: Vector destination register
 
 **1× Load Engine**
 - Operations: LW (load word)
@@ -107,6 +120,8 @@ Cycle 1+: Wait for AXI R channel
 - Fire-and-forget (no response tracking)
 - AW and W channels driven directly
 - No backpressure handling (assumes AXI always ready)
+- **VSTORE Alignment Constraint:** Word address must satisfy `addr % 16 ≤ 8`
+  (8 lanes at word offsets 0–7 within a 16-word AXI beat). See Known Issues #4a.
 
 ### Banked Scratch Memory (BankedScratchMemory.scala - 403 LOC)
 
@@ -186,21 +201,67 @@ Cycle 1+: Wait for AXI R channel
 - 0x08: DIV
 - 0x09: DIVU
 
-### VALU Instructions (32-bit)
+### VALU Instructions (56-bit)
 ```
-[31:27] opcode (5 bits)
-[26:24] vrd (3 bits) - vector destination register
-[23:21] vrs1 (3 bits) - vector source 1
-[20:18] vrs2 (3 bits) - vector source 2
-[17:15] vrs3 (3 bits) - vector source 3 (for VMAC)
-[14:0]  reserved/immediate
+[55]    valid (1 bit)        — 1 = active slot
+[54:51] opcode (4 bits)      — ALU/VALU operation
+[50:40] destBase (11 bits)   — destination scratch base address
+[39:29] src1Base (11 bits)   — source 1 scratch base address
+[28:18] src2Base (11 bits)   — source 2 scratch base address
+[17:7]  src3Base (11 bits)   — source 3 scratch base (MULTIPLY_ADD accumulator)
+[6:4]   ewidth (3 bits)      — element width code
+[3:1]   dwidth (3 bits)      — destination element width code (widening/VCAST)
+[0]     signed (1 bit)       — 0=unsigned, 1=signed
 ```
 
-**Opcodes:**
-- 0x10: VADD (vector add)
-- 0x11: VSUB (vector subtract)
-- 0x12: VMUL (vector multiply)
-- 0x13: VMAC (vector multiply-accumulate: vrd := vrs1 * vrs2 + vrs3)
+**Element Width Encoding (ewidth/dwidth):**
+
+| Code | Width | Elements/Lane | Total Elements |
+|------|-------|---------------|----------------|
+| 000  | 32-bit (default) | 1 | 8 |
+| 001  | 8-bit | 4 | 32 |
+| 010  | 16-bit | 2 | 16 |
+| 011  | 4-bit | 8 | 64 |
+| 100  | 64-bit (lane pair) | — | 4 |
+
+**VALU Opcodes:**
+
+| Code | Mnemonic | Description |
+|------|----------|-------------|
+| 0 | ADD | Packed addition |
+| 1 | SUB | Packed subtraction |
+| 2 | MUL | Packed multiply (or widening when dw≠ew) |
+| 3 | XOR | Bitwise XOR |
+| 4 | AND | Bitwise AND |
+| 5 | OR | Bitwise OR |
+| 6 | SHL | Packed shift left |
+| 7 | SHR | Packed shift right (arithmetic if signed) |
+| 8 | LT | Packed less-than (signed if signed flag set) |
+| 9 | EQ | Packed equal |
+| 10 | MOD | Modulo (EW32 only, multi-cycle) |
+| 11 | DIV | Division (EW32 only, multi-cycle) |
+| 12 | CDIV | Ceiling division (EW32 only, multi-cycle) |
+| 13 | VBROADCAST | Broadcast scalar to all lanes/sub-elements |
+| 14 | MULTIPLY_ADD | Fused multiply-add a*b+c (widening when dw≠ew) |
+| 15 | VCAST | Type cast between element widths |
+
+**VCAST Details:**
+- Widening (ew < dw): Zero-extend (unsigned) or sign-extend (signed)
+- Narrowing (ew > dw): Truncate to lower dw bits
+- src2Base[0] selects lower half (0) or upper half (1) of source sub-elements
+
+**64-bit Lane Pairing:**
+```
+Lane 0 (lo) + Lane 1 (hi) → 64-bit element 0
+Lane 2 (lo) + Lane 3 (hi) → 64-bit element 1
+Lane 4 (lo) + Lane 5 (hi) → 64-bit element 2
+Lane 6 (lo) + Lane 7 (hi) → 64-bit element 3
+```
+- ADD/SUB: Carry/borrow chain from even lane to odd lane
+- LT/EQ: Combined comparison across both halves
+- XOR/AND/OR: Independent per-lane (width-agnostic)
+- SHL/SHR: Cross-lane shift with 6-bit shift amount from lo lane
+- No 64-bit MUL, DIV, MOD, CDIV
 
 ### Memory Instructions (32-bit)
 ```
@@ -269,8 +330,14 @@ VliwSocConfig(
 |-----------|--------|-------|
 | ALU ops | 1 | ADD, SUB, MUL, shifts, compare |
 | DIV/DIVU | Variable | ~32 cycles worst case |
-| VALU ops | 1 | VADD, VSUB, VMUL |
-| VMAC | 3 | Multiply-accumulate pipeline |
+| VALU ops (EW32) | 1 | ADD, SUB, MUL, bitwise, shift, compare |
+| VALU packed (EW4/8/16) | 1 | Packed sub-element operations |
+| VALU 64-bit (EW64) | 1 | Lane-paired with carry chains |
+| VALU widening MUL/FMA | 1 | ew→dw element-wise |
+| VCAST | 1 | Widening/narrowing type conversion |
+| VBROADCAST | 1 | Scalar → all lanes/sub-elements |
+| MULTIPLY_ADD | 1 | Fused multiply-add a*b+c |
+| MOD/DIV/CDIV | Variable | EW32 only, ~32 cycles worst case |
 | Load (cache hit) | 2-3 | AXI latency dependent |
 | Load AR drive | 0 | Combinatorial (Phase 3) |
 | Store | 1 | Fire-and-forget |
@@ -279,7 +346,7 @@ VliwSocConfig(
 
 ---
 
-## Key Simplifications (Phase 0-3)
+## Key Simplifications (Phase 0-3) and Extensions (Phase 4)
 
 ### Phase 2: Hazard Detection Removal (-116 LOC)
 - Removed WAW, RAW, WAR hazard checks
@@ -294,6 +361,34 @@ VliwSocConfig(
 - Result: 27% memory engine reduction, cleaner FSM
 
 Total RTL reduction: **-173 LOC (15.3%)**
+
+### Phase 4: Multi-Width Vector ISA Extension
+
+**Added multi-width packed sub-element processing to the VALU engine:**
+
+- **Packed Operations (EW4/8/16):** Each 32-bit lane processes multiple narrower elements
+  in parallel. All ALU opcodes (ADD, SUB, MUL, XOR, AND, OR, SHL, SHR, LT, EQ) plus
+  VBROADCAST and MULTIPLY_ADD support packed mode.
+
+- **64-bit Operations (EW64):** Lane pairing — even lanes hold the low 32 bits, odd lanes
+  hold the high 32 bits. Combinational carry/borrow chains propagate between paired lanes.
+  Supports ADD, SUB, XOR, AND, OR, SHL, SHR, LT, EQ, VBROADCAST. No 64-bit MUL/DIV.
+
+- **Widening MUL/FMA:** Source operands at element width (ew), destination at wider
+  destination width (dw). Element-wise: processes 32/dw elements per lane.
+  Supported combinations: 4→8, 4→16, 4→32, 8→16, 8→32, 16→32.
+
+- **VCAST (Type Conversion):**
+  - Widening: zero-extend (unsigned) or sign-extend (signed) to wider type
+  - Narrowing: truncate to lower bits
+  - src2Base[0] selects lower or upper half of source sub-elements
+  - All width combinations supported
+
+- **Signed Mode:** Single flag affects: LT→signed comparison, SHR→arithmetic shift,
+  MUL/FMA→signed multiply, VCAST→sign-extension.
+
+- **Backward Compatibility:** ewidth=000 and dwidth=000 default to 32-bit operations.
+  Existing programs run unchanged.
 
 ---
 

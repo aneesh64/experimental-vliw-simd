@@ -1,6 +1,6 @@
 // Generator : SpinalHDL v1.10.2a    git head : a348a60b7e8b6a455c72e1536ec3d74a2ea16935
 // Component : DecodeUnit
-// Git hash  : 2b1c34e10fcfebdb7017c9a507f6d279f35a00fa
+// Git hash  : 89593405df5b02f6eb34aabdfded8d31380b3ee9
 
 `timescale 1ns/1ps
 
@@ -18,6 +18,9 @@ module DecodeUnit (
   output wire [10:0]   io_valuSlots_0_src1Base,
   output wire [10:0]   io_valuSlots_0_src2Base,
   output wire [10:0]   io_valuSlots_0_src3Base,
+  output wire [2:0]    io_valuSlots_0_ewidth,
+  output wire [2:0]    io_valuSlots_0_dwidth,
+  output wire          io_valuSlots_0_isSigned,
   output wire          io_loadSlots_0_valid,
   output wire [2:0]    io_loadSlots_0_opcode,
   output wire [10:0]   io_loadSlots_0_dest,
@@ -55,6 +58,9 @@ module DecodeUnit (
   assign io_valuSlots_0_src1Base = _zz_io_valuSlots_0_valid[39 : 29];
   assign io_valuSlots_0_src2Base = _zz_io_valuSlots_0_valid[28 : 18];
   assign io_valuSlots_0_src3Base = _zz_io_valuSlots_0_valid[17 : 7];
+  assign io_valuSlots_0_ewidth = _zz_io_valuSlots_0_valid[6 : 4];
+  assign io_valuSlots_0_dwidth = _zz_io_valuSlots_0_valid[3 : 1];
+  assign io_valuSlots_0_isSigned = _zz_io_valuSlots_0_valid[0];
   assign _zz_io_loadSlots_0_valid = io_bundle[143 : 96];
   assign io_loadSlots_0_valid = (_zz_io_loadSlots_0_valid[47] && io_valid);
   assign io_loadSlots_0_opcode = _zz_io_loadSlots_0_valid[46 : 44];

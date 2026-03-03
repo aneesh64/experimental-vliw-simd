@@ -32,6 +32,39 @@ object AluOpcode {
 object ValuOpcode {
   def VBROADCAST  : UInt = U(13, 4 bits)
   def MULTIPLY_ADD: UInt = U(14, 4 bits)
+  def VCAST       : UInt = U(15, 4 bits)
+}
+
+// ============================================================================
+//  Element Width Encoding (3-bit, packed in VALU reserved bits [6:4])
+// ============================================================================
+
+object ElemWidth {
+  def EW32 : UInt = U(0, 3 bits)   // 32-bit elements (1 per lane, default)
+  def EW8  : UInt = U(1, 3 bits)   // 8-bit  elements (4 per lane)
+  def EW16 : UInt = U(2, 3 bits)   // 16-bit elements (2 per lane)
+  def EW4  : UInt = U(3, 3 bits)   // 4-bit  elements (8 per lane)
+  def EW64 : UInt = U(4, 3 bits)   // 64-bit elements (lane pairing, 4 per vector)
+
+  /** Number of sub-elements per 32-bit lane word for a given ewidth. */
+  def subsPerLane(ew: Int): Int = ew match {
+    case 0 => 1   // EW32
+    case 1 => 4   // EW8
+    case 2 => 2   // EW16
+    case 3 => 8   // EW4
+    case 4 => 1   // EW64 (special: lane pairing)
+    case _ => 1
+  }
+
+  /** Bit width of each sub-element for a given ewidth encoding. */
+  def bitWidth(ew: Int): Int = ew match {
+    case 0 => 32
+    case 1 => 8
+    case 2 => 16
+    case 3 => 4
+    case 4 => 64
+    case _ => 32
+  }
 }
 
 // ============================================================================
@@ -90,7 +123,10 @@ case class AluSlot(cfg: VliwSocConfig) extends Bundle {
 
 /** Vector ALU slot — 56 bits encoded.
  *  [55] valid | [54:51] opcode | [50:40] destBase | [39:29] src1Base |
- *  [28:18] src2Base | [17:7] src3Base | [6:0] rsvd
+ *  [28:18] src2Base | [17:7] src3Base | [6:4] ewidth | [3:1] dwidth | [0] signed
+ *
+ *  ewidth/dwidth encoding: 000=32b, 001=8b, 010=16b, 011=4b, 100=64b
+ *  signed: 0=unsigned, 1=signed (affects LT→SLT, SHR→SAR, MUL→SMUL, VCAST sign-extend)
  */
 case class ValuSlot(cfg: VliwSocConfig) extends Bundle {
   val valid    = Bool()
@@ -99,6 +135,9 @@ case class ValuSlot(cfg: VliwSocConfig) extends Bundle {
   val src1Base = UInt(cfg.scratchAddrWidth bits)
   val src2Base = UInt(cfg.scratchAddrWidth bits)
   val src3Base = UInt(cfg.scratchAddrWidth bits)  // multiply_add operand C / vbroadcast scalar src
+  val ewidth   = UInt(3 bits)                     // source element width
+  val dwidth   = UInt(3 bits)                     // dest element width (for cast/widening)
+  val isSigned = Bool()                           // signed operations flag
 }
 
 /** Load slot — 48 bits encoded.

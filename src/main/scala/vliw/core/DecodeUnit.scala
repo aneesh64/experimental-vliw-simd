@@ -52,13 +52,16 @@ class DecodeUnit(cfg: VliwSocConfig) extends Component {
     val slot = io.valuSlots(i)
 
     // [55] valid | [54:51] opcode | [50:40] destBase | [39:29] src1Base |
-    // [28:18] src2Base | [17:7] src3Base | [6:0] rsvd
+    // [28:18] src2Base | [17:7] src3Base | [6:4] ewidth | [3:1] dwidth | [0] signed
     slot.valid    := raw(55) && io.valid
     slot.opcode   := raw(54 downto 51).asUInt
     slot.destBase := raw(50 downto 40).asUInt.resize(cfg.scratchAddrWidth)
     slot.src1Base := raw(39 downto 29).asUInt.resize(cfg.scratchAddrWidth)
     slot.src2Base := raw(28 downto 18).asUInt.resize(cfg.scratchAddrWidth)
     slot.src3Base := raw(17 downto 7).asUInt.resize(cfg.scratchAddrWidth)
+    slot.ewidth   := raw(6 downto 4).asUInt
+    slot.dwidth   := raw(3 downto 1).asUInt
+    slot.isSigned := raw(0)
 
     bitOffset += cfg.valuSlotWidth
   }

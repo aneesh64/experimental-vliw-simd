@@ -5,6 +5,7 @@ Provides a cycle-accurate Python model that mirrors the RTL behavior:
   - Instruction fetch with 2-stage pipeline latency
   - Banked scratch memory with BRAM-like timing
   - All engine operations (ALU, VALU, Load, Store, Flow)
+  - Multi-width packed sub-element VALU operations
   - Write buffering (all reads see old state)
 
 Can be used standalone or driven by cocotb testbenches for comparison.
@@ -15,6 +16,96 @@ from typing import Dict, List, Optional
 import copy
 
 MOD32 = 2**32
+
+# Element width encoding → (bit_width, subs_per_lane)
+EWIDTH_INFO = {
+    0: (32, 1),   # EW32
+    1: (8,  4),   # EW8
+    2: (16, 2),   # EW16
+    3: (4,  8),   # EW4
+    4: (64, 1),   # EW64 (lane pairing)
+}
+
+# Element width values (integers) → encoding
+EWIDTH_MAP = {32: 0, 8: 1, 16: 2, 4: 3, 64: 4}
+
+
+def _to_signed(val: int, bits: int) -> int:
+    """Convert unsigned value to signed (two's complement)."""
+    mask = (1 << bits) - 1
+    val = val & mask
+    if val >= (1 << (bits - 1)):
+        return val - (1 << bits)
+    return val
+
+
+def _from_signed(val: int, bits: int) -> int:
+    """Convert signed value to unsigned representation."""
+    mask = (1 << bits) - 1
+    return val & mask
+
+
+def _extract_sub(word: int, ew: int, idx: int) -> int:
+    """Extract sub-element idx from a 32-bit packed word at element width ew."""
+    mask = (1 << ew) - 1
+    return (word >> (idx * ew)) & mask
+
+
+def _pack_subs(subs: list, ew: int) -> int:
+    """Pack a list of sub-element values into a 32-bit word."""
+    result = 0
+    for i, s in enumerate(subs):
+        result |= ((s & ((1 << ew) - 1)) << (i * ew))
+    return result & 0xFFFFFFFF
+
+
+def _packed_alu_op(op: str, a_word: int, b_word: int, ew: int, n: int,
+                    signed: bool = False) -> int:
+    """Perform a packed sub-element ALU operation on two 32-bit words."""
+    mask = (1 << ew) - 1
+    subs = []
+    for k in range(n):
+        sa = _extract_sub(a_word, ew, k)
+        sb = _extract_sub(b_word, ew, k)
+        if op in ("+", "add"):
+            r = (sa + sb) & mask
+        elif op in ("-", "sub"):
+            r = (sa - sb) & mask
+        elif op in ("*", "mul"):
+            if signed:
+                sa_s = _to_signed(sa, ew)
+                sb_s = _to_signed(sb, ew)
+                r = _from_signed(sa_s * sb_s, ew)
+            else:
+                r = (sa * sb) & mask
+        elif op in ("^", "xor"):
+            r = sa ^ sb
+        elif op in ("&", "and"):
+            r = sa & sb
+        elif op in ("|", "or"):
+            r = sa | sb
+        elif op in ("<<", "shl"):
+            sh_mask = ew - 1  # e.g., 7 for 8-bit
+            r = (sa << (sb & sh_mask)) & mask
+        elif op in (">>", "shr"):
+            sh_mask = ew - 1
+            shamt = sb & sh_mask
+            if signed:
+                sa_s = _to_signed(sa, ew)
+                r = _from_signed(sa_s >> shamt, ew)
+            else:
+                r = sa >> shamt
+        elif op in ("<", "lt"):
+            if signed:
+                r = 1 if _to_signed(sa, ew) < _to_signed(sb, ew) else 0
+            else:
+                r = 1 if sa < sb else 0
+        elif op in ("==", "eq"):
+            r = 1 if sa == sb else 0
+        else:
+            raise ValueError(f"Unknown packed op: {op}")
+        subs.append(r & mask)
+    return _pack_subs(subs, ew)
 
 
 class GoldenModel:
@@ -164,7 +255,47 @@ class GoldenModel:
             "//":   lambda: (a // b) % MOD32 if b != 0 else 0,
             "cdiv": lambda: ((a + b - 1) // b) % MOD32 if b != 0 else 0,
         }
-        return ops[op]()
+        # Also accept long-form names
+        aliases = {"add": "+", "sub": "-", "mul": "*", "xor": "^",
+                   "and": "&", "or": "|", "shl": "<<", "shr": ">>",
+                   "lt": "<", "eq": "==", "mod": "%", "div": "//"}
+        canon = aliases.get(op, op)
+        return ops[canon]()
+
+    def _alu_op_64(self, op: str, a: int, b: int, signed: bool = False) -> int:
+        """Execute a 64-bit ALU operation. Returns 64-bit unsigned result."""
+        MOD64 = 2**64
+        a = a % MOD64
+        b = b % MOD64
+        aliases = {"add": "+", "sub": "-", "mul": "*", "xor": "^",
+                   "and": "&", "or": "|", "shl": "<<", "shr": ">>",
+                   "lt": "<", "eq": "=="}
+        canon = aliases.get(op, op)
+        if canon == "+":
+            return (a + b) % MOD64
+        elif canon == "-":
+            return (a - b) % MOD64
+        elif canon == "^":
+            return a ^ b
+        elif canon == "&":
+            return a & b
+        elif canon == "|":
+            return a | b
+        elif canon == "<<":
+            return (a << (b & 63)) % MOD64
+        elif canon == ">>":
+            if signed:
+                a_s = _to_signed(a, 64)
+                return _from_signed(a_s >> (b & 63), 64)
+            return (a >> (b & 63)) % MOD64
+        elif canon == "<":
+            if signed:
+                return 1 if _to_signed(a, 64) < _to_signed(b, 64) else 0
+            return 1 if a < b else 0
+        elif canon == "==":
+            return 1 if a == b else 0
+        else:
+            raise ValueError(f"Unsupported 64-bit op: {op}")
 
     def _execute(self, instr: Dict, pc: int):
         """Execute one instruction bundle. Returns (jump_target, do_halt)."""
@@ -183,22 +314,253 @@ class GoldenModel:
             op = op_tuple[0]
             if op == "vbroadcast":
                 dest, src = op_tuple[1], op_tuple[2]
+                ew_code = op_tuple[3] if len(op_tuple) > 3 else 0
+                if isinstance(ew_code, int) and ew_code in EWIDTH_MAP.values():
+                    ew = EWIDTH_INFO[ew_code][0]
+                elif ew_code in EWIDTH_MAP:
+                    ew = int(ew_code)
+                else:
+                    ew = 32
                 val = self._read_scratch(src)
+                # Broadcast lowest sub-element to all positions in all lanes
+                mask = (1 << ew) - 1
+                sub_val = val & mask
+                if ew < 32:
+                    n_subs = 32 // ew
+                    packed = _pack_subs([sub_val] * n_subs, ew)
+                else:
+                    packed = val
                 for i in range(self.vlen):
-                    self._write_scratch(dest + i, val)
+                    self._write_scratch(dest + i, packed)
             elif op == "multiply_add":
-                dest, a_base, b_base, c_base = op_tuple[1], op_tuple[2], op_tuple[3], op_tuple[4]
+                dest = op_tuple[1]
+                a_base, b_base, c_base = op_tuple[2], op_tuple[3], op_tuple[4]
+                ew_code = op_tuple[5] if len(op_tuple) > 5 else 0
+                dw_code = op_tuple[6] if len(op_tuple) > 6 else ew_code
+                sgn = bool(op_tuple[7]) if len(op_tuple) > 7 else False
+                # Resolve element widths
+                ew = EWIDTH_INFO.get(ew_code, (32, 1))[0] if isinstance(ew_code, int) and ew_code < 5 else (int(ew_code) if ew_code in EWIDTH_MAP else 32)
+                dw = EWIDTH_INFO.get(dw_code, (32, 1))[0] if isinstance(dw_code, int) and dw_code < 5 else (int(dw_code) if dw_code in EWIDTH_MAP else 32)
+                if isinstance(ew_code, int) and ew_code in EWIDTH_MAP.values():
+                    pass
+                elif ew_code in EWIDTH_MAP:
+                    ew = int(ew_code); ew_code = EWIDTH_MAP[ew]
+                if isinstance(dw_code, int) and dw_code in EWIDTH_MAP.values():
+                    pass
+                elif dw_code in EWIDTH_MAP:
+                    dw = int(dw_code); dw_code = EWIDTH_MAP[dw]
+
+                if ew == dw or dw_code == ew_code:
+                    # Same-width FMA
+                    n_subs = 32 // ew if ew < 32 else 1
+                    for i in range(self.vlen):
+                        a_w = self._read_scratch(a_base + i)
+                        b_w = self._read_scratch(b_base + i)
+                        c_w = self._read_scratch(c_base + i)
+                        if ew == 32:
+                            if sgn:
+                                sa = _to_signed(a_w, 32)
+                                sb = _to_signed(b_w, 32)
+                                sc = _to_signed(c_w, 32)
+                                r = _from_signed(sa * sb + sc, 32)
+                            else:
+                                r = (a_w * b_w + c_w) % MOD32
+                            self._write_scratch(dest + i, r)
+                        else:
+                            subs = []
+                            mask = (1 << ew) - 1
+                            for k in range(n_subs):
+                                sa = _extract_sub(a_w, ew, k)
+                                sb = _extract_sub(b_w, ew, k)
+                                sc = _extract_sub(c_w, ew, k)
+                                if sgn:
+                                    sa_s = _to_signed(sa, ew)
+                                    sb_s = _to_signed(sb, ew)
+                                    sc_s = _to_signed(sc, ew)
+                                    subs.append(_from_signed(sa_s * sb_s + sc_s, ew))
+                                else:
+                                    subs.append((sa * sb + sc) & mask)
+                            self._write_scratch(dest + i, _pack_subs(subs, ew))
+                else:
+                    # Widening FMA: ew < dw
+                    n_dest = 32 // dw if dw < 32 else 1
+                    mask_d = (1 << dw) - 1
+                    for i in range(self.vlen):
+                        a_w = self._read_scratch(a_base + i)
+                        b_w = self._read_scratch(b_base + i)
+                        c_w = self._read_scratch(c_base + i)
+                        subs = []
+                        for k in range(n_dest):
+                            sa = _extract_sub(a_w, ew, k)
+                            sb = _extract_sub(b_w, ew, k)
+                            sc = _extract_sub(c_w, dw, k)
+                            if sgn:
+                                sa_s = _to_signed(sa, ew)
+                                sb_s = _to_signed(sb, ew)
+                                sc_s = _to_signed(sc, dw)
+                                subs.append(_from_signed(sa_s * sb_s + sc_s, dw))
+                            else:
+                                subs.append((sa * sb + sc) & mask_d)
+                        self._write_scratch(dest + i, _pack_subs(subs, dw) if dw < 32 else subs[0] & 0xFFFFFFFF)
+            elif op == "vcast":
+                dest, src = op_tuple[1], op_tuple[2]
+                ew_val = op_tuple[3] if len(op_tuple) > 3 else 32
+                dw_val = op_tuple[4] if len(op_tuple) > 4 else 32
+                sgn = bool(op_tuple[5]) if len(op_tuple) > 5 else False
+                upper = bool(op_tuple[6]) if len(op_tuple) > 6 else False
+                # Resolve ew/dw to bit widths
+                if ew_val in EWIDTH_MAP:
+                    ew = int(ew_val)
+                elif isinstance(ew_val, int) and ew_val < 5:
+                    ew = EWIDTH_INFO[ew_val][0]
+                else:
+                    ew = int(ew_val)
+                if dw_val in EWIDTH_MAP:
+                    dw = int(dw_val)
+                elif isinstance(dw_val, int) and dw_val < 5:
+                    dw = EWIDTH_INFO[dw_val][0]
+                else:
+                    dw = int(dw_val)
+
+                n_src = 32 // ew if ew < 32 else 1
+                n_dst = 32 // dw if dw < 32 else 1
+
                 for i in range(self.vlen):
-                    a = self._read_scratch(a_base + i)
-                    b = self._read_scratch(b_base + i)
-                    c = self._read_scratch(c_base + i)
-                    self._write_scratch(dest + i, (a * b + c) % MOD32)
+                    a_w = self._read_scratch(src + i)
+                    if ew == dw:
+                        self._write_scratch(dest + i, a_w)
+                    elif ew < dw:
+                        # Widening cast
+                        offset = n_dst if upper else 0
+                        subs = []
+                        for k in range(n_dst):
+                            idx = k + offset
+                            if idx < n_src:
+                                sub = _extract_sub(a_w, ew, idx)
+                            else:
+                                sub = 0
+                            if sgn:
+                                sub_s = _to_signed(sub, ew)
+                                subs.append(_from_signed(sub_s, dw))
+                            else:
+                                subs.append(sub)  # zero-extend
+                        if dw >= 32:
+                            self._write_scratch(dest + i, subs[0] & 0xFFFFFFFF)
+                        else:
+                            self._write_scratch(dest + i, _pack_subs(subs, dw))
+                    else:
+                        # Narrowing cast
+                        subs = []
+                        for k in range(n_src):
+                            sub = _extract_sub(a_w, ew, k)
+                            subs.append(sub & ((1 << dw) - 1))
+                        packed_bits = n_src * dw
+                        packed = _pack_subs(subs, dw)
+                        if upper:
+                            packed = (packed << packed_bits) & 0xFFFFFFFF
+                        self._write_scratch(dest + i, packed)
             else:
-                dest, src1, src2 = op_tuple[1], op_tuple[2], op_tuple[3]
-                for i in range(self.vlen):
-                    a = self._read_scratch(src1 + i)
-                    b = self._read_scratch(src2 + i)
-                    self._write_scratch(dest + i, self._alu_op(op, a, b))
+                # Lane-wise ALU op with optional element width
+                dest = op_tuple[1]
+                src1, src2 = op_tuple[2], op_tuple[3]
+                # Parse optional ew, dw, signed args
+                ew_val = op_tuple[4] if len(op_tuple) > 4 else 32
+                dw_raw = op_tuple[5] if len(op_tuple) > 5 else None
+                sgn = False
+
+                # Resolve ew
+                if ew_val in EWIDTH_MAP:
+                    ew = int(ew_val)
+                elif isinstance(ew_val, int) and ew_val < 5:
+                    ew = EWIDTH_INFO[ew_val][0]
+                else:
+                    ew = int(ew_val)
+
+                if dw_raw is not None:
+                    if len(op_tuple) > 6:
+                        # (op, dest, src1, src2, ew, dw, signed)
+                        if dw_raw in EWIDTH_MAP:
+                            dw = int(dw_raw)
+                        elif isinstance(dw_raw, int) and dw_raw < 5:
+                            dw = EWIDTH_INFO[dw_raw][0]
+                        else:
+                            dw = int(dw_raw)
+                        sgn = bool(op_tuple[6])
+                    elif op in ("*", "mul") and dw_raw not in (0, 1):
+                        # Widening MUL
+                        if dw_raw in EWIDTH_MAP:
+                            dw = int(dw_raw)
+                        elif isinstance(dw_raw, int) and dw_raw < 5:
+                            dw = EWIDTH_INFO[dw_raw][0]
+                        else:
+                            dw = int(dw_raw)
+                    else:
+                        dw = ew
+                        sgn = bool(dw_raw)
+                else:
+                    dw = ew
+
+                n_subs = 32 // ew if ew < 32 else 1
+
+                if ew == 64:
+                    # 64-bit lane pairing
+                    for pair in range(self.vlen // 2):
+                        lo_lane = pair * 2
+                        hi_lane = pair * 2 + 1
+                        a_lo = self._read_scratch(src1 + lo_lane)
+                        a_hi = self._read_scratch(src1 + hi_lane)
+                        b_lo = self._read_scratch(src2 + lo_lane)
+                        b_hi = self._read_scratch(src2 + hi_lane)
+                        a64 = a_lo | (a_hi << 32)
+                        b64 = b_lo | (b_hi << 32)
+                        r64 = self._alu_op_64(op, a64, b64, sgn)
+                        self._write_scratch(dest + lo_lane, r64 & 0xFFFFFFFF)
+                        self._write_scratch(dest + hi_lane, (r64 >> 32) & 0xFFFFFFFF)
+                elif ew != dw and op in ("*", "mul"):
+                    # Widening MUL
+                    n_dest = 32 // dw if dw < 32 else 1
+                    mask_d = (1 << dw) - 1
+                    for i in range(self.vlen):
+                        a_w = self._read_scratch(src1 + i)
+                        b_w = self._read_scratch(src2 + i)
+                        subs = []
+                        for k in range(n_dest):
+                            sa = _extract_sub(a_w, ew, k)
+                            sb = _extract_sub(b_w, ew, k)
+                            if sgn:
+                                sa_s = _to_signed(sa, ew)
+                                sb_s = _to_signed(sb, ew)
+                                subs.append(_from_signed(sa_s * sb_s, dw))
+                            else:
+                                subs.append((sa * sb) & mask_d)
+                        if dw >= 32:
+                            self._write_scratch(dest + i, subs[0] & 0xFFFFFFFF)
+                        else:
+                            self._write_scratch(dest + i, _pack_subs(subs, dw))
+                elif ew < 32:
+                    # Packed sub-element ALU
+                    for i in range(self.vlen):
+                        a_w = self._read_scratch(src1 + i)
+                        b_w = self._read_scratch(src2 + i)
+                        r = _packed_alu_op(op, a_w, b_w, ew, n_subs, sgn)
+                        self._write_scratch(dest + i, r)
+                else:
+                    # Standard 32-bit
+                    for i in range(self.vlen):
+                        a_w = self._read_scratch(src1 + i)
+                        b_w = self._read_scratch(src2 + i)
+                        if sgn and op in ("*", "mul"):
+                            sa = _to_signed(a_w, 32)
+                            sb = _to_signed(b_w, 32)
+                            r = _from_signed(sa * sb, 32)
+                        elif sgn and op in ("<", "lt"):
+                            r = 1 if _to_signed(a_w, 32) < _to_signed(b_w, 32) else 0
+                        elif sgn and op in (">>", "shr"):
+                            sa = _to_signed(a_w, 32)
+                            r = _from_signed(sa >> (b_w & 31), 32)
+                        else:
+                            r = self._alu_op(op, a_w, b_w)
+                        self._write_scratch(dest + i, r)
 
         # Load
         for op_tuple in instr.get("load", []):

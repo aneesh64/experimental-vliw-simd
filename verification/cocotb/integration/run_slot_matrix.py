@@ -23,6 +23,19 @@ if str(PROJECT_ROOT) not in sys.path:
 from verification.cocotb.config import default_config_path
 
 
+VALID_MODULES = (
+    "test_slot_configs",
+    "test_integration",
+    "test_algorithms",
+    "test_integration_scalar",
+    "test_integration_memory",
+    "test_integration_control",
+    "test_integration_vector",
+    "test_algorithms_kernels",
+    "test_algorithms_multiwidth",
+)
+
+
 def _parse_props(path: Path) -> dict[str, str]:
     props: dict[str, str] = {}
     for raw in path.read_text(encoding="utf-8").splitlines():
@@ -125,9 +138,20 @@ def _print_matrix_summary(rows: list[dict[str, str]]):
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Run integration suites across an ALU/VALU slot matrix"
+    )
     parser.add_argument("--config", default=str(default_config_path(PROJECT_ROOT)))
-    parser.add_argument("--modules", default="test_slot_configs")
+    parser.add_argument(
+        "--modules",
+        default="test_slot_configs",
+        choices=VALID_MODULES,
+        help=(
+            "Cocotb test module to run for each slot combination. "
+            "Use test_slot_configs for slot-focused tests or grouped modules "
+            "(test_integration_*, test_algorithms_*)."
+        ),
+    )
     parser.add_argument("--log-file", default=str(PROJECT_ROOT / "verification" / "results" / "integration_runs_v2.csv"))
     args = parser.parse_args()
 

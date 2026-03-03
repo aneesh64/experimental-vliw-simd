@@ -763,3 +763,37 @@ Note: VALU bundles block all scalar reads. The scheduler enforces this by checki
 | CO5 | Wider VLEN (16/32) | Scale banks, read groups | Update vload/vstore VLEN parameter | Higher throughput |
 | CO6 | Loop prologue/epilogue gen | No change | Scheduler auto-pads loop-carried deps | Correctness guarantee |
 | CO7 | VSELECT wiring | Wire vector operand paths in VliwCore | Enable vselect in scheduler | Functional VSELECT |
+
+---
+
+## 11. Verification Runner Modules
+
+Integration tests are split into grouped modules under verification/cocotb/integration.
+
+Common commands:
+
+```bash
+# Run compatibility aggregate modules
+python verification/cocotb/integration/run_integration.py --modules test_integration
+python verification/cocotb/integration/run_integration.py --modules test_algorithms
+
+# Run grouped integration domains
+python verification/cocotb/integration/run_integration.py --modules test_integration_scalar
+python verification/cocotb/integration/run_integration.py --modules test_integration_memory
+python verification/cocotb/integration/run_integration.py --modules test_integration_control
+python verification/cocotb/integration/run_integration.py --modules test_integration_vector
+
+# Run grouped algorithm domains
+python verification/cocotb/integration/run_integration.py --modules test_algorithms_kernels
+python verification/cocotb/integration/run_integration.py --modules test_algorithms_multiwidth
+
+# Filter specific tests within a module
+python verification/cocotb/integration/run_integration.py --modules test_algorithms_multiwidth test_multiwidth_packed_8bit_add
+```
+
+Tooling tests are located in tools/tests:
+
+```bash
+python tools/tests/test_scheduler_validator.py
+python tools/tests/test_scheduler_memory_domains.py
+```

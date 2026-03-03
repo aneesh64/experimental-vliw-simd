@@ -44,6 +44,23 @@ ALU_OPCODES = {
 VALU_EXTRA_OPCODES = {
     "vbroadcast":   13,
     "multiply_add": 14,
+    "vcast":        15,
+}
+
+# Element width encoding (3-bit, matches ElemWidth in SlotBundles.scala)
+EWIDTH_32 = 0  # 32-bit (default, backward compat)
+EWIDTH_8  = 1  # 8-bit  (4 packed per 32-bit lane)
+EWIDTH_16 = 2  # 16-bit (2 packed per 32-bit lane)
+EWIDTH_4  = 3  # 4-bit  (8 packed per 32-bit lane)
+EWIDTH_64 = 4  # 64-bit (lane pairing, 4 per vector)
+
+# String → element-width-code mapping
+EWIDTH_MAP = {
+    32: EWIDTH_32, "32": EWIDTH_32,
+    8:  EWIDTH_8,  "8":  EWIDTH_8,
+    16: EWIDTH_16, "16": EWIDTH_16,
+    4:  EWIDTH_4,  "4":  EWIDTH_4,
+    64: EWIDTH_64, "64": EWIDTH_64,
 }
 
 LOAD_OPCODES = {
@@ -155,11 +172,16 @@ def encode_alu_nop() -> int:
 
 def encode_valu_slot(op: str, dest_base: int, src1_base: int,
                      src2_base: int = 0, src3_base: int = 0,
-                     addr_w: int = 11) -> int:
+                     addr_w: int = 11,
+                     ewidth: int = 0, dwidth: int = 0,
+                     signed: int = 0) -> int:
     """
     Encode a vector ALU slot (56 bits).
     [55] valid=1 | [54:51] opcode | [50:40] destBase | [39:29] src1Base |
-    [28:18] src2Base | [17:7] src3Base | [6:0] rsvd=0
+    [28:18] src2Base | [17:7] src3Base | [6:4] ewidth | [3:1] dwidth | [0] signed
+
+    ewidth/dwidth encoding: 0=32b, 1=8b, 2=16b, 3=4b, 4=64b
+    signed: 0=unsigned, 1=signed
     """
     if op in VALU_EXTRA_OPCODES:
         opcode = VALU_EXTRA_OPCODES[op]
@@ -175,6 +197,9 @@ def encode_valu_slot(op: str, dest_base: int, src1_base: int,
     bits |= (_pack_bits(src1_base, 11) << 29)
     bits |= (_pack_bits(src2_base, 11) << 18)
     bits |= (_pack_bits(src3_base, 11) << 7)
+    bits |= (_pack_bits(ewidth, 3) << 4)
+    bits |= (_pack_bits(dwidth, 3) << 1)
+    bits |= (_pack_bits(signed, 1) << 0)
     return bits
 
 
@@ -288,22 +313,91 @@ class Assembler:
         return slots
 
     def _encode_valu_ops(self, ops: List[tuple]) -> List[int]:
-        """Encode a list of VALU operations into slot bit patterns."""
+        """Encode a list of VALU operations into slot bit patterns.
+
+        Supported tuple formats:
+          Lane-wise ALU:      (op, dest, src1, src2)                    — EW32 default
+          Lane-wise ALU:      (op, dest, src1, src2, ew)               — packed at ew
+          Lane-wise ALU:      (op, dest, src1, src2, ew, signed)       — packed + signed
+          VBROADCAST:         ("vbroadcast", dest, src)                — EW32 default
+          VBROADCAST:         ("vbroadcast", dest, src, ew)            — packed broadcast
+          MULTIPLY_ADD:       ("multiply_add", dest, a, b, c)          — EW32 default
+          MULTIPLY_ADD:       ("multiply_add", dest, a, b, c, ew)      — packed at ew
+          MULTIPLY_ADD:       ("multiply_add", dest, a, b, c, ew, dw)  — widening: ew→dw
+          MULTIPLY_ADD:       ("multiply_add", dest, a, b, c, ew, dw, signed) — signed widening
+          Widening MUL:       ("mul", dest, src1, src2, ew, dw)        — widening mul
+          Widening MUL:       ("mul", dest, src1, src2, ew, dw, signed)
+          VCAST:              ("vcast", dest, src, ew, dw)             — unsigned cast
+          VCAST:              ("vcast", dest, src, ew, dw, signed)     — signed cast
+          VCAST upper:        ("vcast", dest, src|1, ew, dw, signed)   — upper half (src2Base[0]=1)
+
+        Element width values: 32, 16, 8, 4, 64 (or use EWIDTH_* constants directly).
+        """
         slots = []
         for op_tuple in ops:
             op = op_tuple[0]
+
+            # Helper to resolve element width from int (4,8,16,32,64) or code (0-4)
+            def _ew(val_or_code):
+                if val_or_code in EWIDTH_MAP:
+                    return EWIDTH_MAP[val_or_code]
+                return int(val_or_code)
+
             if op == "vbroadcast":
-                # (vbroadcast, dest, src) — src is scalar, broadcast to dest+0..dest+VLEN-1
                 dest, src = op_tuple[1], op_tuple[2]
-                slots.append(encode_valu_slot(op, dest, src, 0, src, self.cfg.scratch_addr_width))
+                ew = _ew(op_tuple[3]) if len(op_tuple) > 3 else EWIDTH_32
+                slots.append(encode_valu_slot(op, dest, src, 0, src,
+                                              self.cfg.scratch_addr_width,
+                                              ewidth=ew, dwidth=ew))
             elif op == "multiply_add":
-                # (multiply_add, dest, a, b, c)
-                dest, a, b, c = op_tuple[1], op_tuple[2], op_tuple[3], op_tuple[4]
-                slots.append(encode_valu_slot(op, dest, a, b, c, self.cfg.scratch_addr_width))
+                dest, a, b, c_op = op_tuple[1], op_tuple[2], op_tuple[3], op_tuple[4]
+                ew = _ew(op_tuple[5]) if len(op_tuple) > 5 else EWIDTH_32
+                dw = _ew(op_tuple[6]) if len(op_tuple) > 6 else ew
+                sgn = int(op_tuple[7]) if len(op_tuple) > 7 else 0
+                slots.append(encode_valu_slot(op, dest, a, b, c_op,
+                                              self.cfg.scratch_addr_width,
+                                              ewidth=ew, dwidth=dw, signed=sgn))
+            elif op == "vcast":
+                dest, src = op_tuple[1], op_tuple[2]
+                ew = _ew(op_tuple[3]) if len(op_tuple) > 3 else EWIDTH_32
+                dw = _ew(op_tuple[4]) if len(op_tuple) > 4 else EWIDTH_32
+                sgn = int(op_tuple[5]) if len(op_tuple) > 5 else 0
+                # src goes into src1Base; src2Base[0] selects lower/upper half
+                # src2Base is 0 for lower half, 1 for upper half — caller encodes this
+                # by passing src as-is (lower) or setting bit 0 of a src2Base param
+                # For simplicity: 6th positional arg is signed, 7th is upper_half
+                upper = int(op_tuple[6]) if len(op_tuple) > 6 else 0
+                slots.append(encode_valu_slot(op, dest, src, upper, 0,
+                                              self.cfg.scratch_addr_width,
+                                              ewidth=ew, dwidth=dw, signed=sgn))
             else:
-                # Lane-wise ALU operation: (op, dest, src1, src2)
+                # Lane-wise ALU: (op, dest, src1, src2 [, ew [, dw [, signed]]])
                 dest, src1, src2 = op_tuple[1], op_tuple[2], op_tuple[3]
-                slots.append(encode_valu_slot(op, dest, src1, src2, 0, self.cfg.scratch_addr_width))
+                ew = _ew(op_tuple[4]) if len(op_tuple) > 4 else EWIDTH_32
+                dw_raw = op_tuple[5] if len(op_tuple) > 5 else None
+                sgn = 0
+                if dw_raw is not None:
+                    # Check if dw_raw is actually the signed flag (for 6-arg tuples
+                    # where user passes (op, dest, src1, src2, ew, signed_flag))
+                    # Heuristic: if len==6 and dw_raw is 0 or 1 and ew != 0, it might be signed
+                    # But to be unambiguous with widening MUL, use explicit detection:
+                    if len(op_tuple) > 6:
+                        # (op, dest, src1, src2, ew, dw, signed)
+                        dw = _ew(dw_raw)
+                        sgn = int(op_tuple[6])
+                    elif op in ("*", "mul") and dw_raw not in (0, 1):
+                        # Widening MUL: (op, dest, src1, src2, ew, dw)
+                        dw = _ew(dw_raw)
+                    else:
+                        # (op, dest, src1, src2, ew, signed_flag)
+                        dw = ew
+                        sgn = int(dw_raw)
+                else:
+                    dw = ew
+
+                slots.append(encode_valu_slot(op, dest, src1, src2, 0,
+                                              self.cfg.scratch_addr_width,
+                                              ewidth=ew, dwidth=dw, signed=sgn))
         while len(slots) < self.cfg.n_valu_slots:
             slots.append(encode_valu_nop())
         if len(slots) > self.cfg.n_valu_slots:

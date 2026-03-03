@@ -392,35 +392,74 @@ class VliwScheduler:
     # ---- VALU operations ----
 
     def valu_op(self, op: str, dest_base: int, src1_base: int,
-                src2_base: int, vlen: int = 8) -> Op:
-        """Vector ALU lane-wise operation."""
+                src2_base: int, vlen: int = 8,
+                ew: int = 32, dw: int = 0, signed: int = 0) -> Op:
+        """Vector ALU lane-wise operation.
+
+        Args:
+            ew: Element width in bits (4, 8, 16, 32, 64). Default 32.
+            dw: Destination width (for widening MUL). 0 means same as ew.
+            signed: 1 for signed operations.
+        """
         dests = list(range(dest_base, dest_base + vlen))
         srcs = list(range(src1_base, src1_base + vlen)) + \
                list(range(src2_base, src2_base + vlen))
         return Op(engine="valu", op=op, dests=dests, srcs=srcs,
                   params={"dest_base": dest_base, "src1_base": src1_base,
-                          "src2_base": src2_base},
+                          "src2_base": src2_base,
+                          "ew": ew, "dw": dw if dw else ew, "signed": signed},
                   latency=NORMAL_LATENCY)
 
-    def vbroadcast(self, dest_base: int, src_scalar: int, vlen: int = 8) -> Op:
-        """VBROADCAST scalar to vector."""
+    def vbroadcast(self, dest_base: int, src_scalar: int, vlen: int = 8,
+                   ew: int = 32) -> Op:
+        """VBROADCAST scalar to vector.
+
+        Args:
+            ew: Element width in bits (4, 8, 16, 32, 64). Default 32.
+        """
         dests = list(range(dest_base, dest_base + vlen))
         return Op(engine="valu", op="vbroadcast", dests=dests, srcs=[src_scalar],
                   params={"dest_base": dest_base, "src1_base": src_scalar,
-                          "src2_base": 0},
+                          "src2_base": 0, "ew": ew},
               latency=VALU_SRC3_LATENCY)
 
     def multiply_add(self, dest_base: int, a_base: int, b_base: int,
-                     c_base: int, vlen: int = 8) -> Op:
-        """MULTIPLY_ADD dest = a * b + c (vector)."""
+                     c_base: int, vlen: int = 8,
+                     ew: int = 32, dw: int = 0, signed: int = 0) -> Op:
+        """MULTIPLY_ADD dest = a * b + c (vector).
+
+        Args:
+            ew: Element width in bits (4, 8, 16, 32, 64). Default 32.
+            dw: Destination width (for widening). 0 means same as ew.
+            signed: 1 for signed operations.
+        """
         dests = list(range(dest_base, dest_base + vlen))
         srcs = (list(range(a_base, a_base + vlen)) +
                 list(range(b_base, b_base + vlen)) +
                 list(range(c_base, c_base + vlen)))
         return Op(engine="valu", op="multiply_add", dests=dests, srcs=srcs,
                   params={"dest_base": dest_base, "src1_base": a_base,
-                          "src2_base": b_base, "src3_base": c_base},
+                          "src2_base": b_base, "src3_base": c_base,
+                          "ew": ew, "dw": dw if dw else ew, "signed": signed},
               latency=VALU_SRC3_LATENCY)
+
+    def vcast(self, dest_base: int, src_base: int, ew: int, dw: int,
+              signed: int = 0, upper: int = 0, vlen: int = 8) -> Op:
+        """VCAST — cast between element widths.
+
+        Args:
+            ew: Source element width in bits (4, 8, 16, 32, 64).
+            dw: Destination element width in bits.
+            signed: 1 for sign-extension (widening) or signed saturation (narrowing).
+            upper: 1 to select upper half of source sub-elements (widening) or
+                   place results in upper half (narrowing).
+        """
+        dests = list(range(dest_base, dest_base + vlen))
+        srcs = list(range(src_base, src_base + vlen))
+        return Op(engine="valu", op="vcast", dests=dests, srcs=srcs,
+                  params={"dest_base": dest_base, "src1_base": src_base,
+                          "ew": ew, "dw": dw, "signed": signed, "upper": upper},
+              latency=NORMAL_LATENCY)
 
     # ---- Flow operations ----
 
@@ -1005,11 +1044,48 @@ class VliwScheduler:
 
         elif op.engine == "valu":
             if op.op == "vbroadcast":
+                ew = p.get("ew", 32)
+                if ew != 32:
+                    return ("vbroadcast", p["dest_base"], p["src1_base"], ew)
                 return ("vbroadcast", p["dest_base"], p["src1_base"])
             elif op.op == "multiply_add":
+                ew = p.get("ew", 32)
+                dw = p.get("dw", ew)
+                sgn = p.get("signed", 0)
+                if ew != 32 or dw != ew or sgn:
+                    if dw != ew:
+                        return ("multiply_add", p["dest_base"], p["src1_base"],
+                                p["src2_base"], p["src3_base"], ew, dw, sgn)
+                    elif sgn:
+                        return ("multiply_add", p["dest_base"], p["src1_base"],
+                                p["src2_base"], p["src3_base"], ew, ew, sgn)
+                    else:
+                        return ("multiply_add", p["dest_base"], p["src1_base"],
+                                p["src2_base"], p["src3_base"], ew)
                 return ("multiply_add", p["dest_base"], p["src1_base"],
                         p["src2_base"], p["src3_base"])
+            elif op.op == "vcast":
+                ew = p.get("ew", 32)
+                dw = p.get("dw", 32)
+                sgn = p.get("signed", 0)
+                upper = p.get("upper", 0)
+                if upper:
+                    return ("vcast", p["dest_base"], p["src1_base"], ew, dw, sgn, upper)
+                elif sgn:
+                    return ("vcast", p["dest_base"], p["src1_base"], ew, dw, sgn)
+                else:
+                    return ("vcast", p["dest_base"], p["src1_base"], ew, dw)
             else:
+                ew = p.get("ew", 32)
+                dw = p.get("dw", ew)
+                sgn = p.get("signed", 0)
+                if ew != 32 or dw != ew or sgn:
+                    if dw != ew:
+                        return (op.op, p["dest_base"], p["src1_base"], p["src2_base"], ew, dw, sgn)
+                    elif sgn:
+                        return (op.op, p["dest_base"], p["src1_base"], p["src2_base"], ew, sgn)
+                    else:
+                        return (op.op, p["dest_base"], p["src1_base"], p["src2_base"], ew)
                 return (op.op, p["dest_base"], p["src1_base"], p["src2_base"])
 
         elif op.engine == "load":

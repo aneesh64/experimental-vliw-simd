@@ -22,6 +22,13 @@ sbt "runMain vliw.gen.GenerateCore"
 ### Run Tests
 ```bash
 python verification/cocotb/integration/run_integration.py --modules test_integration
+# Or run grouped modules directly:
+# python verification/cocotb/integration/run_integration.py --modules test_integration_scalar
+# python verification/cocotb/integration/run_integration.py --modules test_integration_memory
+# python verification/cocotb/integration/run_integration.py --modules test_integration_control
+# python verification/cocotb/integration/run_integration.py --modules test_integration_vector
+# python verification/cocotb/integration/run_integration.py --modules test_algorithms_kernels
+# python verification/cocotb/integration/run_integration.py --modules test_algorithms_multiwidth
 # Expected: 24/24 PASS (RTL auto-rebuilds only when sources change)
 ```
 
@@ -132,6 +139,10 @@ python verification/cocotb/tests/run_tests.py
 
 # 3. Run integration suite (auto-detects RTL changes)
 python verification/cocotb/integration/run_integration.py --modules test_integration
+
+# Optional grouped runs
+python verification/cocotb/integration/run_integration.py --modules test_integration_scalar
+python verification/cocotb/integration/run_integration.py --modules test_algorithms_multiwidth
 
 # 4. Check results (expect 24/24 PASS)
 # Use --rebuild-rtl to force RTL regeneration, --no-rtl to skip

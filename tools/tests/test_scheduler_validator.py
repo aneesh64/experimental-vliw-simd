@@ -8,8 +8,8 @@ Tests the validators catch the right errors and allow valid schedules.
 import sys
 from pathlib import Path
 
-# Add parent to path so we can import scheduler_validator
-TOOLS_DIR = Path(__file__).parent
+# Add tools/ parent to path so we can import scheduler_validator
+TOOLS_DIR = Path(__file__).resolve().parents[1]
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
