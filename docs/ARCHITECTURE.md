@@ -1,8 +1,8 @@
 # VLIW SIMD Architecture - Current Implementation
 
-**Status:** Phase 4 Complete (Multi-Width Vector ISA)  
-**Version:** Multi-Width Vector Extension  
-**Last Updated:** March 3, 2026
+**Status:** Phase 5 Complete (Load-Use Hazard Detection + Multi-Width Vector ISA)  
+**Version:** Load-Use Hazard Detection + Multi-Width Vector Extension  
+**Last Updated:** March 5, 2026
 
 ---
 
@@ -11,8 +11,9 @@
 A compiler-trusted VLIW processor with SIMD capabilities, optimized for simplicity and verification.
 
 ### Key Design Principles (Post-Simplification)
-- **No Runtime Hazard Detection:** Compiler guarantees safe instruction scheduling
-- **Minimal Hardware Complexity:** Removed FIFOs, multi-cycle trackers, and defensive logic
+- **Compiler-Scheduled Pipeline:** Scheduler guarantees RAW/WAW/WAR-safe instruction ordering
+- **Hardware Load-Use Hazard Detection:** Pipeline stalls automatically when an instruction reads a register with a pending load result (asynchronous AXI latency cannot be statically scheduled)
+- **Minimal Hardware Complexity:** Removed FIFOs, multi-cycle trackers, and defensive logic (except load-use detection)
 - **Combinatorial Memory Paths:** 0-cycle AR drive for load requests
 - **Single Pending Operations:** One in-flight load, simple register-based tracking
 
@@ -22,12 +23,25 @@ A compiler-trusted VLIW processor with SIMD capabilities, optimized for simplici
 │ Fetch  │ --> │ Execute │ --> │Writeback │
 │  (IF)  │     │  (EX)   │     │  (WB)    │
 └────────┘     └─────────┘     └──────────┘
-     3-stage pipeline, no stalls, no bypassing
+     3-stage pipeline, hardware load-use stalling
 ```
+
+### Load-Use Hazard Detection (VliwCore)
+
+The pipeline detects data dependencies from pending loads and stalls automatically:
+
+- **Three hazard sources** checked per cycle:
+  1. `hazardFromPending` — load already in-flight, decode reads its destination
+  2. `hazardFromIssuing` — load being issued this EX cycle, decode reads its destination
+  3. `hazardFromWbCommit` — load data arriving at writeback, decode reads its destination
+- **Stall path:** `fetch.io.stall := mem.io.stall || loadUseHazard || exLoadUseHazard`
+- **Bubble injection:** On decode-side hazard, EX slot valid signals forced `False` (pipeline bubble)
+- **Pipeline register hold:** On memory backpressure, all `exSlotsReg` pipeline registers are frozen
+- **Coverage:** Checks ALL engine slot types (ALU src1/src2, Load addrReg, Store addrReg/srcReg, VALU src1Base/src2Base/src3Base, Flow operands) including scalar-in-vector-range detection
 
 ---
 
-## Core Architecture (VliwCore.scala - 361 LOC)
+## Core Architecture (VliwCore.scala - 677 LOC)
 
 ### Execution Engines (Baseline Configuration)
 
@@ -94,14 +108,20 @@ A compiler-trusted VLIW processor with SIMD capabilities, optimized for simplici
 
 ## Memory Subsystem
 
-### Memory Engine (MemoryEngine.scala - 367 LOC)
+### Memory Engine (MemoryEngine.scala - 391 LOC)
 
 **Simplified Design (Phase 3):**
 - **Load Tracking:** Single-item register replaces 3-item FIFO
   - `loadReqValid` (1-bit flag)
   - `loadReqEntry` (register holding {rd, coreId, wbTag})
+- **Load-Use Hazard Metadata:** Exports pending load info for VliwCore hazard detection:
+  - `loadPendingValid` — true when a load is in-flight
+  - `loadPendingDestAddr` — scratch destination address of pending load
+  - `loadPendingIsVector` — true if pending load is a vector burst load
 - **AR Channel:** Combinatorial drive (0-cycle latency from request to AR valid)
 - **Constraint:** Only one pending load at a time per core
+- **Alignment Assertions:** Debug-time assertions catch VLOAD/VSTORE beat boundary overflow:
+  - `assert(wordOffset <= wordsPerBeat - VLEN)` for both VLOAD and VSTORE
 
 **Load Request Flow:**
 ```
@@ -318,7 +338,7 @@ VliwSocConfig(
 ```
 
 ### Tested Configurations
-- **Baseline (test_config.properties):** 1-1-1-1-1 → ✅ 24/24 tests PASS
+- **Baseline (test_config.properties):** 1-1-1-1-1 → ✅ 114/114 tests PASS
 - **Dual-ALU (test_config_alu2.properties):** 2-1-1-1-1 → ⚠️ Writeback issue (see KNOWN_ISSUES.md)
 - **Expanded (test_config_expanded.properties):** 2-2-1-1-1 → ⏳ Not tested
 
@@ -348,19 +368,22 @@ VliwSocConfig(
 
 ## Key Simplifications (Phase 0-3) and Extensions (Phase 4)
 
-### Phase 2: Hazard Detection Removal (-116 LOC)
+### Phase 2: Hazard Detection Removal (-116 LOC, partially restored)
 - Removed WAW, RAW, WAR hazard checks
-- Removed pipeline stall logic
-- Compiler now guarantees hazard-free schedules
-- Result: 87.9% signal reduction, 2.12× simulation speedup
+- Removed pipeline stall logic and bypassing
+- Compiler now guarantees hazard-free schedules for ALU/VALU/Store/Flow
+- **Later restored:** Load-use hazard detection (+316 LOC) — asynchronous AXI load latency
+  cannot be statically scheduled, requiring hardware stall on load-dependent reads
+- Result: Net VliwCore growth 361 → 677 LOC (hazard detection is the dominant contributor)
 
-### Phase 3: Memory Engine Simplification (-57 LOC)
+### Phase 3: Memory Engine Simplification (-57 LOC, +24 LOC hazard metadata)
 - **FIFO → Register:** 3-item load queue → single pending load register
 - **0-Cycle AR:** Combinatorial AXI AR channel drive
 - **Simplified Tracking:** `loadReqValid` + `loadReqEntry` registers only
-- Result: 27% memory engine reduction, cleaner FSM
-
-Total RTL reduction: **-173 LOC (15.3%)**
+- **Hazard Metadata:** Added `loadPendingValid`, `loadPendingDestAddr`, `loadPendingIsVector`
+  output ports for VliwCore’s load-use hazard detection
+- **Alignment Assertions:** Debug-time checks for VLOAD/VSTORE beat boundary overflow
+- Result: 367 → 391 LOC (net +24 from hazard metadata and assertions)
 
 ### Phase 4: Multi-Width Vector ISA Extension
 
@@ -441,6 +464,13 @@ Cycle 2: Writeback r3 (scalar) and v1 (vector) simultaneously
 **Status:** Under investigation (suspected scheduler multi-slot allocation bug)  
 **Workaround:** Use baseline single-ALU configuration
 
+### 4. FetchUnit Stall-Address Correction
+**Impact:** During load-use stalls, IMEM address must point to `pc-1` (the instruction being stalled),
+not `pc` (the next instruction). Without this, the instruction in-flight when the stall began
+would be lost and skipped on stall release.  
+**Status:** FIXED — `io.imemAddr := Mux(io.stall, (pc - 1).resized, pc)` ensures correct
+instruction re-read during stalls.
+
 ---
 
 ## Tool Integration
@@ -466,18 +496,19 @@ Cycle 2: Writeback r3 (scalar) and v1 (vector) simultaneously
 ## Verification Status
 
 **Baseline Configuration:**
-- 24/24 tests PASS ✅
+- 114/114 tests PASS ✅
+- **Unit Tests (47):**
+  - Divider: 6, ALU: 6, VALU: 7, Flow: 13, Mem: 4, Scratch: 5, Core: 6
+- **Integration Tests (67):**
+  - test_integration: 31 (scalar + memory + control + vector)
+  - test_algorithms: 28 (DSP/ML kernels + multiwidth)
+  - test_slot_configs: 3
+  - test_driver_integration: 5
 - Comprehensive coverage:
-  - ALU operations (10+ tests)
-  - Memory operations (5+ tests)
-  - Control flow (3+ tests)
-  - Vector operations (4+ tests)
+  - ALU operations, memory operations, control flow, vector operations
+  - Load-use hazard detection (scalar/vector), multi-width packed ops
+  - Driver integration (program load, arithmetic, memory, control flow, VALU)
 - All tests complete within cycle budgets (no timeouts)
-
-**Simulation Performance:**
-- Throughput: 23,272 ns/s
-- Full suite: 88.14 seconds
-- Signal count: 195 optimized signals
 
 ---
 

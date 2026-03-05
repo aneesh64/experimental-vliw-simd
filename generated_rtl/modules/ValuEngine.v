@@ -1,6 +1,6 @@
 // Generator : SpinalHDL v1.10.2a    git head : a348a60b7e8b6a455c72e1536ec3d74a2ea16935
 // Component : ValuEngine
-// Git hash  : 89593405df5b02f6eb34aabdfded8d31380b3ee9
+// Git hash  : e5c7dd9bd283f27e44e50f1efeae0b7e0dcd5208
 
 `timescale 1ns/1ps
 
@@ -6841,28 +6841,28 @@ module ValuEngine (
   wire       [31:0]   _zz__zz_io_writeReqs_0_7_payload_data_214_49;
   wire       [31:0]   _zz__zz_io_writeReqs_0_7_payload_data_214_50;
   wire       [10:0]   _zz_io_writeReqs_0_7_payload_addr_1;
-  reg                 carry64_0_0;
-  reg                 carry64_0_1;
-  reg                 carry64_0_2;
-  reg                 carry64_0_3;
-  reg                 borrow64_0_0;
-  reg                 borrow64_0_1;
-  reg                 borrow64_0_2;
-  reg                 borrow64_0_3;
-  reg                 ltLo64_0_0;
-  reg                 ltLo64_0_1;
-  reg                 ltLo64_0_2;
-  reg                 ltLo64_0_3;
-  reg                 eqLo64_0_0;
-  reg                 eqLo64_0_1;
-  reg                 eqLo64_0_2;
-  reg                 eqLo64_0_3;
+  wire                carry64_0_0;
+  wire                carry64_0_1;
+  wire                carry64_0_2;
+  wire                carry64_0_3;
+  wire                borrow64_0_0;
+  wire                borrow64_0_1;
+  wire                borrow64_0_2;
+  wire                borrow64_0_3;
+  wire                ltLo64_0_0;
+  wire                ltLo64_0_1;
+  wire                ltLo64_0_2;
+  wire                ltLo64_0_3;
+  wire                eqLo64_0_0;
+  wire                eqLo64_0_1;
+  wire                eqLo64_0_2;
+  wire                eqLo64_0_3;
   wire                _zz_io_writeReqs_0_0_valid;
   reg        [10:0]   _zz_io_writeReqs_0_0_payload_addr;
   reg        [1:0]    _zz_io_writeReqs_0_0_payload_data;
   wire                _zz_io_writeReqs_0_0_valid_1;
-  wire                when_ValuEngine_l305;
-  wire                when_ValuEngine_l306;
+  wire                when_ValuEngine_l97;
+  wire                when_ValuEngine_l98;
   reg        [31:0]   _zz_io_writeReqs_0_0_payload_data_1;
   reg        [31:0]   _zz_io_writeReqs_0_0_payload_data_2;
   wire       [7:0]    _zz_io_writeReqs_0_0_payload_data_3;
@@ -6997,7 +6997,7 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_132;
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_133;
   reg        [31:0]   _zz_io_writeReqs_0_0_payload_data_134;
-  wire                when_ValuEngine_l318;
+  wire                when_ValuEngine_l110;
   wire       [7:0]    _zz_io_writeReqs_0_0_payload_data_135;
   wire       [7:0]    _zz_io_writeReqs_0_0_payload_data_136;
   wire       [7:0]    _zz_io_writeReqs_0_0_payload_data_137;
@@ -7008,25 +7008,25 @@ module ValuEngine (
   wire       [7:0]    _zz_io_writeReqs_0_0_payload_data_142;
   wire       [7:0]    _zz_io_writeReqs_0_0_payload_data_143;
   wire       [15:0]   _zz_io_writeReqs_0_0_payload_data_144;
-  wire                when_ValuEngine_l319;
+  wire                when_ValuEngine_l111;
   reg        [31:0]   _zz_io_writeReqs_0_0_payload_data_145;
-  wire                when_ValuEngine_l322;
+  wire                when_ValuEngine_l114;
   wire       [7:0]    _zz_io_writeReqs_0_0_payload_data_146;
   wire       [7:0]    _zz_io_writeReqs_0_0_payload_data_147;
   wire       [7:0]    _zz_io_writeReqs_0_0_payload_data_148;
   wire       [7:0]    _zz_io_writeReqs_0_0_payload_data_149;
   wire       [31:0]   _zz_io_writeReqs_0_0_payload_data_150;
-  wire                when_ValuEngine_l323;
+  wire                when_ValuEngine_l115;
   reg        [31:0]   _zz_io_writeReqs_0_0_payload_data_151;
-  wire                when_ValuEngine_l326;
+  wire                when_ValuEngine_l118;
   wire       [15:0]   _zz_io_writeReqs_0_0_payload_data_152;
   wire       [15:0]   _zz_io_writeReqs_0_0_payload_data_153;
   wire       [15:0]   _zz_io_writeReqs_0_0_payload_data_154;
   wire       [15:0]   _zz_io_writeReqs_0_0_payload_data_155;
   wire       [31:0]   _zz_io_writeReqs_0_0_payload_data_156;
-  wire                when_ValuEngine_l327;
+  wire                when_ValuEngine_l119;
   reg        [31:0]   _zz_io_writeReqs_0_0_payload_data_157;
-  wire                when_ValuEngine_l330;
+  wire                when_ValuEngine_l122;
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_158;
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_159;
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_160;
@@ -7047,9 +7047,9 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_175;
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_176;
   wire       [7:0]    _zz_io_writeReqs_0_0_payload_data_177;
-  wire                when_ValuEngine_l331;
+  wire                when_ValuEngine_l123;
   reg        [31:0]   _zz_io_writeReqs_0_0_payload_data_178;
-  wire                when_ValuEngine_l334;
+  wire                when_ValuEngine_l126;
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_179;
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_180;
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_181;
@@ -7060,15 +7060,15 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_186;
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_187;
   wire       [15:0]   _zz_io_writeReqs_0_0_payload_data_188;
-  wire                when_ValuEngine_l335;
+  wire                when_ValuEngine_l127;
   reg        [31:0]   _zz_io_writeReqs_0_0_payload_data_189;
-  wire                when_ValuEngine_l338;
+  wire                when_ValuEngine_l130;
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_190;
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_191;
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_192;
   wire       [3:0]    _zz_io_writeReqs_0_0_payload_data_193;
   wire       [31:0]   _zz_io_writeReqs_0_0_payload_data_194;
-  wire                when_ValuEngine_l339;
+  wire                when_ValuEngine_l131;
   wire                _zz_io_writeReqs_0_0_payload_data_195;
   wire       [7:0]    _zz_io_writeReqs_0_0_payload_data_196;
   wire       [7:0]    _zz_io_writeReqs_0_0_payload_data_197;
@@ -7090,45 +7090,45 @@ module ValuEngine (
   reg        [31:0]   _zz_io_writeReqs_0_0_payload_data_213;
   wire       [33:0]   _zz_carry64_0_0;
   wire       [33:0]   _zz_borrow64_0_0;
-  wire       [5:0]    _zz_when_ValuEngine_l380;
-  wire                when_ValuEngine_l380;
-  wire       [5:0]    _zz_when_ValuEngine_l386;
-  wire                when_ValuEngine_l386;
-  wire                when_ValuEngine_l388;
+  wire       [5:0]    _zz_when_ValuEngine_l172;
+  wire                when_ValuEngine_l172;
+  wire       [5:0]    _zz_when_ValuEngine_l178;
+  wire                when_ValuEngine_l178;
+  wire                when_ValuEngine_l180;
   reg        [31:0]   _zz_io_writeReqs_0_0_payload_data_214;
-  wire                when_ValuEngine_l452;
-  wire                when_ValuEngine_l445;
-  wire                when_ValuEngine_l446;
-  wire                when_ValuEngine_l447;
-  wire                when_ValuEngine_l448;
-  wire                when_ValuEngine_l449;
-  wire                when_ValuEngine_l450;
-  wire                when_ValuEngine_l451;
-  wire                when_ValuEngine_l454;
-  wire                when_ValuEngine_l455;
-  wire                when_ValuEngine_l456;
-  wire                when_ValuEngine_l457;
-  wire                when_ValuEngine_l460;
-  wire                when_ValuEngine_l461;
-  wire                when_ValuEngine_l462;
-  wire                when_ValuEngine_l465;
-  wire                when_ValuEngine_l466;
-  wire                when_ValuEngine_l467;
-  wire                when_ValuEngine_l470;
-  wire                when_ValuEngine_l471;
-  wire                when_ValuEngine_l472;
-  wire                when_ValuEngine_l459;
-  wire                when_ValuEngine_l464;
-  wire                when_ValuEngine_l469;
-  wire                when_ValuEngine_l477;
-  wire                when_ValuEngine_l478;
-  wire                when_ValuEngine_l479;
-  wire                when_ValuEngine_l480;
+  wire                when_ValuEngine_l244;
+  wire                when_ValuEngine_l237;
+  wire                when_ValuEngine_l238;
+  wire                when_ValuEngine_l239;
+  wire                when_ValuEngine_l240;
+  wire                when_ValuEngine_l241;
+  wire                when_ValuEngine_l242;
+  wire                when_ValuEngine_l243;
+  wire                when_ValuEngine_l246;
+  wire                when_ValuEngine_l247;
+  wire                when_ValuEngine_l248;
+  wire                when_ValuEngine_l249;
+  wire                when_ValuEngine_l252;
+  wire                when_ValuEngine_l253;
+  wire                when_ValuEngine_l254;
+  wire                when_ValuEngine_l257;
+  wire                when_ValuEngine_l258;
+  wire                when_ValuEngine_l259;
+  wire                when_ValuEngine_l262;
+  wire                when_ValuEngine_l263;
+  wire                when_ValuEngine_l264;
+  wire                when_ValuEngine_l251;
+  wire                when_ValuEngine_l256;
+  wire                when_ValuEngine_l261;
+  wire                when_ValuEngine_l269;
+  wire                when_ValuEngine_l270;
+  wire                when_ValuEngine_l271;
+  wire                when_ValuEngine_l272;
   reg        [10:0]   _zz_io_writeReqs_0_1_payload_addr;
   reg        [1:0]    _zz_io_writeReqs_0_1_payload_data;
   wire                _zz_io_writeReqs_0_1_valid;
-  wire                when_ValuEngine_l305_1;
-  wire                when_ValuEngine_l306_1;
+  wire                when_ValuEngine_l97_1;
+  wire                when_ValuEngine_l98_1;
   reg        [31:0]   _zz_io_writeReqs_0_1_payload_data_1;
   reg        [31:0]   _zz_io_writeReqs_0_1_payload_data_2;
   wire       [7:0]    _zz_io_writeReqs_0_1_payload_data_3;
@@ -7263,7 +7263,7 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_132;
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_133;
   reg        [31:0]   _zz_io_writeReqs_0_1_payload_data_134;
-  wire                when_ValuEngine_l318_1;
+  wire                when_ValuEngine_l110_1;
   wire       [7:0]    _zz_io_writeReqs_0_1_payload_data_135;
   wire       [7:0]    _zz_io_writeReqs_0_1_payload_data_136;
   wire       [7:0]    _zz_io_writeReqs_0_1_payload_data_137;
@@ -7274,25 +7274,25 @@ module ValuEngine (
   wire       [7:0]    _zz_io_writeReqs_0_1_payload_data_142;
   wire       [7:0]    _zz_io_writeReqs_0_1_payload_data_143;
   wire       [15:0]   _zz_io_writeReqs_0_1_payload_data_144;
-  wire                when_ValuEngine_l319_1;
+  wire                when_ValuEngine_l111_1;
   reg        [31:0]   _zz_io_writeReqs_0_1_payload_data_145;
-  wire                when_ValuEngine_l322_1;
+  wire                when_ValuEngine_l114_1;
   wire       [7:0]    _zz_io_writeReqs_0_1_payload_data_146;
   wire       [7:0]    _zz_io_writeReqs_0_1_payload_data_147;
   wire       [7:0]    _zz_io_writeReqs_0_1_payload_data_148;
   wire       [7:0]    _zz_io_writeReqs_0_1_payload_data_149;
   wire       [31:0]   _zz_io_writeReqs_0_1_payload_data_150;
-  wire                when_ValuEngine_l323_1;
+  wire                when_ValuEngine_l115_1;
   reg        [31:0]   _zz_io_writeReqs_0_1_payload_data_151;
-  wire                when_ValuEngine_l326_1;
+  wire                when_ValuEngine_l118_1;
   wire       [15:0]   _zz_io_writeReqs_0_1_payload_data_152;
   wire       [15:0]   _zz_io_writeReqs_0_1_payload_data_153;
   wire       [15:0]   _zz_io_writeReqs_0_1_payload_data_154;
   wire       [15:0]   _zz_io_writeReqs_0_1_payload_data_155;
   wire       [31:0]   _zz_io_writeReqs_0_1_payload_data_156;
-  wire                when_ValuEngine_l327_1;
+  wire                when_ValuEngine_l119_1;
   reg        [31:0]   _zz_io_writeReqs_0_1_payload_data_157;
-  wire                when_ValuEngine_l330_1;
+  wire                when_ValuEngine_l122_1;
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_158;
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_159;
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_160;
@@ -7313,9 +7313,9 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_175;
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_176;
   wire       [7:0]    _zz_io_writeReqs_0_1_payload_data_177;
-  wire                when_ValuEngine_l331_1;
+  wire                when_ValuEngine_l123_1;
   reg        [31:0]   _zz_io_writeReqs_0_1_payload_data_178;
-  wire                when_ValuEngine_l334_1;
+  wire                when_ValuEngine_l126_1;
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_179;
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_180;
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_181;
@@ -7326,15 +7326,15 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_186;
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_187;
   wire       [15:0]   _zz_io_writeReqs_0_1_payload_data_188;
-  wire                when_ValuEngine_l335_1;
+  wire                when_ValuEngine_l127_1;
   reg        [31:0]   _zz_io_writeReqs_0_1_payload_data_189;
-  wire                when_ValuEngine_l338_1;
+  wire                when_ValuEngine_l130_1;
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_190;
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_191;
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_192;
   wire       [3:0]    _zz_io_writeReqs_0_1_payload_data_193;
   wire       [31:0]   _zz_io_writeReqs_0_1_payload_data_194;
-  wire                when_ValuEngine_l339_1;
+  wire                when_ValuEngine_l131_1;
   wire                _zz_io_writeReqs_0_1_payload_data_195;
   wire       [7:0]    _zz_io_writeReqs_0_1_payload_data_196;
   wire       [7:0]    _zz_io_writeReqs_0_1_payload_data_197;
@@ -7354,46 +7354,46 @@ module ValuEngine (
   wire       [7:0]    _zz_io_writeReqs_0_1_payload_data_211;
   wire       [15:0]   _zz_io_writeReqs_0_1_payload_data_212;
   reg        [31:0]   _zz_io_writeReqs_0_1_payload_data_213;
-  wire       [5:0]    _zz_when_ValuEngine_l409;
-  wire                when_ValuEngine_l409;
-  wire                when_ValuEngine_l411;
-  wire       [5:0]    _zz_when_ValuEngine_l417;
-  wire                when_ValuEngine_l417;
-  wire                when_ValuEngine_l419;
+  wire       [5:0]    _zz_when_ValuEngine_l201;
+  wire                when_ValuEngine_l201;
+  wire                when_ValuEngine_l203;
+  wire       [5:0]    _zz_when_ValuEngine_l209;
+  wire                when_ValuEngine_l209;
+  wire                when_ValuEngine_l211;
   reg        [31:0]   _zz_io_writeReqs_0_1_payload_data_214;
-  wire                when_ValuEngine_l452_1;
-  wire                when_ValuEngine_l445_1;
-  wire                when_ValuEngine_l446_1;
-  wire                when_ValuEngine_l447_1;
-  wire                when_ValuEngine_l448_1;
-  wire                when_ValuEngine_l449_1;
-  wire                when_ValuEngine_l450_1;
-  wire                when_ValuEngine_l451_1;
-  wire                when_ValuEngine_l454_1;
-  wire                when_ValuEngine_l455_1;
-  wire                when_ValuEngine_l456_1;
-  wire                when_ValuEngine_l457_1;
-  wire                when_ValuEngine_l460_1;
-  wire                when_ValuEngine_l461_1;
-  wire                when_ValuEngine_l462_1;
-  wire                when_ValuEngine_l465_1;
-  wire                when_ValuEngine_l466_1;
-  wire                when_ValuEngine_l467_1;
-  wire                when_ValuEngine_l470_1;
-  wire                when_ValuEngine_l471_1;
-  wire                when_ValuEngine_l472_1;
-  wire                when_ValuEngine_l459_1;
-  wire                when_ValuEngine_l464_1;
-  wire                when_ValuEngine_l469_1;
-  wire                when_ValuEngine_l477_1;
-  wire                when_ValuEngine_l478_1;
-  wire                when_ValuEngine_l479_1;
-  wire                when_ValuEngine_l480_1;
+  wire                when_ValuEngine_l244_1;
+  wire                when_ValuEngine_l237_1;
+  wire                when_ValuEngine_l238_1;
+  wire                when_ValuEngine_l239_1;
+  wire                when_ValuEngine_l240_1;
+  wire                when_ValuEngine_l241_1;
+  wire                when_ValuEngine_l242_1;
+  wire                when_ValuEngine_l243_1;
+  wire                when_ValuEngine_l246_1;
+  wire                when_ValuEngine_l247_1;
+  wire                when_ValuEngine_l248_1;
+  wire                when_ValuEngine_l249_1;
+  wire                when_ValuEngine_l252_1;
+  wire                when_ValuEngine_l253_1;
+  wire                when_ValuEngine_l254_1;
+  wire                when_ValuEngine_l257_1;
+  wire                when_ValuEngine_l258_1;
+  wire                when_ValuEngine_l259_1;
+  wire                when_ValuEngine_l262_1;
+  wire                when_ValuEngine_l263_1;
+  wire                when_ValuEngine_l264_1;
+  wire                when_ValuEngine_l251_1;
+  wire                when_ValuEngine_l256_1;
+  wire                when_ValuEngine_l261_1;
+  wire                when_ValuEngine_l269_1;
+  wire                when_ValuEngine_l270_1;
+  wire                when_ValuEngine_l271_1;
+  wire                when_ValuEngine_l272_1;
   reg        [10:0]   _zz_io_writeReqs_0_2_payload_addr;
   reg        [1:0]    _zz_io_writeReqs_0_2_payload_data;
   wire                _zz_io_writeReqs_0_2_valid;
-  wire                when_ValuEngine_l305_2;
-  wire                when_ValuEngine_l306_2;
+  wire                when_ValuEngine_l97_2;
+  wire                when_ValuEngine_l98_2;
   reg        [31:0]   _zz_io_writeReqs_0_2_payload_data_1;
   reg        [31:0]   _zz_io_writeReqs_0_2_payload_data_2;
   wire       [7:0]    _zz_io_writeReqs_0_2_payload_data_3;
@@ -7528,7 +7528,7 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_132;
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_133;
   reg        [31:0]   _zz_io_writeReqs_0_2_payload_data_134;
-  wire                when_ValuEngine_l318_2;
+  wire                when_ValuEngine_l110_2;
   wire       [7:0]    _zz_io_writeReqs_0_2_payload_data_135;
   wire       [7:0]    _zz_io_writeReqs_0_2_payload_data_136;
   wire       [7:0]    _zz_io_writeReqs_0_2_payload_data_137;
@@ -7539,25 +7539,25 @@ module ValuEngine (
   wire       [7:0]    _zz_io_writeReqs_0_2_payload_data_142;
   wire       [7:0]    _zz_io_writeReqs_0_2_payload_data_143;
   wire       [15:0]   _zz_io_writeReqs_0_2_payload_data_144;
-  wire                when_ValuEngine_l319_2;
+  wire                when_ValuEngine_l111_2;
   reg        [31:0]   _zz_io_writeReqs_0_2_payload_data_145;
-  wire                when_ValuEngine_l322_2;
+  wire                when_ValuEngine_l114_2;
   wire       [7:0]    _zz_io_writeReqs_0_2_payload_data_146;
   wire       [7:0]    _zz_io_writeReqs_0_2_payload_data_147;
   wire       [7:0]    _zz_io_writeReqs_0_2_payload_data_148;
   wire       [7:0]    _zz_io_writeReqs_0_2_payload_data_149;
   wire       [31:0]   _zz_io_writeReqs_0_2_payload_data_150;
-  wire                when_ValuEngine_l323_2;
+  wire                when_ValuEngine_l115_2;
   reg        [31:0]   _zz_io_writeReqs_0_2_payload_data_151;
-  wire                when_ValuEngine_l326_2;
+  wire                when_ValuEngine_l118_2;
   wire       [15:0]   _zz_io_writeReqs_0_2_payload_data_152;
   wire       [15:0]   _zz_io_writeReqs_0_2_payload_data_153;
   wire       [15:0]   _zz_io_writeReqs_0_2_payload_data_154;
   wire       [15:0]   _zz_io_writeReqs_0_2_payload_data_155;
   wire       [31:0]   _zz_io_writeReqs_0_2_payload_data_156;
-  wire                when_ValuEngine_l327_2;
+  wire                when_ValuEngine_l119_2;
   reg        [31:0]   _zz_io_writeReqs_0_2_payload_data_157;
-  wire                when_ValuEngine_l330_2;
+  wire                when_ValuEngine_l122_2;
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_158;
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_159;
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_160;
@@ -7578,9 +7578,9 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_175;
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_176;
   wire       [7:0]    _zz_io_writeReqs_0_2_payload_data_177;
-  wire                when_ValuEngine_l331_2;
+  wire                when_ValuEngine_l123_2;
   reg        [31:0]   _zz_io_writeReqs_0_2_payload_data_178;
-  wire                when_ValuEngine_l334_2;
+  wire                when_ValuEngine_l126_2;
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_179;
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_180;
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_181;
@@ -7591,15 +7591,15 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_186;
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_187;
   wire       [15:0]   _zz_io_writeReqs_0_2_payload_data_188;
-  wire                when_ValuEngine_l335_2;
+  wire                when_ValuEngine_l127_2;
   reg        [31:0]   _zz_io_writeReqs_0_2_payload_data_189;
-  wire                when_ValuEngine_l338_2;
+  wire                when_ValuEngine_l130_2;
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_190;
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_191;
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_192;
   wire       [3:0]    _zz_io_writeReqs_0_2_payload_data_193;
   wire       [31:0]   _zz_io_writeReqs_0_2_payload_data_194;
-  wire                when_ValuEngine_l339_2;
+  wire                when_ValuEngine_l131_2;
   wire                _zz_io_writeReqs_0_2_payload_data_195;
   wire       [7:0]    _zz_io_writeReqs_0_2_payload_data_196;
   wire       [7:0]    _zz_io_writeReqs_0_2_payload_data_197;
@@ -7621,45 +7621,45 @@ module ValuEngine (
   reg        [31:0]   _zz_io_writeReqs_0_2_payload_data_213;
   wire       [33:0]   _zz_carry64_0_1;
   wire       [33:0]   _zz_borrow64_0_1;
-  wire       [5:0]    _zz_when_ValuEngine_l380_1;
-  wire                when_ValuEngine_l380_1;
-  wire       [5:0]    _zz_when_ValuEngine_l386_1;
-  wire                when_ValuEngine_l386_1;
-  wire                when_ValuEngine_l388_1;
+  wire       [5:0]    _zz_when_ValuEngine_l172_1;
+  wire                when_ValuEngine_l172_1;
+  wire       [5:0]    _zz_when_ValuEngine_l178_1;
+  wire                when_ValuEngine_l178_1;
+  wire                when_ValuEngine_l180_1;
   reg        [31:0]   _zz_io_writeReqs_0_2_payload_data_214;
-  wire                when_ValuEngine_l452_2;
-  wire                when_ValuEngine_l445_2;
-  wire                when_ValuEngine_l446_2;
-  wire                when_ValuEngine_l447_2;
-  wire                when_ValuEngine_l448_2;
-  wire                when_ValuEngine_l449_2;
-  wire                when_ValuEngine_l450_2;
-  wire                when_ValuEngine_l451_2;
-  wire                when_ValuEngine_l454_2;
-  wire                when_ValuEngine_l455_2;
-  wire                when_ValuEngine_l456_2;
-  wire                when_ValuEngine_l457_2;
-  wire                when_ValuEngine_l460_2;
-  wire                when_ValuEngine_l461_2;
-  wire                when_ValuEngine_l462_2;
-  wire                when_ValuEngine_l465_2;
-  wire                when_ValuEngine_l466_2;
-  wire                when_ValuEngine_l467_2;
-  wire                when_ValuEngine_l470_2;
-  wire                when_ValuEngine_l471_2;
-  wire                when_ValuEngine_l472_2;
-  wire                when_ValuEngine_l459_2;
-  wire                when_ValuEngine_l464_2;
-  wire                when_ValuEngine_l469_2;
-  wire                when_ValuEngine_l477_2;
-  wire                when_ValuEngine_l478_2;
-  wire                when_ValuEngine_l479_2;
-  wire                when_ValuEngine_l480_2;
+  wire                when_ValuEngine_l244_2;
+  wire                when_ValuEngine_l237_2;
+  wire                when_ValuEngine_l238_2;
+  wire                when_ValuEngine_l239_2;
+  wire                when_ValuEngine_l240_2;
+  wire                when_ValuEngine_l241_2;
+  wire                when_ValuEngine_l242_2;
+  wire                when_ValuEngine_l243_2;
+  wire                when_ValuEngine_l246_2;
+  wire                when_ValuEngine_l247_2;
+  wire                when_ValuEngine_l248_2;
+  wire                when_ValuEngine_l249_2;
+  wire                when_ValuEngine_l252_2;
+  wire                when_ValuEngine_l253_2;
+  wire                when_ValuEngine_l254_2;
+  wire                when_ValuEngine_l257_2;
+  wire                when_ValuEngine_l258_2;
+  wire                when_ValuEngine_l259_2;
+  wire                when_ValuEngine_l262_2;
+  wire                when_ValuEngine_l263_2;
+  wire                when_ValuEngine_l264_2;
+  wire                when_ValuEngine_l251_2;
+  wire                when_ValuEngine_l256_2;
+  wire                when_ValuEngine_l261_2;
+  wire                when_ValuEngine_l269_2;
+  wire                when_ValuEngine_l270_2;
+  wire                when_ValuEngine_l271_2;
+  wire                when_ValuEngine_l272_2;
   reg        [10:0]   _zz_io_writeReqs_0_3_payload_addr;
   reg        [1:0]    _zz_io_writeReqs_0_3_payload_data;
   wire                _zz_io_writeReqs_0_3_valid;
-  wire                when_ValuEngine_l305_3;
-  wire                when_ValuEngine_l306_3;
+  wire                when_ValuEngine_l97_3;
+  wire                when_ValuEngine_l98_3;
   reg        [31:0]   _zz_io_writeReqs_0_3_payload_data_1;
   reg        [31:0]   _zz_io_writeReqs_0_3_payload_data_2;
   wire       [7:0]    _zz_io_writeReqs_0_3_payload_data_3;
@@ -7794,7 +7794,7 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_132;
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_133;
   reg        [31:0]   _zz_io_writeReqs_0_3_payload_data_134;
-  wire                when_ValuEngine_l318_3;
+  wire                when_ValuEngine_l110_3;
   wire       [7:0]    _zz_io_writeReqs_0_3_payload_data_135;
   wire       [7:0]    _zz_io_writeReqs_0_3_payload_data_136;
   wire       [7:0]    _zz_io_writeReqs_0_3_payload_data_137;
@@ -7805,25 +7805,25 @@ module ValuEngine (
   wire       [7:0]    _zz_io_writeReqs_0_3_payload_data_142;
   wire       [7:0]    _zz_io_writeReqs_0_3_payload_data_143;
   wire       [15:0]   _zz_io_writeReqs_0_3_payload_data_144;
-  wire                when_ValuEngine_l319_3;
+  wire                when_ValuEngine_l111_3;
   reg        [31:0]   _zz_io_writeReqs_0_3_payload_data_145;
-  wire                when_ValuEngine_l322_3;
+  wire                when_ValuEngine_l114_3;
   wire       [7:0]    _zz_io_writeReqs_0_3_payload_data_146;
   wire       [7:0]    _zz_io_writeReqs_0_3_payload_data_147;
   wire       [7:0]    _zz_io_writeReqs_0_3_payload_data_148;
   wire       [7:0]    _zz_io_writeReqs_0_3_payload_data_149;
   wire       [31:0]   _zz_io_writeReqs_0_3_payload_data_150;
-  wire                when_ValuEngine_l323_3;
+  wire                when_ValuEngine_l115_3;
   reg        [31:0]   _zz_io_writeReqs_0_3_payload_data_151;
-  wire                when_ValuEngine_l326_3;
+  wire                when_ValuEngine_l118_3;
   wire       [15:0]   _zz_io_writeReqs_0_3_payload_data_152;
   wire       [15:0]   _zz_io_writeReqs_0_3_payload_data_153;
   wire       [15:0]   _zz_io_writeReqs_0_3_payload_data_154;
   wire       [15:0]   _zz_io_writeReqs_0_3_payload_data_155;
   wire       [31:0]   _zz_io_writeReqs_0_3_payload_data_156;
-  wire                when_ValuEngine_l327_3;
+  wire                when_ValuEngine_l119_3;
   reg        [31:0]   _zz_io_writeReqs_0_3_payload_data_157;
-  wire                when_ValuEngine_l330_3;
+  wire                when_ValuEngine_l122_3;
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_158;
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_159;
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_160;
@@ -7844,9 +7844,9 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_175;
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_176;
   wire       [7:0]    _zz_io_writeReqs_0_3_payload_data_177;
-  wire                when_ValuEngine_l331_3;
+  wire                when_ValuEngine_l123_3;
   reg        [31:0]   _zz_io_writeReqs_0_3_payload_data_178;
-  wire                when_ValuEngine_l334_3;
+  wire                when_ValuEngine_l126_3;
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_179;
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_180;
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_181;
@@ -7857,15 +7857,15 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_186;
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_187;
   wire       [15:0]   _zz_io_writeReqs_0_3_payload_data_188;
-  wire                when_ValuEngine_l335_3;
+  wire                when_ValuEngine_l127_3;
   reg        [31:0]   _zz_io_writeReqs_0_3_payload_data_189;
-  wire                when_ValuEngine_l338_3;
+  wire                when_ValuEngine_l130_3;
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_190;
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_191;
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_192;
   wire       [3:0]    _zz_io_writeReqs_0_3_payload_data_193;
   wire       [31:0]   _zz_io_writeReqs_0_3_payload_data_194;
-  wire                when_ValuEngine_l339_3;
+  wire                when_ValuEngine_l131_3;
   wire                _zz_io_writeReqs_0_3_payload_data_195;
   wire       [7:0]    _zz_io_writeReqs_0_3_payload_data_196;
   wire       [7:0]    _zz_io_writeReqs_0_3_payload_data_197;
@@ -7885,46 +7885,46 @@ module ValuEngine (
   wire       [7:0]    _zz_io_writeReqs_0_3_payload_data_211;
   wire       [15:0]   _zz_io_writeReqs_0_3_payload_data_212;
   reg        [31:0]   _zz_io_writeReqs_0_3_payload_data_213;
-  wire       [5:0]    _zz_when_ValuEngine_l409_1;
-  wire                when_ValuEngine_l409_1;
-  wire                when_ValuEngine_l411_1;
-  wire       [5:0]    _zz_when_ValuEngine_l417_1;
-  wire                when_ValuEngine_l417_1;
-  wire                when_ValuEngine_l419_1;
+  wire       [5:0]    _zz_when_ValuEngine_l201_1;
+  wire                when_ValuEngine_l201_1;
+  wire                when_ValuEngine_l203_1;
+  wire       [5:0]    _zz_when_ValuEngine_l209_1;
+  wire                when_ValuEngine_l209_1;
+  wire                when_ValuEngine_l211_1;
   reg        [31:0]   _zz_io_writeReqs_0_3_payload_data_214;
-  wire                when_ValuEngine_l452_3;
-  wire                when_ValuEngine_l445_3;
-  wire                when_ValuEngine_l446_3;
-  wire                when_ValuEngine_l447_3;
-  wire                when_ValuEngine_l448_3;
-  wire                when_ValuEngine_l449_3;
-  wire                when_ValuEngine_l450_3;
-  wire                when_ValuEngine_l451_3;
-  wire                when_ValuEngine_l454_3;
-  wire                when_ValuEngine_l455_3;
-  wire                when_ValuEngine_l456_3;
-  wire                when_ValuEngine_l457_3;
-  wire                when_ValuEngine_l460_3;
-  wire                when_ValuEngine_l461_3;
-  wire                when_ValuEngine_l462_3;
-  wire                when_ValuEngine_l465_3;
-  wire                when_ValuEngine_l466_3;
-  wire                when_ValuEngine_l467_3;
-  wire                when_ValuEngine_l470_3;
-  wire                when_ValuEngine_l471_3;
-  wire                when_ValuEngine_l472_3;
-  wire                when_ValuEngine_l459_3;
-  wire                when_ValuEngine_l464_3;
-  wire                when_ValuEngine_l469_3;
-  wire                when_ValuEngine_l477_3;
-  wire                when_ValuEngine_l478_3;
-  wire                when_ValuEngine_l479_3;
-  wire                when_ValuEngine_l480_3;
+  wire                when_ValuEngine_l244_3;
+  wire                when_ValuEngine_l237_3;
+  wire                when_ValuEngine_l238_3;
+  wire                when_ValuEngine_l239_3;
+  wire                when_ValuEngine_l240_3;
+  wire                when_ValuEngine_l241_3;
+  wire                when_ValuEngine_l242_3;
+  wire                when_ValuEngine_l243_3;
+  wire                when_ValuEngine_l246_3;
+  wire                when_ValuEngine_l247_3;
+  wire                when_ValuEngine_l248_3;
+  wire                when_ValuEngine_l249_3;
+  wire                when_ValuEngine_l252_3;
+  wire                when_ValuEngine_l253_3;
+  wire                when_ValuEngine_l254_3;
+  wire                when_ValuEngine_l257_3;
+  wire                when_ValuEngine_l258_3;
+  wire                when_ValuEngine_l259_3;
+  wire                when_ValuEngine_l262_3;
+  wire                when_ValuEngine_l263_3;
+  wire                when_ValuEngine_l264_3;
+  wire                when_ValuEngine_l251_3;
+  wire                when_ValuEngine_l256_3;
+  wire                when_ValuEngine_l261_3;
+  wire                when_ValuEngine_l269_3;
+  wire                when_ValuEngine_l270_3;
+  wire                when_ValuEngine_l271_3;
+  wire                when_ValuEngine_l272_3;
   reg        [10:0]   _zz_io_writeReqs_0_4_payload_addr;
   reg        [1:0]    _zz_io_writeReqs_0_4_payload_data;
   wire                _zz_io_writeReqs_0_4_valid;
-  wire                when_ValuEngine_l305_4;
-  wire                when_ValuEngine_l306_4;
+  wire                when_ValuEngine_l97_4;
+  wire                when_ValuEngine_l98_4;
   reg        [31:0]   _zz_io_writeReqs_0_4_payload_data_1;
   reg        [31:0]   _zz_io_writeReqs_0_4_payload_data_2;
   wire       [7:0]    _zz_io_writeReqs_0_4_payload_data_3;
@@ -8059,7 +8059,7 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_132;
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_133;
   reg        [31:0]   _zz_io_writeReqs_0_4_payload_data_134;
-  wire                when_ValuEngine_l318_4;
+  wire                when_ValuEngine_l110_4;
   wire       [7:0]    _zz_io_writeReqs_0_4_payload_data_135;
   wire       [7:0]    _zz_io_writeReqs_0_4_payload_data_136;
   wire       [7:0]    _zz_io_writeReqs_0_4_payload_data_137;
@@ -8070,25 +8070,25 @@ module ValuEngine (
   wire       [7:0]    _zz_io_writeReqs_0_4_payload_data_142;
   wire       [7:0]    _zz_io_writeReqs_0_4_payload_data_143;
   wire       [15:0]   _zz_io_writeReqs_0_4_payload_data_144;
-  wire                when_ValuEngine_l319_4;
+  wire                when_ValuEngine_l111_4;
   reg        [31:0]   _zz_io_writeReqs_0_4_payload_data_145;
-  wire                when_ValuEngine_l322_4;
+  wire                when_ValuEngine_l114_4;
   wire       [7:0]    _zz_io_writeReqs_0_4_payload_data_146;
   wire       [7:0]    _zz_io_writeReqs_0_4_payload_data_147;
   wire       [7:0]    _zz_io_writeReqs_0_4_payload_data_148;
   wire       [7:0]    _zz_io_writeReqs_0_4_payload_data_149;
   wire       [31:0]   _zz_io_writeReqs_0_4_payload_data_150;
-  wire                when_ValuEngine_l323_4;
+  wire                when_ValuEngine_l115_4;
   reg        [31:0]   _zz_io_writeReqs_0_4_payload_data_151;
-  wire                when_ValuEngine_l326_4;
+  wire                when_ValuEngine_l118_4;
   wire       [15:0]   _zz_io_writeReqs_0_4_payload_data_152;
   wire       [15:0]   _zz_io_writeReqs_0_4_payload_data_153;
   wire       [15:0]   _zz_io_writeReqs_0_4_payload_data_154;
   wire       [15:0]   _zz_io_writeReqs_0_4_payload_data_155;
   wire       [31:0]   _zz_io_writeReqs_0_4_payload_data_156;
-  wire                when_ValuEngine_l327_4;
+  wire                when_ValuEngine_l119_4;
   reg        [31:0]   _zz_io_writeReqs_0_4_payload_data_157;
-  wire                when_ValuEngine_l330_4;
+  wire                when_ValuEngine_l122_4;
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_158;
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_159;
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_160;
@@ -8109,9 +8109,9 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_175;
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_176;
   wire       [7:0]    _zz_io_writeReqs_0_4_payload_data_177;
-  wire                when_ValuEngine_l331_4;
+  wire                when_ValuEngine_l123_4;
   reg        [31:0]   _zz_io_writeReqs_0_4_payload_data_178;
-  wire                when_ValuEngine_l334_4;
+  wire                when_ValuEngine_l126_4;
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_179;
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_180;
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_181;
@@ -8122,15 +8122,15 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_186;
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_187;
   wire       [15:0]   _zz_io_writeReqs_0_4_payload_data_188;
-  wire                when_ValuEngine_l335_4;
+  wire                when_ValuEngine_l127_4;
   reg        [31:0]   _zz_io_writeReqs_0_4_payload_data_189;
-  wire                when_ValuEngine_l338_4;
+  wire                when_ValuEngine_l130_4;
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_190;
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_191;
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_192;
   wire       [3:0]    _zz_io_writeReqs_0_4_payload_data_193;
   wire       [31:0]   _zz_io_writeReqs_0_4_payload_data_194;
-  wire                when_ValuEngine_l339_4;
+  wire                when_ValuEngine_l131_4;
   wire                _zz_io_writeReqs_0_4_payload_data_195;
   wire       [7:0]    _zz_io_writeReqs_0_4_payload_data_196;
   wire       [7:0]    _zz_io_writeReqs_0_4_payload_data_197;
@@ -8152,45 +8152,45 @@ module ValuEngine (
   reg        [31:0]   _zz_io_writeReqs_0_4_payload_data_213;
   wire       [33:0]   _zz_carry64_0_2;
   wire       [33:0]   _zz_borrow64_0_2;
-  wire       [5:0]    _zz_when_ValuEngine_l380_2;
-  wire                when_ValuEngine_l380_2;
-  wire       [5:0]    _zz_when_ValuEngine_l386_2;
-  wire                when_ValuEngine_l386_2;
-  wire                when_ValuEngine_l388_2;
+  wire       [5:0]    _zz_when_ValuEngine_l172_2;
+  wire                when_ValuEngine_l172_2;
+  wire       [5:0]    _zz_when_ValuEngine_l178_2;
+  wire                when_ValuEngine_l178_2;
+  wire                when_ValuEngine_l180_2;
   reg        [31:0]   _zz_io_writeReqs_0_4_payload_data_214;
-  wire                when_ValuEngine_l452_4;
-  wire                when_ValuEngine_l445_4;
-  wire                when_ValuEngine_l446_4;
-  wire                when_ValuEngine_l447_4;
-  wire                when_ValuEngine_l448_4;
-  wire                when_ValuEngine_l449_4;
-  wire                when_ValuEngine_l450_4;
-  wire                when_ValuEngine_l451_4;
-  wire                when_ValuEngine_l454_4;
-  wire                when_ValuEngine_l455_4;
-  wire                when_ValuEngine_l456_4;
-  wire                when_ValuEngine_l457_4;
-  wire                when_ValuEngine_l460_4;
-  wire                when_ValuEngine_l461_4;
-  wire                when_ValuEngine_l462_4;
-  wire                when_ValuEngine_l465_4;
-  wire                when_ValuEngine_l466_4;
-  wire                when_ValuEngine_l467_4;
-  wire                when_ValuEngine_l470_4;
-  wire                when_ValuEngine_l471_4;
-  wire                when_ValuEngine_l472_4;
-  wire                when_ValuEngine_l459_4;
-  wire                when_ValuEngine_l464_4;
-  wire                when_ValuEngine_l469_4;
-  wire                when_ValuEngine_l477_4;
-  wire                when_ValuEngine_l478_4;
-  wire                when_ValuEngine_l479_4;
-  wire                when_ValuEngine_l480_4;
+  wire                when_ValuEngine_l244_4;
+  wire                when_ValuEngine_l237_4;
+  wire                when_ValuEngine_l238_4;
+  wire                when_ValuEngine_l239_4;
+  wire                when_ValuEngine_l240_4;
+  wire                when_ValuEngine_l241_4;
+  wire                when_ValuEngine_l242_4;
+  wire                when_ValuEngine_l243_4;
+  wire                when_ValuEngine_l246_4;
+  wire                when_ValuEngine_l247_4;
+  wire                when_ValuEngine_l248_4;
+  wire                when_ValuEngine_l249_4;
+  wire                when_ValuEngine_l252_4;
+  wire                when_ValuEngine_l253_4;
+  wire                when_ValuEngine_l254_4;
+  wire                when_ValuEngine_l257_4;
+  wire                when_ValuEngine_l258_4;
+  wire                when_ValuEngine_l259_4;
+  wire                when_ValuEngine_l262_4;
+  wire                when_ValuEngine_l263_4;
+  wire                when_ValuEngine_l264_4;
+  wire                when_ValuEngine_l251_4;
+  wire                when_ValuEngine_l256_4;
+  wire                when_ValuEngine_l261_4;
+  wire                when_ValuEngine_l269_4;
+  wire                when_ValuEngine_l270_4;
+  wire                when_ValuEngine_l271_4;
+  wire                when_ValuEngine_l272_4;
   reg        [10:0]   _zz_io_writeReqs_0_5_payload_addr;
   reg        [1:0]    _zz_io_writeReqs_0_5_payload_data;
   wire                _zz_io_writeReqs_0_5_valid;
-  wire                when_ValuEngine_l305_5;
-  wire                when_ValuEngine_l306_5;
+  wire                when_ValuEngine_l97_5;
+  wire                when_ValuEngine_l98_5;
   reg        [31:0]   _zz_io_writeReqs_0_5_payload_data_1;
   reg        [31:0]   _zz_io_writeReqs_0_5_payload_data_2;
   wire       [7:0]    _zz_io_writeReqs_0_5_payload_data_3;
@@ -8325,7 +8325,7 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_132;
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_133;
   reg        [31:0]   _zz_io_writeReqs_0_5_payload_data_134;
-  wire                when_ValuEngine_l318_5;
+  wire                when_ValuEngine_l110_5;
   wire       [7:0]    _zz_io_writeReqs_0_5_payload_data_135;
   wire       [7:0]    _zz_io_writeReqs_0_5_payload_data_136;
   wire       [7:0]    _zz_io_writeReqs_0_5_payload_data_137;
@@ -8336,25 +8336,25 @@ module ValuEngine (
   wire       [7:0]    _zz_io_writeReqs_0_5_payload_data_142;
   wire       [7:0]    _zz_io_writeReqs_0_5_payload_data_143;
   wire       [15:0]   _zz_io_writeReqs_0_5_payload_data_144;
-  wire                when_ValuEngine_l319_5;
+  wire                when_ValuEngine_l111_5;
   reg        [31:0]   _zz_io_writeReqs_0_5_payload_data_145;
-  wire                when_ValuEngine_l322_5;
+  wire                when_ValuEngine_l114_5;
   wire       [7:0]    _zz_io_writeReqs_0_5_payload_data_146;
   wire       [7:0]    _zz_io_writeReqs_0_5_payload_data_147;
   wire       [7:0]    _zz_io_writeReqs_0_5_payload_data_148;
   wire       [7:0]    _zz_io_writeReqs_0_5_payload_data_149;
   wire       [31:0]   _zz_io_writeReqs_0_5_payload_data_150;
-  wire                when_ValuEngine_l323_5;
+  wire                when_ValuEngine_l115_5;
   reg        [31:0]   _zz_io_writeReqs_0_5_payload_data_151;
-  wire                when_ValuEngine_l326_5;
+  wire                when_ValuEngine_l118_5;
   wire       [15:0]   _zz_io_writeReqs_0_5_payload_data_152;
   wire       [15:0]   _zz_io_writeReqs_0_5_payload_data_153;
   wire       [15:0]   _zz_io_writeReqs_0_5_payload_data_154;
   wire       [15:0]   _zz_io_writeReqs_0_5_payload_data_155;
   wire       [31:0]   _zz_io_writeReqs_0_5_payload_data_156;
-  wire                when_ValuEngine_l327_5;
+  wire                when_ValuEngine_l119_5;
   reg        [31:0]   _zz_io_writeReqs_0_5_payload_data_157;
-  wire                when_ValuEngine_l330_5;
+  wire                when_ValuEngine_l122_5;
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_158;
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_159;
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_160;
@@ -8375,9 +8375,9 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_175;
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_176;
   wire       [7:0]    _zz_io_writeReqs_0_5_payload_data_177;
-  wire                when_ValuEngine_l331_5;
+  wire                when_ValuEngine_l123_5;
   reg        [31:0]   _zz_io_writeReqs_0_5_payload_data_178;
-  wire                when_ValuEngine_l334_5;
+  wire                when_ValuEngine_l126_5;
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_179;
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_180;
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_181;
@@ -8388,15 +8388,15 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_186;
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_187;
   wire       [15:0]   _zz_io_writeReqs_0_5_payload_data_188;
-  wire                when_ValuEngine_l335_5;
+  wire                when_ValuEngine_l127_5;
   reg        [31:0]   _zz_io_writeReqs_0_5_payload_data_189;
-  wire                when_ValuEngine_l338_5;
+  wire                when_ValuEngine_l130_5;
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_190;
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_191;
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_192;
   wire       [3:0]    _zz_io_writeReqs_0_5_payload_data_193;
   wire       [31:0]   _zz_io_writeReqs_0_5_payload_data_194;
-  wire                when_ValuEngine_l339_5;
+  wire                when_ValuEngine_l131_5;
   wire                _zz_io_writeReqs_0_5_payload_data_195;
   wire       [7:0]    _zz_io_writeReqs_0_5_payload_data_196;
   wire       [7:0]    _zz_io_writeReqs_0_5_payload_data_197;
@@ -8416,46 +8416,46 @@ module ValuEngine (
   wire       [7:0]    _zz_io_writeReqs_0_5_payload_data_211;
   wire       [15:0]   _zz_io_writeReqs_0_5_payload_data_212;
   reg        [31:0]   _zz_io_writeReqs_0_5_payload_data_213;
-  wire       [5:0]    _zz_when_ValuEngine_l409_2;
-  wire                when_ValuEngine_l409_2;
-  wire                when_ValuEngine_l411_2;
-  wire       [5:0]    _zz_when_ValuEngine_l417_2;
-  wire                when_ValuEngine_l417_2;
-  wire                when_ValuEngine_l419_2;
+  wire       [5:0]    _zz_when_ValuEngine_l201_2;
+  wire                when_ValuEngine_l201_2;
+  wire                when_ValuEngine_l203_2;
+  wire       [5:0]    _zz_when_ValuEngine_l209_2;
+  wire                when_ValuEngine_l209_2;
+  wire                when_ValuEngine_l211_2;
   reg        [31:0]   _zz_io_writeReqs_0_5_payload_data_214;
-  wire                when_ValuEngine_l452_5;
-  wire                when_ValuEngine_l445_5;
-  wire                when_ValuEngine_l446_5;
-  wire                when_ValuEngine_l447_5;
-  wire                when_ValuEngine_l448_5;
-  wire                when_ValuEngine_l449_5;
-  wire                when_ValuEngine_l450_5;
-  wire                when_ValuEngine_l451_5;
-  wire                when_ValuEngine_l454_5;
-  wire                when_ValuEngine_l455_5;
-  wire                when_ValuEngine_l456_5;
-  wire                when_ValuEngine_l457_5;
-  wire                when_ValuEngine_l460_5;
-  wire                when_ValuEngine_l461_5;
-  wire                when_ValuEngine_l462_5;
-  wire                when_ValuEngine_l465_5;
-  wire                when_ValuEngine_l466_5;
-  wire                when_ValuEngine_l467_5;
-  wire                when_ValuEngine_l470_5;
-  wire                when_ValuEngine_l471_5;
-  wire                when_ValuEngine_l472_5;
-  wire                when_ValuEngine_l459_5;
-  wire                when_ValuEngine_l464_5;
-  wire                when_ValuEngine_l469_5;
-  wire                when_ValuEngine_l477_5;
-  wire                when_ValuEngine_l478_5;
-  wire                when_ValuEngine_l479_5;
-  wire                when_ValuEngine_l480_5;
+  wire                when_ValuEngine_l244_5;
+  wire                when_ValuEngine_l237_5;
+  wire                when_ValuEngine_l238_5;
+  wire                when_ValuEngine_l239_5;
+  wire                when_ValuEngine_l240_5;
+  wire                when_ValuEngine_l241_5;
+  wire                when_ValuEngine_l242_5;
+  wire                when_ValuEngine_l243_5;
+  wire                when_ValuEngine_l246_5;
+  wire                when_ValuEngine_l247_5;
+  wire                when_ValuEngine_l248_5;
+  wire                when_ValuEngine_l249_5;
+  wire                when_ValuEngine_l252_5;
+  wire                when_ValuEngine_l253_5;
+  wire                when_ValuEngine_l254_5;
+  wire                when_ValuEngine_l257_5;
+  wire                when_ValuEngine_l258_5;
+  wire                when_ValuEngine_l259_5;
+  wire                when_ValuEngine_l262_5;
+  wire                when_ValuEngine_l263_5;
+  wire                when_ValuEngine_l264_5;
+  wire                when_ValuEngine_l251_5;
+  wire                when_ValuEngine_l256_5;
+  wire                when_ValuEngine_l261_5;
+  wire                when_ValuEngine_l269_5;
+  wire                when_ValuEngine_l270_5;
+  wire                when_ValuEngine_l271_5;
+  wire                when_ValuEngine_l272_5;
   reg        [10:0]   _zz_io_writeReqs_0_6_payload_addr;
   reg        [1:0]    _zz_io_writeReqs_0_6_payload_data;
   wire                _zz_io_writeReqs_0_6_valid;
-  wire                when_ValuEngine_l305_6;
-  wire                when_ValuEngine_l306_6;
+  wire                when_ValuEngine_l97_6;
+  wire                when_ValuEngine_l98_6;
   reg        [31:0]   _zz_io_writeReqs_0_6_payload_data_1;
   reg        [31:0]   _zz_io_writeReqs_0_6_payload_data_2;
   wire       [7:0]    _zz_io_writeReqs_0_6_payload_data_3;
@@ -8590,7 +8590,7 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_132;
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_133;
   reg        [31:0]   _zz_io_writeReqs_0_6_payload_data_134;
-  wire                when_ValuEngine_l318_6;
+  wire                when_ValuEngine_l110_6;
   wire       [7:0]    _zz_io_writeReqs_0_6_payload_data_135;
   wire       [7:0]    _zz_io_writeReqs_0_6_payload_data_136;
   wire       [7:0]    _zz_io_writeReqs_0_6_payload_data_137;
@@ -8601,25 +8601,25 @@ module ValuEngine (
   wire       [7:0]    _zz_io_writeReqs_0_6_payload_data_142;
   wire       [7:0]    _zz_io_writeReqs_0_6_payload_data_143;
   wire       [15:0]   _zz_io_writeReqs_0_6_payload_data_144;
-  wire                when_ValuEngine_l319_6;
+  wire                when_ValuEngine_l111_6;
   reg        [31:0]   _zz_io_writeReqs_0_6_payload_data_145;
-  wire                when_ValuEngine_l322_6;
+  wire                when_ValuEngine_l114_6;
   wire       [7:0]    _zz_io_writeReqs_0_6_payload_data_146;
   wire       [7:0]    _zz_io_writeReqs_0_6_payload_data_147;
   wire       [7:0]    _zz_io_writeReqs_0_6_payload_data_148;
   wire       [7:0]    _zz_io_writeReqs_0_6_payload_data_149;
   wire       [31:0]   _zz_io_writeReqs_0_6_payload_data_150;
-  wire                when_ValuEngine_l323_6;
+  wire                when_ValuEngine_l115_6;
   reg        [31:0]   _zz_io_writeReqs_0_6_payload_data_151;
-  wire                when_ValuEngine_l326_6;
+  wire                when_ValuEngine_l118_6;
   wire       [15:0]   _zz_io_writeReqs_0_6_payload_data_152;
   wire       [15:0]   _zz_io_writeReqs_0_6_payload_data_153;
   wire       [15:0]   _zz_io_writeReqs_0_6_payload_data_154;
   wire       [15:0]   _zz_io_writeReqs_0_6_payload_data_155;
   wire       [31:0]   _zz_io_writeReqs_0_6_payload_data_156;
-  wire                when_ValuEngine_l327_6;
+  wire                when_ValuEngine_l119_6;
   reg        [31:0]   _zz_io_writeReqs_0_6_payload_data_157;
-  wire                when_ValuEngine_l330_6;
+  wire                when_ValuEngine_l122_6;
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_158;
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_159;
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_160;
@@ -8640,9 +8640,9 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_175;
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_176;
   wire       [7:0]    _zz_io_writeReqs_0_6_payload_data_177;
-  wire                when_ValuEngine_l331_6;
+  wire                when_ValuEngine_l123_6;
   reg        [31:0]   _zz_io_writeReqs_0_6_payload_data_178;
-  wire                when_ValuEngine_l334_6;
+  wire                when_ValuEngine_l126_6;
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_179;
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_180;
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_181;
@@ -8653,15 +8653,15 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_186;
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_187;
   wire       [15:0]   _zz_io_writeReqs_0_6_payload_data_188;
-  wire                when_ValuEngine_l335_6;
+  wire                when_ValuEngine_l127_6;
   reg        [31:0]   _zz_io_writeReqs_0_6_payload_data_189;
-  wire                when_ValuEngine_l338_6;
+  wire                when_ValuEngine_l130_6;
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_190;
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_191;
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_192;
   wire       [3:0]    _zz_io_writeReqs_0_6_payload_data_193;
   wire       [31:0]   _zz_io_writeReqs_0_6_payload_data_194;
-  wire                when_ValuEngine_l339_6;
+  wire                when_ValuEngine_l131_6;
   wire                _zz_io_writeReqs_0_6_payload_data_195;
   wire       [7:0]    _zz_io_writeReqs_0_6_payload_data_196;
   wire       [7:0]    _zz_io_writeReqs_0_6_payload_data_197;
@@ -8683,45 +8683,45 @@ module ValuEngine (
   reg        [31:0]   _zz_io_writeReqs_0_6_payload_data_213;
   wire       [33:0]   _zz_carry64_0_3;
   wire       [33:0]   _zz_borrow64_0_3;
-  wire       [5:0]    _zz_when_ValuEngine_l380_3;
-  wire                when_ValuEngine_l380_3;
-  wire       [5:0]    _zz_when_ValuEngine_l386_3;
-  wire                when_ValuEngine_l386_3;
-  wire                when_ValuEngine_l388_3;
+  wire       [5:0]    _zz_when_ValuEngine_l172_3;
+  wire                when_ValuEngine_l172_3;
+  wire       [5:0]    _zz_when_ValuEngine_l178_3;
+  wire                when_ValuEngine_l178_3;
+  wire                when_ValuEngine_l180_3;
   reg        [31:0]   _zz_io_writeReqs_0_6_payload_data_214;
-  wire                when_ValuEngine_l452_6;
-  wire                when_ValuEngine_l445_6;
-  wire                when_ValuEngine_l446_6;
-  wire                when_ValuEngine_l447_6;
-  wire                when_ValuEngine_l448_6;
-  wire                when_ValuEngine_l449_6;
-  wire                when_ValuEngine_l450_6;
-  wire                when_ValuEngine_l451_6;
-  wire                when_ValuEngine_l454_6;
-  wire                when_ValuEngine_l455_6;
-  wire                when_ValuEngine_l456_6;
-  wire                when_ValuEngine_l457_6;
-  wire                when_ValuEngine_l460_6;
-  wire                when_ValuEngine_l461_6;
-  wire                when_ValuEngine_l462_6;
-  wire                when_ValuEngine_l465_6;
-  wire                when_ValuEngine_l466_6;
-  wire                when_ValuEngine_l467_6;
-  wire                when_ValuEngine_l470_6;
-  wire                when_ValuEngine_l471_6;
-  wire                when_ValuEngine_l472_6;
-  wire                when_ValuEngine_l459_6;
-  wire                when_ValuEngine_l464_6;
-  wire                when_ValuEngine_l469_6;
-  wire                when_ValuEngine_l477_6;
-  wire                when_ValuEngine_l478_6;
-  wire                when_ValuEngine_l479_6;
-  wire                when_ValuEngine_l480_6;
+  wire                when_ValuEngine_l244_6;
+  wire                when_ValuEngine_l237_6;
+  wire                when_ValuEngine_l238_6;
+  wire                when_ValuEngine_l239_6;
+  wire                when_ValuEngine_l240_6;
+  wire                when_ValuEngine_l241_6;
+  wire                when_ValuEngine_l242_6;
+  wire                when_ValuEngine_l243_6;
+  wire                when_ValuEngine_l246_6;
+  wire                when_ValuEngine_l247_6;
+  wire                when_ValuEngine_l248_6;
+  wire                when_ValuEngine_l249_6;
+  wire                when_ValuEngine_l252_6;
+  wire                when_ValuEngine_l253_6;
+  wire                when_ValuEngine_l254_6;
+  wire                when_ValuEngine_l257_6;
+  wire                when_ValuEngine_l258_6;
+  wire                when_ValuEngine_l259_6;
+  wire                when_ValuEngine_l262_6;
+  wire                when_ValuEngine_l263_6;
+  wire                when_ValuEngine_l264_6;
+  wire                when_ValuEngine_l251_6;
+  wire                when_ValuEngine_l256_6;
+  wire                when_ValuEngine_l261_6;
+  wire                when_ValuEngine_l269_6;
+  wire                when_ValuEngine_l270_6;
+  wire                when_ValuEngine_l271_6;
+  wire                when_ValuEngine_l272_6;
   reg        [10:0]   _zz_io_writeReqs_0_7_payload_addr;
   reg        [1:0]    _zz_io_writeReqs_0_7_payload_data;
   wire                _zz_io_writeReqs_0_7_valid;
-  wire                when_ValuEngine_l305_7;
-  wire                when_ValuEngine_l306_7;
+  wire                when_ValuEngine_l97_7;
+  wire                when_ValuEngine_l98_7;
   reg        [31:0]   _zz_io_writeReqs_0_7_payload_data_1;
   reg        [31:0]   _zz_io_writeReqs_0_7_payload_data_2;
   wire       [7:0]    _zz_io_writeReqs_0_7_payload_data_3;
@@ -8856,7 +8856,7 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_132;
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_133;
   reg        [31:0]   _zz_io_writeReqs_0_7_payload_data_134;
-  wire                when_ValuEngine_l318_7;
+  wire                when_ValuEngine_l110_7;
   wire       [7:0]    _zz_io_writeReqs_0_7_payload_data_135;
   wire       [7:0]    _zz_io_writeReqs_0_7_payload_data_136;
   wire       [7:0]    _zz_io_writeReqs_0_7_payload_data_137;
@@ -8867,25 +8867,25 @@ module ValuEngine (
   wire       [7:0]    _zz_io_writeReqs_0_7_payload_data_142;
   wire       [7:0]    _zz_io_writeReqs_0_7_payload_data_143;
   wire       [15:0]   _zz_io_writeReqs_0_7_payload_data_144;
-  wire                when_ValuEngine_l319_7;
+  wire                when_ValuEngine_l111_7;
   reg        [31:0]   _zz_io_writeReqs_0_7_payload_data_145;
-  wire                when_ValuEngine_l322_7;
+  wire                when_ValuEngine_l114_7;
   wire       [7:0]    _zz_io_writeReqs_0_7_payload_data_146;
   wire       [7:0]    _zz_io_writeReqs_0_7_payload_data_147;
   wire       [7:0]    _zz_io_writeReqs_0_7_payload_data_148;
   wire       [7:0]    _zz_io_writeReqs_0_7_payload_data_149;
   wire       [31:0]   _zz_io_writeReqs_0_7_payload_data_150;
-  wire                when_ValuEngine_l323_7;
+  wire                when_ValuEngine_l115_7;
   reg        [31:0]   _zz_io_writeReqs_0_7_payload_data_151;
-  wire                when_ValuEngine_l326_7;
+  wire                when_ValuEngine_l118_7;
   wire       [15:0]   _zz_io_writeReqs_0_7_payload_data_152;
   wire       [15:0]   _zz_io_writeReqs_0_7_payload_data_153;
   wire       [15:0]   _zz_io_writeReqs_0_7_payload_data_154;
   wire       [15:0]   _zz_io_writeReqs_0_7_payload_data_155;
   wire       [31:0]   _zz_io_writeReqs_0_7_payload_data_156;
-  wire                when_ValuEngine_l327_7;
+  wire                when_ValuEngine_l119_7;
   reg        [31:0]   _zz_io_writeReqs_0_7_payload_data_157;
-  wire                when_ValuEngine_l330_7;
+  wire                when_ValuEngine_l122_7;
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_158;
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_159;
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_160;
@@ -8906,9 +8906,9 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_175;
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_176;
   wire       [7:0]    _zz_io_writeReqs_0_7_payload_data_177;
-  wire                when_ValuEngine_l331_7;
+  wire                when_ValuEngine_l123_7;
   reg        [31:0]   _zz_io_writeReqs_0_7_payload_data_178;
-  wire                when_ValuEngine_l334_7;
+  wire                when_ValuEngine_l126_7;
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_179;
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_180;
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_181;
@@ -8919,15 +8919,15 @@ module ValuEngine (
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_186;
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_187;
   wire       [15:0]   _zz_io_writeReqs_0_7_payload_data_188;
-  wire                when_ValuEngine_l335_7;
+  wire                when_ValuEngine_l127_7;
   reg        [31:0]   _zz_io_writeReqs_0_7_payload_data_189;
-  wire                when_ValuEngine_l338_7;
+  wire                when_ValuEngine_l130_7;
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_190;
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_191;
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_192;
   wire       [3:0]    _zz_io_writeReqs_0_7_payload_data_193;
   wire       [31:0]   _zz_io_writeReqs_0_7_payload_data_194;
-  wire                when_ValuEngine_l339_7;
+  wire                when_ValuEngine_l131_7;
   wire                _zz_io_writeReqs_0_7_payload_data_195;
   wire       [7:0]    _zz_io_writeReqs_0_7_payload_data_196;
   wire       [7:0]    _zz_io_writeReqs_0_7_payload_data_197;
@@ -8947,41 +8947,41 @@ module ValuEngine (
   wire       [7:0]    _zz_io_writeReqs_0_7_payload_data_211;
   wire       [15:0]   _zz_io_writeReqs_0_7_payload_data_212;
   reg        [31:0]   _zz_io_writeReqs_0_7_payload_data_213;
-  wire       [5:0]    _zz_when_ValuEngine_l409_3;
-  wire                when_ValuEngine_l409_3;
-  wire                when_ValuEngine_l411_3;
-  wire       [5:0]    _zz_when_ValuEngine_l417_3;
-  wire                when_ValuEngine_l417_3;
-  wire                when_ValuEngine_l419_3;
+  wire       [5:0]    _zz_when_ValuEngine_l201_3;
+  wire                when_ValuEngine_l201_3;
+  wire                when_ValuEngine_l203_3;
+  wire       [5:0]    _zz_when_ValuEngine_l209_3;
+  wire                when_ValuEngine_l209_3;
+  wire                when_ValuEngine_l211_3;
   reg        [31:0]   _zz_io_writeReqs_0_7_payload_data_214;
-  wire                when_ValuEngine_l452_7;
-  wire                when_ValuEngine_l445_7;
-  wire                when_ValuEngine_l446_7;
-  wire                when_ValuEngine_l447_7;
-  wire                when_ValuEngine_l448_7;
-  wire                when_ValuEngine_l449_7;
-  wire                when_ValuEngine_l450_7;
-  wire                when_ValuEngine_l451_7;
-  wire                when_ValuEngine_l454_7;
-  wire                when_ValuEngine_l455_7;
-  wire                when_ValuEngine_l456_7;
-  wire                when_ValuEngine_l457_7;
-  wire                when_ValuEngine_l460_7;
-  wire                when_ValuEngine_l461_7;
-  wire                when_ValuEngine_l462_7;
-  wire                when_ValuEngine_l465_7;
-  wire                when_ValuEngine_l466_7;
-  wire                when_ValuEngine_l467_7;
-  wire                when_ValuEngine_l470_7;
-  wire                when_ValuEngine_l471_7;
-  wire                when_ValuEngine_l472_7;
-  wire                when_ValuEngine_l459_7;
-  wire                when_ValuEngine_l464_7;
-  wire                when_ValuEngine_l469_7;
-  wire                when_ValuEngine_l477_7;
-  wire                when_ValuEngine_l478_7;
-  wire                when_ValuEngine_l479_7;
-  wire                when_ValuEngine_l480_7;
+  wire                when_ValuEngine_l244_7;
+  wire                when_ValuEngine_l237_7;
+  wire                when_ValuEngine_l238_7;
+  wire                when_ValuEngine_l239_7;
+  wire                when_ValuEngine_l240_7;
+  wire                when_ValuEngine_l241_7;
+  wire                when_ValuEngine_l242_7;
+  wire                when_ValuEngine_l243_7;
+  wire                when_ValuEngine_l246_7;
+  wire                when_ValuEngine_l247_7;
+  wire                when_ValuEngine_l248_7;
+  wire                when_ValuEngine_l249_7;
+  wire                when_ValuEngine_l252_7;
+  wire                when_ValuEngine_l253_7;
+  wire                when_ValuEngine_l254_7;
+  wire                when_ValuEngine_l257_7;
+  wire                when_ValuEngine_l258_7;
+  wire                when_ValuEngine_l259_7;
+  wire                when_ValuEngine_l262_7;
+  wire                when_ValuEngine_l263_7;
+  wire                when_ValuEngine_l264_7;
+  wire                when_ValuEngine_l251_7;
+  wire                when_ValuEngine_l256_7;
+  wire                when_ValuEngine_l261_7;
+  wire                when_ValuEngine_l269_7;
+  wire                when_ValuEngine_l270_7;
+  wire                when_ValuEngine_l271_7;
+  wire                when_ValuEngine_l272_7;
 
   assign _zz_io_dividend = (_zz_io_dividend_1 - 32'h00000001);
   assign _zz_io_dividend_1 = (io_operandA_0_0 + io_operandB_0_0);
@@ -9757,12 +9757,12 @@ module ValuEngine (
   assign _zz__zz_borrow64_0_0_1 = {1'd0, io_operandB_0_0};
   assign _zz__zz_io_writeReqs_0_0_payload_data_213 = ($signed(_zz__zz_io_writeReqs_0_0_payload_data_213_1) >>> _zz__zz_io_writeReqs_0_0_payload_data_213_2);
   assign _zz__zz_io_writeReqs_0_0_payload_data_213_1 = io_operandA_0_1;
-  assign _zz__zz_io_writeReqs_0_0_payload_data_213_2 = (_zz_when_ValuEngine_l386 - 6'h20);
+  assign _zz__zz_io_writeReqs_0_0_payload_data_213_2 = (_zz_when_ValuEngine_l178 - 6'h20);
   assign _zz__zz_io_writeReqs_0_0_payload_data_213_3 = (io_operandA_0_1 >>> _zz__zz_io_writeReqs_0_0_payload_data_213_4);
-  assign _zz__zz_io_writeReqs_0_0_payload_data_213_4 = (_zz_when_ValuEngine_l386 - 6'h20);
-  assign _zz__zz_io_writeReqs_0_0_payload_data_213_5 = (io_operandA_0_0 >>> _zz_when_ValuEngine_l386);
+  assign _zz__zz_io_writeReqs_0_0_payload_data_213_4 = (_zz_when_ValuEngine_l178 - 6'h20);
+  assign _zz__zz_io_writeReqs_0_0_payload_data_213_5 = (io_operandA_0_0 >>> _zz_when_ValuEngine_l178);
   assign _zz__zz_io_writeReqs_0_0_payload_data_213_6 = (io_operandA_0_1 <<< _zz__zz_io_writeReqs_0_0_payload_data_213_7);
-  assign _zz__zz_io_writeReqs_0_0_payload_data_213_7 = (6'h20 - _zz_when_ValuEngine_l386);
+  assign _zz__zz_io_writeReqs_0_0_payload_data_213_7 = (6'h20 - _zz_when_ValuEngine_l178);
   assign _zz__zz_io_writeReqs_0_0_payload_data_214_1 = _zz_io_writeReqs_0_0_payload_data_197;
   assign _zz__zz_io_writeReqs_0_0_payload_data_214 = {{8{_zz__zz_io_writeReqs_0_0_payload_data_214_1[7]}}, _zz__zz_io_writeReqs_0_0_payload_data_214_1};
   assign _zz__zz_io_writeReqs_0_0_payload_data_214_2 = {8'd0, _zz_io_writeReqs_0_0_payload_data_197};
@@ -10589,13 +10589,13 @@ module ValuEngine (
   assign _zz__zz_io_writeReqs_0_1_payload_data_213_3 = (io_operandA_0_1 - io_operandB_0_1);
   assign _zz__zz_io_writeReqs_0_1_payload_data_213_5 = borrow64_0_0;
   assign _zz__zz_io_writeReqs_0_1_payload_data_213_4 = {31'd0, _zz__zz_io_writeReqs_0_1_payload_data_213_5};
-  assign _zz__zz_io_writeReqs_0_1_payload_data_213_6 = (_zz_when_ValuEngine_l409 - 6'h20);
-  assign _zz__zz_io_writeReqs_0_1_payload_data_213_7 = (io_operandA_0_1 <<< _zz_when_ValuEngine_l409);
+  assign _zz__zz_io_writeReqs_0_1_payload_data_213_6 = (_zz_when_ValuEngine_l201 - 6'h20);
+  assign _zz__zz_io_writeReqs_0_1_payload_data_213_7 = (io_operandA_0_1 <<< _zz_when_ValuEngine_l201);
   assign _zz__zz_io_writeReqs_0_1_payload_data_213_8 = (io_operandA_0_0 >>> _zz__zz_io_writeReqs_0_1_payload_data_213_9);
-  assign _zz__zz_io_writeReqs_0_1_payload_data_213_9 = (6'h20 - _zz_when_ValuEngine_l409);
-  assign _zz__zz_io_writeReqs_0_1_payload_data_213_10 = ($signed(_zz__zz_io_writeReqs_0_1_payload_data_213_11) >>> _zz_when_ValuEngine_l417);
+  assign _zz__zz_io_writeReqs_0_1_payload_data_213_9 = (6'h20 - _zz_when_ValuEngine_l201);
+  assign _zz__zz_io_writeReqs_0_1_payload_data_213_10 = ($signed(_zz__zz_io_writeReqs_0_1_payload_data_213_11) >>> _zz_when_ValuEngine_l209);
   assign _zz__zz_io_writeReqs_0_1_payload_data_213_11 = io_operandA_0_1;
-  assign _zz__zz_io_writeReqs_0_1_payload_data_213_12 = (io_operandA_0_1 >>> _zz_when_ValuEngine_l417);
+  assign _zz__zz_io_writeReqs_0_1_payload_data_213_12 = (io_operandA_0_1 >>> _zz_when_ValuEngine_l209);
   assign _zz__zz_io_writeReqs_0_1_payload_data_213_13 = ((io_slots_0_isSigned ? ($signed(_zz__zz_io_writeReqs_0_1_payload_data_213_14) < $signed(_zz__zz_io_writeReqs_0_1_payload_data_213_15)) : (io_operandA_0_1 < io_operandB_0_1)) || ((io_operandA_0_1 == io_operandB_0_1) && ltLo64_0_0));
   assign _zz__zz_io_writeReqs_0_1_payload_data_213_14 = io_operandA_0_1;
   assign _zz__zz_io_writeReqs_0_1_payload_data_213_15 = io_operandB_0_1;
@@ -11426,12 +11426,12 @@ module ValuEngine (
   assign _zz__zz_borrow64_0_1_1 = {1'd0, io_operandB_0_2};
   assign _zz__zz_io_writeReqs_0_2_payload_data_213 = ($signed(_zz__zz_io_writeReqs_0_2_payload_data_213_1) >>> _zz__zz_io_writeReqs_0_2_payload_data_213_2);
   assign _zz__zz_io_writeReqs_0_2_payload_data_213_1 = io_operandA_0_3;
-  assign _zz__zz_io_writeReqs_0_2_payload_data_213_2 = (_zz_when_ValuEngine_l386_1 - 6'h20);
+  assign _zz__zz_io_writeReqs_0_2_payload_data_213_2 = (_zz_when_ValuEngine_l178_1 - 6'h20);
   assign _zz__zz_io_writeReqs_0_2_payload_data_213_3 = (io_operandA_0_3 >>> _zz__zz_io_writeReqs_0_2_payload_data_213_4);
-  assign _zz__zz_io_writeReqs_0_2_payload_data_213_4 = (_zz_when_ValuEngine_l386_1 - 6'h20);
-  assign _zz__zz_io_writeReqs_0_2_payload_data_213_5 = (io_operandA_0_2 >>> _zz_when_ValuEngine_l386_1);
+  assign _zz__zz_io_writeReqs_0_2_payload_data_213_4 = (_zz_when_ValuEngine_l178_1 - 6'h20);
+  assign _zz__zz_io_writeReqs_0_2_payload_data_213_5 = (io_operandA_0_2 >>> _zz_when_ValuEngine_l178_1);
   assign _zz__zz_io_writeReqs_0_2_payload_data_213_6 = (io_operandA_0_3 <<< _zz__zz_io_writeReqs_0_2_payload_data_213_7);
-  assign _zz__zz_io_writeReqs_0_2_payload_data_213_7 = (6'h20 - _zz_when_ValuEngine_l386_1);
+  assign _zz__zz_io_writeReqs_0_2_payload_data_213_7 = (6'h20 - _zz_when_ValuEngine_l178_1);
   assign _zz__zz_io_writeReqs_0_2_payload_data_214_1 = _zz_io_writeReqs_0_2_payload_data_197;
   assign _zz__zz_io_writeReqs_0_2_payload_data_214 = {{8{_zz__zz_io_writeReqs_0_2_payload_data_214_1[7]}}, _zz__zz_io_writeReqs_0_2_payload_data_214_1};
   assign _zz__zz_io_writeReqs_0_2_payload_data_214_2 = {8'd0, _zz_io_writeReqs_0_2_payload_data_197};
@@ -12258,13 +12258,13 @@ module ValuEngine (
   assign _zz__zz_io_writeReqs_0_3_payload_data_213_3 = (io_operandA_0_3 - io_operandB_0_3);
   assign _zz__zz_io_writeReqs_0_3_payload_data_213_5 = borrow64_0_1;
   assign _zz__zz_io_writeReqs_0_3_payload_data_213_4 = {31'd0, _zz__zz_io_writeReqs_0_3_payload_data_213_5};
-  assign _zz__zz_io_writeReqs_0_3_payload_data_213_6 = (_zz_when_ValuEngine_l409_1 - 6'h20);
-  assign _zz__zz_io_writeReqs_0_3_payload_data_213_7 = (io_operandA_0_3 <<< _zz_when_ValuEngine_l409_1);
+  assign _zz__zz_io_writeReqs_0_3_payload_data_213_6 = (_zz_when_ValuEngine_l201_1 - 6'h20);
+  assign _zz__zz_io_writeReqs_0_3_payload_data_213_7 = (io_operandA_0_3 <<< _zz_when_ValuEngine_l201_1);
   assign _zz__zz_io_writeReqs_0_3_payload_data_213_8 = (io_operandA_0_2 >>> _zz__zz_io_writeReqs_0_3_payload_data_213_9);
-  assign _zz__zz_io_writeReqs_0_3_payload_data_213_9 = (6'h20 - _zz_when_ValuEngine_l409_1);
-  assign _zz__zz_io_writeReqs_0_3_payload_data_213_10 = ($signed(_zz__zz_io_writeReqs_0_3_payload_data_213_11) >>> _zz_when_ValuEngine_l417_1);
+  assign _zz__zz_io_writeReqs_0_3_payload_data_213_9 = (6'h20 - _zz_when_ValuEngine_l201_1);
+  assign _zz__zz_io_writeReqs_0_3_payload_data_213_10 = ($signed(_zz__zz_io_writeReqs_0_3_payload_data_213_11) >>> _zz_when_ValuEngine_l209_1);
   assign _zz__zz_io_writeReqs_0_3_payload_data_213_11 = io_operandA_0_3;
-  assign _zz__zz_io_writeReqs_0_3_payload_data_213_12 = (io_operandA_0_3 >>> _zz_when_ValuEngine_l417_1);
+  assign _zz__zz_io_writeReqs_0_3_payload_data_213_12 = (io_operandA_0_3 >>> _zz_when_ValuEngine_l209_1);
   assign _zz__zz_io_writeReqs_0_3_payload_data_213_13 = ((io_slots_0_isSigned ? ($signed(_zz__zz_io_writeReqs_0_3_payload_data_213_14) < $signed(_zz__zz_io_writeReqs_0_3_payload_data_213_15)) : (io_operandA_0_3 < io_operandB_0_3)) || ((io_operandA_0_3 == io_operandB_0_3) && ltLo64_0_1));
   assign _zz__zz_io_writeReqs_0_3_payload_data_213_14 = io_operandA_0_3;
   assign _zz__zz_io_writeReqs_0_3_payload_data_213_15 = io_operandB_0_3;
@@ -13095,12 +13095,12 @@ module ValuEngine (
   assign _zz__zz_borrow64_0_2_1 = {1'd0, io_operandB_0_4};
   assign _zz__zz_io_writeReqs_0_4_payload_data_213 = ($signed(_zz__zz_io_writeReqs_0_4_payload_data_213_1) >>> _zz__zz_io_writeReqs_0_4_payload_data_213_2);
   assign _zz__zz_io_writeReqs_0_4_payload_data_213_1 = io_operandA_0_5;
-  assign _zz__zz_io_writeReqs_0_4_payload_data_213_2 = (_zz_when_ValuEngine_l386_2 - 6'h20);
+  assign _zz__zz_io_writeReqs_0_4_payload_data_213_2 = (_zz_when_ValuEngine_l178_2 - 6'h20);
   assign _zz__zz_io_writeReqs_0_4_payload_data_213_3 = (io_operandA_0_5 >>> _zz__zz_io_writeReqs_0_4_payload_data_213_4);
-  assign _zz__zz_io_writeReqs_0_4_payload_data_213_4 = (_zz_when_ValuEngine_l386_2 - 6'h20);
-  assign _zz__zz_io_writeReqs_0_4_payload_data_213_5 = (io_operandA_0_4 >>> _zz_when_ValuEngine_l386_2);
+  assign _zz__zz_io_writeReqs_0_4_payload_data_213_4 = (_zz_when_ValuEngine_l178_2 - 6'h20);
+  assign _zz__zz_io_writeReqs_0_4_payload_data_213_5 = (io_operandA_0_4 >>> _zz_when_ValuEngine_l178_2);
   assign _zz__zz_io_writeReqs_0_4_payload_data_213_6 = (io_operandA_0_5 <<< _zz__zz_io_writeReqs_0_4_payload_data_213_7);
-  assign _zz__zz_io_writeReqs_0_4_payload_data_213_7 = (6'h20 - _zz_when_ValuEngine_l386_2);
+  assign _zz__zz_io_writeReqs_0_4_payload_data_213_7 = (6'h20 - _zz_when_ValuEngine_l178_2);
   assign _zz__zz_io_writeReqs_0_4_payload_data_214_1 = _zz_io_writeReqs_0_4_payload_data_197;
   assign _zz__zz_io_writeReqs_0_4_payload_data_214 = {{8{_zz__zz_io_writeReqs_0_4_payload_data_214_1[7]}}, _zz__zz_io_writeReqs_0_4_payload_data_214_1};
   assign _zz__zz_io_writeReqs_0_4_payload_data_214_2 = {8'd0, _zz_io_writeReqs_0_4_payload_data_197};
@@ -13927,13 +13927,13 @@ module ValuEngine (
   assign _zz__zz_io_writeReqs_0_5_payload_data_213_3 = (io_operandA_0_5 - io_operandB_0_5);
   assign _zz__zz_io_writeReqs_0_5_payload_data_213_5 = borrow64_0_2;
   assign _zz__zz_io_writeReqs_0_5_payload_data_213_4 = {31'd0, _zz__zz_io_writeReqs_0_5_payload_data_213_5};
-  assign _zz__zz_io_writeReqs_0_5_payload_data_213_6 = (_zz_when_ValuEngine_l409_2 - 6'h20);
-  assign _zz__zz_io_writeReqs_0_5_payload_data_213_7 = (io_operandA_0_5 <<< _zz_when_ValuEngine_l409_2);
+  assign _zz__zz_io_writeReqs_0_5_payload_data_213_6 = (_zz_when_ValuEngine_l201_2 - 6'h20);
+  assign _zz__zz_io_writeReqs_0_5_payload_data_213_7 = (io_operandA_0_5 <<< _zz_when_ValuEngine_l201_2);
   assign _zz__zz_io_writeReqs_0_5_payload_data_213_8 = (io_operandA_0_4 >>> _zz__zz_io_writeReqs_0_5_payload_data_213_9);
-  assign _zz__zz_io_writeReqs_0_5_payload_data_213_9 = (6'h20 - _zz_when_ValuEngine_l409_2);
-  assign _zz__zz_io_writeReqs_0_5_payload_data_213_10 = ($signed(_zz__zz_io_writeReqs_0_5_payload_data_213_11) >>> _zz_when_ValuEngine_l417_2);
+  assign _zz__zz_io_writeReqs_0_5_payload_data_213_9 = (6'h20 - _zz_when_ValuEngine_l201_2);
+  assign _zz__zz_io_writeReqs_0_5_payload_data_213_10 = ($signed(_zz__zz_io_writeReqs_0_5_payload_data_213_11) >>> _zz_when_ValuEngine_l209_2);
   assign _zz__zz_io_writeReqs_0_5_payload_data_213_11 = io_operandA_0_5;
-  assign _zz__zz_io_writeReqs_0_5_payload_data_213_12 = (io_operandA_0_5 >>> _zz_when_ValuEngine_l417_2);
+  assign _zz__zz_io_writeReqs_0_5_payload_data_213_12 = (io_operandA_0_5 >>> _zz_when_ValuEngine_l209_2);
   assign _zz__zz_io_writeReqs_0_5_payload_data_213_13 = ((io_slots_0_isSigned ? ($signed(_zz__zz_io_writeReqs_0_5_payload_data_213_14) < $signed(_zz__zz_io_writeReqs_0_5_payload_data_213_15)) : (io_operandA_0_5 < io_operandB_0_5)) || ((io_operandA_0_5 == io_operandB_0_5) && ltLo64_0_2));
   assign _zz__zz_io_writeReqs_0_5_payload_data_213_14 = io_operandA_0_5;
   assign _zz__zz_io_writeReqs_0_5_payload_data_213_15 = io_operandB_0_5;
@@ -14764,12 +14764,12 @@ module ValuEngine (
   assign _zz__zz_borrow64_0_3_1 = {1'd0, io_operandB_0_6};
   assign _zz__zz_io_writeReqs_0_6_payload_data_213 = ($signed(_zz__zz_io_writeReqs_0_6_payload_data_213_1) >>> _zz__zz_io_writeReqs_0_6_payload_data_213_2);
   assign _zz__zz_io_writeReqs_0_6_payload_data_213_1 = io_operandA_0_7;
-  assign _zz__zz_io_writeReqs_0_6_payload_data_213_2 = (_zz_when_ValuEngine_l386_3 - 6'h20);
+  assign _zz__zz_io_writeReqs_0_6_payload_data_213_2 = (_zz_when_ValuEngine_l178_3 - 6'h20);
   assign _zz__zz_io_writeReqs_0_6_payload_data_213_3 = (io_operandA_0_7 >>> _zz__zz_io_writeReqs_0_6_payload_data_213_4);
-  assign _zz__zz_io_writeReqs_0_6_payload_data_213_4 = (_zz_when_ValuEngine_l386_3 - 6'h20);
-  assign _zz__zz_io_writeReqs_0_6_payload_data_213_5 = (io_operandA_0_6 >>> _zz_when_ValuEngine_l386_3);
+  assign _zz__zz_io_writeReqs_0_6_payload_data_213_4 = (_zz_when_ValuEngine_l178_3 - 6'h20);
+  assign _zz__zz_io_writeReqs_0_6_payload_data_213_5 = (io_operandA_0_6 >>> _zz_when_ValuEngine_l178_3);
   assign _zz__zz_io_writeReqs_0_6_payload_data_213_6 = (io_operandA_0_7 <<< _zz__zz_io_writeReqs_0_6_payload_data_213_7);
-  assign _zz__zz_io_writeReqs_0_6_payload_data_213_7 = (6'h20 - _zz_when_ValuEngine_l386_3);
+  assign _zz__zz_io_writeReqs_0_6_payload_data_213_7 = (6'h20 - _zz_when_ValuEngine_l178_3);
   assign _zz__zz_io_writeReqs_0_6_payload_data_214_1 = _zz_io_writeReqs_0_6_payload_data_197;
   assign _zz__zz_io_writeReqs_0_6_payload_data_214 = {{8{_zz__zz_io_writeReqs_0_6_payload_data_214_1[7]}}, _zz__zz_io_writeReqs_0_6_payload_data_214_1};
   assign _zz__zz_io_writeReqs_0_6_payload_data_214_2 = {8'd0, _zz_io_writeReqs_0_6_payload_data_197};
@@ -15596,13 +15596,13 @@ module ValuEngine (
   assign _zz__zz_io_writeReqs_0_7_payload_data_213_3 = (io_operandA_0_7 - io_operandB_0_7);
   assign _zz__zz_io_writeReqs_0_7_payload_data_213_5 = borrow64_0_3;
   assign _zz__zz_io_writeReqs_0_7_payload_data_213_4 = {31'd0, _zz__zz_io_writeReqs_0_7_payload_data_213_5};
-  assign _zz__zz_io_writeReqs_0_7_payload_data_213_6 = (_zz_when_ValuEngine_l409_3 - 6'h20);
-  assign _zz__zz_io_writeReqs_0_7_payload_data_213_7 = (io_operandA_0_7 <<< _zz_when_ValuEngine_l409_3);
+  assign _zz__zz_io_writeReqs_0_7_payload_data_213_6 = (_zz_when_ValuEngine_l201_3 - 6'h20);
+  assign _zz__zz_io_writeReqs_0_7_payload_data_213_7 = (io_operandA_0_7 <<< _zz_when_ValuEngine_l201_3);
   assign _zz__zz_io_writeReqs_0_7_payload_data_213_8 = (io_operandA_0_6 >>> _zz__zz_io_writeReqs_0_7_payload_data_213_9);
-  assign _zz__zz_io_writeReqs_0_7_payload_data_213_9 = (6'h20 - _zz_when_ValuEngine_l409_3);
-  assign _zz__zz_io_writeReqs_0_7_payload_data_213_10 = ($signed(_zz__zz_io_writeReqs_0_7_payload_data_213_11) >>> _zz_when_ValuEngine_l417_3);
+  assign _zz__zz_io_writeReqs_0_7_payload_data_213_9 = (6'h20 - _zz_when_ValuEngine_l201_3);
+  assign _zz__zz_io_writeReqs_0_7_payload_data_213_10 = ($signed(_zz__zz_io_writeReqs_0_7_payload_data_213_11) >>> _zz_when_ValuEngine_l209_3);
   assign _zz__zz_io_writeReqs_0_7_payload_data_213_11 = io_operandA_0_7;
-  assign _zz__zz_io_writeReqs_0_7_payload_data_213_12 = (io_operandA_0_7 >>> _zz_when_ValuEngine_l417_3);
+  assign _zz__zz_io_writeReqs_0_7_payload_data_213_12 = (io_operandA_0_7 >>> _zz_when_ValuEngine_l209_3);
   assign _zz__zz_io_writeReqs_0_7_payload_data_213_13 = ((io_slots_0_isSigned ? ($signed(_zz__zz_io_writeReqs_0_7_payload_data_213_14) < $signed(_zz__zz_io_writeReqs_0_7_payload_data_213_15)) : (io_operandA_0_7 < io_operandB_0_7)) || ((io_operandA_0_7 == io_operandB_0_7) && ltLo64_0_3));
   assign _zz__zz_io_writeReqs_0_7_payload_data_213_14 = io_operandA_0_7;
   assign _zz__zz_io_writeReqs_0_7_payload_data_213_15 = io_operandB_0_7;
@@ -15801,8 +15801,8 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_0_valid_1 = (((io_slots_0_opcode == 4'b1010) || (io_slots_0_opcode == 4'b1011)) || (io_slots_0_opcode == 4'b1100));
   assign unsignedDivider_8_io_start = (((_zz_io_writeReqs_0_0_valid && _zz_io_writeReqs_0_0_valid_1) && (! unsignedDivider_8_io_busy)) && (io_slots_0_ewidth == 3'b000));
   assign unsignedDivider_8_io_dividend = ((io_slots_0_opcode == 4'b1100) ? _zz_io_dividend : io_operandA_0_0);
-  assign when_ValuEngine_l305 = (io_slots_0_opcode == 4'b1010);
-  assign when_ValuEngine_l306 = (io_slots_0_opcode == 4'b1011);
+  assign when_ValuEngine_l97 = (io_slots_0_opcode == 4'b1010);
+  assign when_ValuEngine_l98 = (io_slots_0_opcode == 4'b1011);
   always @(*) begin
     _zz_io_writeReqs_0_0_payload_data_1 = 32'h0;
     case(io_slots_0_opcode)
@@ -16122,16 +16122,16 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_0_payload_data_133 = io_operandC_0_0[31 : 28];
   always @(*) begin
     _zz_io_writeReqs_0_0_payload_data_134 = 32'h0;
-    if(when_ValuEngine_l318) begin
+    if(when_ValuEngine_l110) begin
       _zz_io_writeReqs_0_0_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_134 : _zz__zz_io_writeReqs_0_0_payload_data_134_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_134_10 : _zz__zz_io_writeReqs_0_0_payload_data_134_16)};
     end else begin
-      if(when_ValuEngine_l319) begin
+      if(when_ValuEngine_l111) begin
         _zz_io_writeReqs_0_0_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_134_20 : _zz__zz_io_writeReqs_0_0_payload_data_134_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_134_35 : _zz__zz_io_writeReqs_0_0_payload_data_134_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l318 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l110 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_0_payload_data_135 = io_operandA_0_0[7 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_136 = io_operandB_0_0[7 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_137 = io_operandA_0_0[15 : 8];
@@ -16142,55 +16142,55 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_0_payload_data_142 = io_operandA_0_0[15 : 8];
   assign _zz_io_writeReqs_0_0_payload_data_143 = io_operandB_0_0[15 : 8];
   assign _zz_io_writeReqs_0_0_payload_data_144 = io_operandC_0_0[31 : 16];
-  assign when_ValuEngine_l319 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l111 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_0_payload_data_145 = 32'h0;
-    if(when_ValuEngine_l322) begin
+    if(when_ValuEngine_l114) begin
       _zz_io_writeReqs_0_0_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_145 : _zz__zz_io_writeReqs_0_0_payload_data_145_6);
     end else begin
-      if(when_ValuEngine_l323) begin
+      if(when_ValuEngine_l115) begin
         _zz_io_writeReqs_0_0_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_145_10 : _zz__zz_io_writeReqs_0_0_payload_data_145_19);
       end
     end
   end
 
-  assign when_ValuEngine_l322 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l114 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_0_payload_data_146 = io_operandA_0_0[7 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_147 = io_operandB_0_0[7 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_148 = io_operandA_0_0[7 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_149 = io_operandB_0_0[7 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_150 = io_operandC_0_0[31 : 0];
-  assign when_ValuEngine_l323 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l115 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_0_payload_data_151 = 32'h0;
-    if(when_ValuEngine_l326) begin
+    if(when_ValuEngine_l118) begin
       _zz_io_writeReqs_0_0_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_151 : _zz__zz_io_writeReqs_0_0_payload_data_151_6);
     end else begin
-      if(when_ValuEngine_l327) begin
+      if(when_ValuEngine_l119) begin
         _zz_io_writeReqs_0_0_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_151_10 : _zz__zz_io_writeReqs_0_0_payload_data_151_19);
       end
     end
   end
 
-  assign when_ValuEngine_l326 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l118 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_0_payload_data_152 = io_operandA_0_0[15 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_153 = io_operandB_0_0[15 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_154 = io_operandA_0_0[15 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_155 = io_operandB_0_0[15 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_156 = io_operandC_0_0[31 : 0];
-  assign when_ValuEngine_l327 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l119 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_0_payload_data_157 = 32'h0;
-    if(when_ValuEngine_l330) begin
+    if(when_ValuEngine_l122) begin
       _zz_io_writeReqs_0_0_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_157 : _zz__zz_io_writeReqs_0_0_payload_data_157_6),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_157_10 : _zz__zz_io_writeReqs_0_0_payload_data_157_16),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_157_20 : _zz__zz_io_writeReqs_0_0_payload_data_157_26),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_157_30 : _zz__zz_io_writeReqs_0_0_payload_data_157_36)}}};
     end else begin
-      if(when_ValuEngine_l331) begin
+      if(when_ValuEngine_l123) begin
         _zz_io_writeReqs_0_0_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_157_40 : _zz__zz_io_writeReqs_0_0_payload_data_157_49),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_157_55 : _zz__zz_io_writeReqs_0_0_payload_data_157_64),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_157_70 : _zz__zz_io_writeReqs_0_0_payload_data_157_79),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_157_85 : _zz__zz_io_writeReqs_0_0_payload_data_157_94)}}};
       end
     end
   end
 
-  assign when_ValuEngine_l330 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l122 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_0_payload_data_158 = io_operandA_0_0[3 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_159 = io_operandB_0_0[3 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_160 = io_operandA_0_0[7 : 4];
@@ -16211,19 +16211,19 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_0_payload_data_175 = io_operandA_0_0[15 : 12];
   assign _zz_io_writeReqs_0_0_payload_data_176 = io_operandB_0_0[15 : 12];
   assign _zz_io_writeReqs_0_0_payload_data_177 = io_operandC_0_0[31 : 24];
-  assign when_ValuEngine_l331 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l123 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_0_payload_data_178 = 32'h0;
-    if(when_ValuEngine_l334) begin
+    if(when_ValuEngine_l126) begin
       _zz_io_writeReqs_0_0_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_178 : _zz__zz_io_writeReqs_0_0_payload_data_178_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_178_10 : _zz__zz_io_writeReqs_0_0_payload_data_178_16)};
     end else begin
-      if(when_ValuEngine_l335) begin
+      if(when_ValuEngine_l127) begin
         _zz_io_writeReqs_0_0_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_178_20 : _zz__zz_io_writeReqs_0_0_payload_data_178_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_178_35 : _zz__zz_io_writeReqs_0_0_payload_data_178_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l334 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l126 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_0_payload_data_179 = io_operandA_0_0[3 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_180 = io_operandB_0_0[3 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_181 = io_operandA_0_0[7 : 4];
@@ -16234,25 +16234,25 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_0_payload_data_186 = io_operandA_0_0[7 : 4];
   assign _zz_io_writeReqs_0_0_payload_data_187 = io_operandB_0_0[7 : 4];
   assign _zz_io_writeReqs_0_0_payload_data_188 = io_operandC_0_0[31 : 16];
-  assign when_ValuEngine_l335 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l127 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_0_payload_data_189 = 32'h0;
-    if(when_ValuEngine_l338) begin
+    if(when_ValuEngine_l130) begin
       _zz_io_writeReqs_0_0_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_189 : _zz__zz_io_writeReqs_0_0_payload_data_189_6);
     end else begin
-      if(when_ValuEngine_l339) begin
+      if(when_ValuEngine_l131) begin
         _zz_io_writeReqs_0_0_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_189_10 : _zz__zz_io_writeReqs_0_0_payload_data_189_19);
       end
     end
   end
 
-  assign when_ValuEngine_l338 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l130 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_0_payload_data_190 = io_operandA_0_0[3 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_191 = io_operandB_0_0[3 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_192 = io_operandA_0_0[3 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_193 = io_operandB_0_0[3 : 0];
   assign _zz_io_writeReqs_0_0_payload_data_194 = io_operandC_0_0[31 : 0];
-  assign when_ValuEngine_l339 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l131 = (io_slots_0_opcode == 4'b1110);
   assign _zz_io_writeReqs_0_0_payload_data_195 = io_slots_0_src2Base[0];
   assign _zz_io_writeReqs_0_0_payload_data_196 = (_zz_io_writeReqs_0_0_payload_data_195 ? io_operandA_0_0[23 : 16] : io_operandA_0_0[7 : 0]);
   assign _zz_io_writeReqs_0_0_payload_data_197 = (_zz_io_writeReqs_0_0_payload_data_195 ? io_operandA_0_0[31 : 24] : io_operandA_0_0[15 : 8]);
@@ -16290,17 +16290,17 @@ module ValuEngine (
         _zz_io_writeReqs_0_0_payload_data_213 = (io_operandA_0_0 | io_operandB_0_0);
       end
       4'b0110 : begin
-        if(when_ValuEngine_l380) begin
+        if(when_ValuEngine_l172) begin
           _zz_io_writeReqs_0_0_payload_data_213 = 32'h0;
         end else begin
-          _zz_io_writeReqs_0_0_payload_data_213 = (io_operandA_0_0 <<< _zz_when_ValuEngine_l380);
+          _zz_io_writeReqs_0_0_payload_data_213 = (io_operandA_0_0 <<< _zz_when_ValuEngine_l172);
         end
       end
       4'b0111 : begin
-        if(when_ValuEngine_l386) begin
+        if(when_ValuEngine_l178) begin
           _zz_io_writeReqs_0_0_payload_data_213 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_213 : _zz__zz_io_writeReqs_0_0_payload_data_213_3);
         end else begin
-          if(when_ValuEngine_l388) begin
+          if(when_ValuEngine_l180) begin
             _zz_io_writeReqs_0_0_payload_data_213 = io_operandA_0_0;
           end else begin
             _zz_io_writeReqs_0_0_payload_data_213 = (_zz__zz_io_writeReqs_0_0_payload_data_213_5 | _zz__zz_io_writeReqs_0_0_payload_data_213_6);
@@ -16323,30 +16323,34 @@ module ValuEngine (
 
   assign _zz_carry64_0_0 = ({1'b0,_zz__zz_carry64_0_0} + {1'b0,_zz__zz_carry64_0_0_1});
   assign _zz_borrow64_0_0 = ({1'b0,_zz__zz_borrow64_0_0} - {1'b0,_zz__zz_borrow64_0_0_1});
-  assign _zz_when_ValuEngine_l380 = io_operandB_0_0[5 : 0];
-  assign when_ValuEngine_l380 = (6'h20 <= _zz_when_ValuEngine_l380);
-  assign _zz_when_ValuEngine_l386 = io_operandB_0_0[5 : 0];
-  assign when_ValuEngine_l386 = (6'h20 <= _zz_when_ValuEngine_l386);
-  assign when_ValuEngine_l388 = (_zz_when_ValuEngine_l386 == 6'h0);
+  assign carry64_0_0 = _zz_carry64_0_0[32];
+  assign borrow64_0_0 = _zz_borrow64_0_0[32];
+  assign ltLo64_0_0 = (io_operandA_0_0 < io_operandB_0_0);
+  assign eqLo64_0_0 = (io_operandA_0_0 == io_operandB_0_0);
+  assign _zz_when_ValuEngine_l172 = io_operandB_0_0[5 : 0];
+  assign when_ValuEngine_l172 = (6'h20 <= _zz_when_ValuEngine_l172);
+  assign _zz_when_ValuEngine_l178 = io_operandB_0_0[5 : 0];
+  assign when_ValuEngine_l178 = (6'h20 <= _zz_when_ValuEngine_l178);
+  assign when_ValuEngine_l180 = (_zz_when_ValuEngine_l178 == 6'h0);
   always @(*) begin
     _zz_io_writeReqs_0_0_payload_data_214 = _zz_io_writeReqs_0_0_payload_data_1;
-    if(when_ValuEngine_l445) begin
-      if(when_ValuEngine_l446) begin
+    if(when_ValuEngine_l237) begin
+      if(when_ValuEngine_l238) begin
         _zz_io_writeReqs_0_0_payload_data_214 = _zz_io_writeReqs_0_0_payload_data_134;
       end else begin
-        if(when_ValuEngine_l447) begin
+        if(when_ValuEngine_l239) begin
           _zz_io_writeReqs_0_0_payload_data_214 = _zz_io_writeReqs_0_0_payload_data_145;
         end else begin
-          if(when_ValuEngine_l448) begin
+          if(when_ValuEngine_l240) begin
             _zz_io_writeReqs_0_0_payload_data_214 = _zz_io_writeReqs_0_0_payload_data_151;
           end else begin
-            if(when_ValuEngine_l449) begin
+            if(when_ValuEngine_l241) begin
               _zz_io_writeReqs_0_0_payload_data_214 = _zz_io_writeReqs_0_0_payload_data_157;
             end else begin
-              if(when_ValuEngine_l450) begin
+              if(when_ValuEngine_l242) begin
                 _zz_io_writeReqs_0_0_payload_data_214 = _zz_io_writeReqs_0_0_payload_data_178;
               end else begin
-                if(when_ValuEngine_l451) begin
+                if(when_ValuEngine_l243) begin
                   _zz_io_writeReqs_0_0_payload_data_214 = _zz_io_writeReqs_0_0_payload_data_189;
                 end
               end
@@ -16355,15 +16359,15 @@ module ValuEngine (
         end
       end
     end else begin
-      if(when_ValuEngine_l452) begin
-        if(when_ValuEngine_l454) begin
-          if(when_ValuEngine_l455) begin
+      if(when_ValuEngine_l244) begin
+        if(when_ValuEngine_l246) begin
+          if(when_ValuEngine_l247) begin
             _zz_io_writeReqs_0_0_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_214 : _zz__zz_io_writeReqs_0_0_payload_data_214_2),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_214_3 : _zz__zz_io_writeReqs_0_0_payload_data_214_5)};
           end else begin
-            if(when_ValuEngine_l456) begin
+            if(when_ValuEngine_l248) begin
               _zz_io_writeReqs_0_0_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_214_6 : _zz__zz_io_writeReqs_0_0_payload_data_214_8);
             end else begin
-              if(when_ValuEngine_l457) begin
+              if(when_ValuEngine_l249) begin
                 _zz_io_writeReqs_0_0_payload_data_214 = (_zz_io_writeReqs_0_0_payload_data_195 ? _zz__zz_io_writeReqs_0_0_payload_data_214_9 : _zz__zz_io_writeReqs_0_0_payload_data_214_11);
               end else begin
                 _zz_io_writeReqs_0_0_payload_data_214 = io_operandA_0_0;
@@ -16371,14 +16375,14 @@ module ValuEngine (
             end
           end
         end else begin
-          if(when_ValuEngine_l459) begin
-            if(when_ValuEngine_l460) begin
+          if(when_ValuEngine_l251) begin
+            if(when_ValuEngine_l252) begin
               _zz_io_writeReqs_0_0_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_214_12 : _zz__zz_io_writeReqs_0_0_payload_data_214_14);
             end else begin
-              if(when_ValuEngine_l461) begin
+              if(when_ValuEngine_l253) begin
                 _zz_io_writeReqs_0_0_payload_data_214 = (_zz_io_writeReqs_0_0_payload_data_195 ? _zz__zz_io_writeReqs_0_0_payload_data_214_15 : _zz__zz_io_writeReqs_0_0_payload_data_214_17);
               end else begin
-                if(when_ValuEngine_l462) begin
+                if(when_ValuEngine_l254) begin
                   _zz_io_writeReqs_0_0_payload_data_214 = (_zz_io_writeReqs_0_0_payload_data_195 ? _zz__zz_io_writeReqs_0_0_payload_data_214_18 : _zz__zz_io_writeReqs_0_0_payload_data_214_20);
                 end else begin
                   _zz_io_writeReqs_0_0_payload_data_214 = io_operandA_0_0;
@@ -16386,14 +16390,14 @@ module ValuEngine (
               end
             end
           end else begin
-            if(when_ValuEngine_l464) begin
-              if(when_ValuEngine_l465) begin
+            if(when_ValuEngine_l256) begin
+              if(when_ValuEngine_l257) begin
                 _zz_io_writeReqs_0_0_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_214_21 : _zz__zz_io_writeReqs_0_0_payload_data_214_23),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_214_24 : _zz__zz_io_writeReqs_0_0_payload_data_214_26),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_214_27 : _zz__zz_io_writeReqs_0_0_payload_data_214_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_214_30 : _zz__zz_io_writeReqs_0_0_payload_data_214_32)}}};
               end else begin
-                if(when_ValuEngine_l466) begin
+                if(when_ValuEngine_l258) begin
                   _zz_io_writeReqs_0_0_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_214_33 : _zz__zz_io_writeReqs_0_0_payload_data_214_35),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_214_36 : _zz__zz_io_writeReqs_0_0_payload_data_214_38)};
                 end else begin
-                  if(when_ValuEngine_l467) begin
+                  if(when_ValuEngine_l259) begin
                     _zz_io_writeReqs_0_0_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_0_payload_data_214_39 : _zz__zz_io_writeReqs_0_0_payload_data_214_41);
                   end else begin
                     _zz_io_writeReqs_0_0_payload_data_214 = io_operandA_0_0;
@@ -16401,14 +16405,14 @@ module ValuEngine (
                 end
               end
             end else begin
-              if(when_ValuEngine_l469) begin
-                if(when_ValuEngine_l470) begin
+              if(when_ValuEngine_l261) begin
+                if(when_ValuEngine_l262) begin
                   _zz_io_writeReqs_0_0_payload_data_214 = (_zz_io_writeReqs_0_0_payload_data_195 ? _zz__zz_io_writeReqs_0_0_payload_data_214_42 : _zz__zz_io_writeReqs_0_0_payload_data_214_44);
                 end else begin
-                  if(when_ValuEngine_l471) begin
+                  if(when_ValuEngine_l263) begin
                     _zz_io_writeReqs_0_0_payload_data_214 = (_zz_io_writeReqs_0_0_payload_data_195 ? _zz__zz_io_writeReqs_0_0_payload_data_214_45 : _zz__zz_io_writeReqs_0_0_payload_data_214_47);
                   end else begin
-                    if(when_ValuEngine_l472) begin
+                    if(when_ValuEngine_l264) begin
                       _zz_io_writeReqs_0_0_payload_data_214 = (_zz_io_writeReqs_0_0_payload_data_195 ? _zz__zz_io_writeReqs_0_0_payload_data_214_48 : _zz__zz_io_writeReqs_0_0_payload_data_214_50);
                     end else begin
                       _zz_io_writeReqs_0_0_payload_data_214 = io_operandA_0_0;
@@ -16422,16 +16426,16 @@ module ValuEngine (
           end
         end
       end else begin
-        if(when_ValuEngine_l477) begin
+        if(when_ValuEngine_l269) begin
           _zz_io_writeReqs_0_0_payload_data_214 = _zz_io_writeReqs_0_0_payload_data_2;
         end else begin
-          if(when_ValuEngine_l478) begin
+          if(when_ValuEngine_l270) begin
             _zz_io_writeReqs_0_0_payload_data_214 = _zz_io_writeReqs_0_0_payload_data_40;
           end else begin
-            if(when_ValuEngine_l479) begin
+            if(when_ValuEngine_l271) begin
               _zz_io_writeReqs_0_0_payload_data_214 = _zz_io_writeReqs_0_0_payload_data_60;
             end else begin
-              if(when_ValuEngine_l480) begin
+              if(when_ValuEngine_l272) begin
                 _zz_io_writeReqs_0_0_payload_data_214 = _zz_io_writeReqs_0_0_payload_data_213;
               end else begin
                 _zz_io_writeReqs_0_0_payload_data_214 = _zz_io_writeReqs_0_0_payload_data_1;
@@ -16443,42 +16447,42 @@ module ValuEngine (
     end
   end
 
-  assign when_ValuEngine_l452 = (io_slots_0_opcode == 4'b1111);
-  assign when_ValuEngine_l445 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
-  assign when_ValuEngine_l446 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l447 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l448 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l449 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
-  assign when_ValuEngine_l450 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l451 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l454 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l455 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l456 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l457 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l460 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l461 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l462 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l465 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l466 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l467 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l470 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l471 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l472 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l459 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l464 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l469 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
-  assign when_ValuEngine_l477 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l478 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l479 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l480 = (io_slots_0_ewidth == 3'b100);
+  assign when_ValuEngine_l244 = (io_slots_0_opcode == 4'b1111);
+  assign when_ValuEngine_l237 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
+  assign when_ValuEngine_l238 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l239 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l240 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l241 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
+  assign when_ValuEngine_l242 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l243 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l246 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l247 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l248 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l249 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l252 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l253 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l254 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l257 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l258 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l259 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l262 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l263 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l264 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l251 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l256 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l261 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
+  assign when_ValuEngine_l269 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l270 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l271 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l272 = (io_slots_0_ewidth == 3'b100);
   assign io_writeReqs_0_0_valid = (unsignedDivider_8_io_done || (_zz_io_writeReqs_0_0_valid && (! _zz_io_writeReqs_0_0_valid_1)));
   assign io_writeReqs_0_0_payload_addr = (unsignedDivider_8_io_done ? _zz_io_writeReqs_0_0_payload_addr : _zz_io_writeReqs_0_0_payload_addr_1);
   assign io_writeReqs_0_0_payload_data = (unsignedDivider_8_io_done ? ((_zz_io_writeReqs_0_0_payload_data == 2'b00) ? unsignedDivider_8_io_remainder : unsignedDivider_8_io_quotient) : _zz_io_writeReqs_0_0_payload_data_214);
   assign _zz_io_writeReqs_0_1_valid = (((io_slots_0_opcode == 4'b1010) || (io_slots_0_opcode == 4'b1011)) || (io_slots_0_opcode == 4'b1100));
   assign unsignedDivider_9_io_start = (((_zz_io_writeReqs_0_0_valid && _zz_io_writeReqs_0_1_valid) && (! unsignedDivider_9_io_busy)) && (io_slots_0_ewidth == 3'b000));
   assign unsignedDivider_9_io_dividend = ((io_slots_0_opcode == 4'b1100) ? _zz_io_dividend_2 : io_operandA_0_1);
-  assign when_ValuEngine_l305_1 = (io_slots_0_opcode == 4'b1010);
-  assign when_ValuEngine_l306_1 = (io_slots_0_opcode == 4'b1011);
+  assign when_ValuEngine_l97_1 = (io_slots_0_opcode == 4'b1010);
+  assign when_ValuEngine_l98_1 = (io_slots_0_opcode == 4'b1011);
   always @(*) begin
     _zz_io_writeReqs_0_1_payload_data_1 = 32'h0;
     case(io_slots_0_opcode)
@@ -16798,16 +16802,16 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_1_payload_data_133 = io_operandC_0_1[31 : 28];
   always @(*) begin
     _zz_io_writeReqs_0_1_payload_data_134 = 32'h0;
-    if(when_ValuEngine_l318_1) begin
+    if(when_ValuEngine_l110_1) begin
       _zz_io_writeReqs_0_1_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_134 : _zz__zz_io_writeReqs_0_1_payload_data_134_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_134_10 : _zz__zz_io_writeReqs_0_1_payload_data_134_16)};
     end else begin
-      if(when_ValuEngine_l319_1) begin
+      if(when_ValuEngine_l111_1) begin
         _zz_io_writeReqs_0_1_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_134_20 : _zz__zz_io_writeReqs_0_1_payload_data_134_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_134_35 : _zz__zz_io_writeReqs_0_1_payload_data_134_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l318_1 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l110_1 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_1_payload_data_135 = io_operandA_0_1[7 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_136 = io_operandB_0_1[7 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_137 = io_operandA_0_1[15 : 8];
@@ -16818,55 +16822,55 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_1_payload_data_142 = io_operandA_0_1[15 : 8];
   assign _zz_io_writeReqs_0_1_payload_data_143 = io_operandB_0_1[15 : 8];
   assign _zz_io_writeReqs_0_1_payload_data_144 = io_operandC_0_1[31 : 16];
-  assign when_ValuEngine_l319_1 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l111_1 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_1_payload_data_145 = 32'h0;
-    if(when_ValuEngine_l322_1) begin
+    if(when_ValuEngine_l114_1) begin
       _zz_io_writeReqs_0_1_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_145 : _zz__zz_io_writeReqs_0_1_payload_data_145_6);
     end else begin
-      if(when_ValuEngine_l323_1) begin
+      if(when_ValuEngine_l115_1) begin
         _zz_io_writeReqs_0_1_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_145_10 : _zz__zz_io_writeReqs_0_1_payload_data_145_19);
       end
     end
   end
 
-  assign when_ValuEngine_l322_1 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l114_1 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_1_payload_data_146 = io_operandA_0_1[7 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_147 = io_operandB_0_1[7 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_148 = io_operandA_0_1[7 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_149 = io_operandB_0_1[7 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_150 = io_operandC_0_1[31 : 0];
-  assign when_ValuEngine_l323_1 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l115_1 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_1_payload_data_151 = 32'h0;
-    if(when_ValuEngine_l326_1) begin
+    if(when_ValuEngine_l118_1) begin
       _zz_io_writeReqs_0_1_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_151 : _zz__zz_io_writeReqs_0_1_payload_data_151_6);
     end else begin
-      if(when_ValuEngine_l327_1) begin
+      if(when_ValuEngine_l119_1) begin
         _zz_io_writeReqs_0_1_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_151_10 : _zz__zz_io_writeReqs_0_1_payload_data_151_19);
       end
     end
   end
 
-  assign when_ValuEngine_l326_1 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l118_1 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_1_payload_data_152 = io_operandA_0_1[15 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_153 = io_operandB_0_1[15 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_154 = io_operandA_0_1[15 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_155 = io_operandB_0_1[15 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_156 = io_operandC_0_1[31 : 0];
-  assign when_ValuEngine_l327_1 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l119_1 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_1_payload_data_157 = 32'h0;
-    if(when_ValuEngine_l330_1) begin
+    if(when_ValuEngine_l122_1) begin
       _zz_io_writeReqs_0_1_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_157 : _zz__zz_io_writeReqs_0_1_payload_data_157_6),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_157_10 : _zz__zz_io_writeReqs_0_1_payload_data_157_16),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_157_20 : _zz__zz_io_writeReqs_0_1_payload_data_157_26),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_157_30 : _zz__zz_io_writeReqs_0_1_payload_data_157_36)}}};
     end else begin
-      if(when_ValuEngine_l331_1) begin
+      if(when_ValuEngine_l123_1) begin
         _zz_io_writeReqs_0_1_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_157_40 : _zz__zz_io_writeReqs_0_1_payload_data_157_49),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_157_55 : _zz__zz_io_writeReqs_0_1_payload_data_157_64),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_157_70 : _zz__zz_io_writeReqs_0_1_payload_data_157_79),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_157_85 : _zz__zz_io_writeReqs_0_1_payload_data_157_94)}}};
       end
     end
   end
 
-  assign when_ValuEngine_l330_1 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l122_1 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_1_payload_data_158 = io_operandA_0_1[3 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_159 = io_operandB_0_1[3 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_160 = io_operandA_0_1[7 : 4];
@@ -16887,19 +16891,19 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_1_payload_data_175 = io_operandA_0_1[15 : 12];
   assign _zz_io_writeReqs_0_1_payload_data_176 = io_operandB_0_1[15 : 12];
   assign _zz_io_writeReqs_0_1_payload_data_177 = io_operandC_0_1[31 : 24];
-  assign when_ValuEngine_l331_1 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l123_1 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_1_payload_data_178 = 32'h0;
-    if(when_ValuEngine_l334_1) begin
+    if(when_ValuEngine_l126_1) begin
       _zz_io_writeReqs_0_1_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_178 : _zz__zz_io_writeReqs_0_1_payload_data_178_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_178_10 : _zz__zz_io_writeReqs_0_1_payload_data_178_16)};
     end else begin
-      if(when_ValuEngine_l335_1) begin
+      if(when_ValuEngine_l127_1) begin
         _zz_io_writeReqs_0_1_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_178_20 : _zz__zz_io_writeReqs_0_1_payload_data_178_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_178_35 : _zz__zz_io_writeReqs_0_1_payload_data_178_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l334_1 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l126_1 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_1_payload_data_179 = io_operandA_0_1[3 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_180 = io_operandB_0_1[3 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_181 = io_operandA_0_1[7 : 4];
@@ -16910,25 +16914,25 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_1_payload_data_186 = io_operandA_0_1[7 : 4];
   assign _zz_io_writeReqs_0_1_payload_data_187 = io_operandB_0_1[7 : 4];
   assign _zz_io_writeReqs_0_1_payload_data_188 = io_operandC_0_1[31 : 16];
-  assign when_ValuEngine_l335_1 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l127_1 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_1_payload_data_189 = 32'h0;
-    if(when_ValuEngine_l338_1) begin
+    if(when_ValuEngine_l130_1) begin
       _zz_io_writeReqs_0_1_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_189 : _zz__zz_io_writeReqs_0_1_payload_data_189_6);
     end else begin
-      if(when_ValuEngine_l339_1) begin
+      if(when_ValuEngine_l131_1) begin
         _zz_io_writeReqs_0_1_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_189_10 : _zz__zz_io_writeReqs_0_1_payload_data_189_19);
       end
     end
   end
 
-  assign when_ValuEngine_l338_1 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l130_1 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_1_payload_data_190 = io_operandA_0_1[3 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_191 = io_operandB_0_1[3 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_192 = io_operandA_0_1[3 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_193 = io_operandB_0_1[3 : 0];
   assign _zz_io_writeReqs_0_1_payload_data_194 = io_operandC_0_1[31 : 0];
-  assign when_ValuEngine_l339_1 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l131_1 = (io_slots_0_opcode == 4'b1110);
   assign _zz_io_writeReqs_0_1_payload_data_195 = io_slots_0_src2Base[0];
   assign _zz_io_writeReqs_0_1_payload_data_196 = (_zz_io_writeReqs_0_1_payload_data_195 ? io_operandA_0_1[23 : 16] : io_operandA_0_1[7 : 0]);
   assign _zz_io_writeReqs_0_1_payload_data_197 = (_zz_io_writeReqs_0_1_payload_data_195 ? io_operandA_0_1[31 : 24] : io_operandA_0_1[15 : 8]);
@@ -16966,10 +16970,10 @@ module ValuEngine (
         _zz_io_writeReqs_0_1_payload_data_213 = (io_operandA_0_1 | io_operandB_0_1);
       end
       4'b0110 : begin
-        if(when_ValuEngine_l409) begin
+        if(when_ValuEngine_l201) begin
           _zz_io_writeReqs_0_1_payload_data_213 = (io_operandA_0_0 <<< _zz__zz_io_writeReqs_0_1_payload_data_213_6);
         end else begin
-          if(when_ValuEngine_l411) begin
+          if(when_ValuEngine_l203) begin
             _zz_io_writeReqs_0_1_payload_data_213 = io_operandA_0_1;
           end else begin
             _zz_io_writeReqs_0_1_payload_data_213 = (_zz__zz_io_writeReqs_0_1_payload_data_213_7 | _zz__zz_io_writeReqs_0_1_payload_data_213_8);
@@ -16977,10 +16981,10 @@ module ValuEngine (
         end
       end
       4'b0111 : begin
-        if(when_ValuEngine_l417) begin
+        if(when_ValuEngine_l209) begin
           _zz_io_writeReqs_0_1_payload_data_213 = (io_slots_0_isSigned ? 32'h0 : 32'h0);
         end else begin
-          if(when_ValuEngine_l419) begin
+          if(when_ValuEngine_l211) begin
             _zz_io_writeReqs_0_1_payload_data_213 = io_operandA_0_1;
           end else begin
             _zz_io_writeReqs_0_1_payload_data_213 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_213_10 : _zz__zz_io_writeReqs_0_1_payload_data_213_12);
@@ -17001,31 +17005,31 @@ module ValuEngine (
     endcase
   end
 
-  assign _zz_when_ValuEngine_l409 = io_operandB_0_0[5 : 0];
-  assign when_ValuEngine_l409 = (6'h20 <= _zz_when_ValuEngine_l409);
-  assign when_ValuEngine_l411 = (_zz_when_ValuEngine_l409 == 6'h0);
-  assign _zz_when_ValuEngine_l417 = io_operandB_0_0[5 : 0];
-  assign when_ValuEngine_l417 = (6'h20 <= _zz_when_ValuEngine_l417);
-  assign when_ValuEngine_l419 = (_zz_when_ValuEngine_l417 == 6'h0);
+  assign _zz_when_ValuEngine_l201 = io_operandB_0_0[5 : 0];
+  assign when_ValuEngine_l201 = (6'h20 <= _zz_when_ValuEngine_l201);
+  assign when_ValuEngine_l203 = (_zz_when_ValuEngine_l201 == 6'h0);
+  assign _zz_when_ValuEngine_l209 = io_operandB_0_0[5 : 0];
+  assign when_ValuEngine_l209 = (6'h20 <= _zz_when_ValuEngine_l209);
+  assign when_ValuEngine_l211 = (_zz_when_ValuEngine_l209 == 6'h0);
   always @(*) begin
     _zz_io_writeReqs_0_1_payload_data_214 = _zz_io_writeReqs_0_1_payload_data_1;
-    if(when_ValuEngine_l445_1) begin
-      if(when_ValuEngine_l446_1) begin
+    if(when_ValuEngine_l237_1) begin
+      if(when_ValuEngine_l238_1) begin
         _zz_io_writeReqs_0_1_payload_data_214 = _zz_io_writeReqs_0_1_payload_data_134;
       end else begin
-        if(when_ValuEngine_l447_1) begin
+        if(when_ValuEngine_l239_1) begin
           _zz_io_writeReqs_0_1_payload_data_214 = _zz_io_writeReqs_0_1_payload_data_145;
         end else begin
-          if(when_ValuEngine_l448_1) begin
+          if(when_ValuEngine_l240_1) begin
             _zz_io_writeReqs_0_1_payload_data_214 = _zz_io_writeReqs_0_1_payload_data_151;
           end else begin
-            if(when_ValuEngine_l449_1) begin
+            if(when_ValuEngine_l241_1) begin
               _zz_io_writeReqs_0_1_payload_data_214 = _zz_io_writeReqs_0_1_payload_data_157;
             end else begin
-              if(when_ValuEngine_l450_1) begin
+              if(when_ValuEngine_l242_1) begin
                 _zz_io_writeReqs_0_1_payload_data_214 = _zz_io_writeReqs_0_1_payload_data_178;
               end else begin
-                if(when_ValuEngine_l451_1) begin
+                if(when_ValuEngine_l243_1) begin
                   _zz_io_writeReqs_0_1_payload_data_214 = _zz_io_writeReqs_0_1_payload_data_189;
                 end
               end
@@ -17034,15 +17038,15 @@ module ValuEngine (
         end
       end
     end else begin
-      if(when_ValuEngine_l452_1) begin
-        if(when_ValuEngine_l454_1) begin
-          if(when_ValuEngine_l455_1) begin
+      if(when_ValuEngine_l244_1) begin
+        if(when_ValuEngine_l246_1) begin
+          if(when_ValuEngine_l247_1) begin
             _zz_io_writeReqs_0_1_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_214 : _zz__zz_io_writeReqs_0_1_payload_data_214_2),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_214_3 : _zz__zz_io_writeReqs_0_1_payload_data_214_5)};
           end else begin
-            if(when_ValuEngine_l456_1) begin
+            if(when_ValuEngine_l248_1) begin
               _zz_io_writeReqs_0_1_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_214_6 : _zz__zz_io_writeReqs_0_1_payload_data_214_8);
             end else begin
-              if(when_ValuEngine_l457_1) begin
+              if(when_ValuEngine_l249_1) begin
                 _zz_io_writeReqs_0_1_payload_data_214 = (_zz_io_writeReqs_0_1_payload_data_195 ? _zz__zz_io_writeReqs_0_1_payload_data_214_9 : _zz__zz_io_writeReqs_0_1_payload_data_214_11);
               end else begin
                 _zz_io_writeReqs_0_1_payload_data_214 = io_operandA_0_1;
@@ -17050,14 +17054,14 @@ module ValuEngine (
             end
           end
         end else begin
-          if(when_ValuEngine_l459_1) begin
-            if(when_ValuEngine_l460_1) begin
+          if(when_ValuEngine_l251_1) begin
+            if(when_ValuEngine_l252_1) begin
               _zz_io_writeReqs_0_1_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_214_12 : _zz__zz_io_writeReqs_0_1_payload_data_214_14);
             end else begin
-              if(when_ValuEngine_l461_1) begin
+              if(when_ValuEngine_l253_1) begin
                 _zz_io_writeReqs_0_1_payload_data_214 = (_zz_io_writeReqs_0_1_payload_data_195 ? _zz__zz_io_writeReqs_0_1_payload_data_214_15 : _zz__zz_io_writeReqs_0_1_payload_data_214_17);
               end else begin
-                if(when_ValuEngine_l462_1) begin
+                if(when_ValuEngine_l254_1) begin
                   _zz_io_writeReqs_0_1_payload_data_214 = (_zz_io_writeReqs_0_1_payload_data_195 ? _zz__zz_io_writeReqs_0_1_payload_data_214_18 : _zz__zz_io_writeReqs_0_1_payload_data_214_20);
                 end else begin
                   _zz_io_writeReqs_0_1_payload_data_214 = io_operandA_0_1;
@@ -17065,14 +17069,14 @@ module ValuEngine (
               end
             end
           end else begin
-            if(when_ValuEngine_l464_1) begin
-              if(when_ValuEngine_l465_1) begin
+            if(when_ValuEngine_l256_1) begin
+              if(when_ValuEngine_l257_1) begin
                 _zz_io_writeReqs_0_1_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_214_21 : _zz__zz_io_writeReqs_0_1_payload_data_214_23),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_214_24 : _zz__zz_io_writeReqs_0_1_payload_data_214_26),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_214_27 : _zz__zz_io_writeReqs_0_1_payload_data_214_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_214_30 : _zz__zz_io_writeReqs_0_1_payload_data_214_32)}}};
               end else begin
-                if(when_ValuEngine_l466_1) begin
+                if(when_ValuEngine_l258_1) begin
                   _zz_io_writeReqs_0_1_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_214_33 : _zz__zz_io_writeReqs_0_1_payload_data_214_35),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_214_36 : _zz__zz_io_writeReqs_0_1_payload_data_214_38)};
                 end else begin
-                  if(when_ValuEngine_l467_1) begin
+                  if(when_ValuEngine_l259_1) begin
                     _zz_io_writeReqs_0_1_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_1_payload_data_214_39 : _zz__zz_io_writeReqs_0_1_payload_data_214_41);
                   end else begin
                     _zz_io_writeReqs_0_1_payload_data_214 = io_operandA_0_1;
@@ -17080,14 +17084,14 @@ module ValuEngine (
                 end
               end
             end else begin
-              if(when_ValuEngine_l469_1) begin
-                if(when_ValuEngine_l470_1) begin
+              if(when_ValuEngine_l261_1) begin
+                if(when_ValuEngine_l262_1) begin
                   _zz_io_writeReqs_0_1_payload_data_214 = (_zz_io_writeReqs_0_1_payload_data_195 ? _zz__zz_io_writeReqs_0_1_payload_data_214_42 : _zz__zz_io_writeReqs_0_1_payload_data_214_44);
                 end else begin
-                  if(when_ValuEngine_l471_1) begin
+                  if(when_ValuEngine_l263_1) begin
                     _zz_io_writeReqs_0_1_payload_data_214 = (_zz_io_writeReqs_0_1_payload_data_195 ? _zz__zz_io_writeReqs_0_1_payload_data_214_45 : _zz__zz_io_writeReqs_0_1_payload_data_214_47);
                   end else begin
-                    if(when_ValuEngine_l472_1) begin
+                    if(when_ValuEngine_l264_1) begin
                       _zz_io_writeReqs_0_1_payload_data_214 = (_zz_io_writeReqs_0_1_payload_data_195 ? _zz__zz_io_writeReqs_0_1_payload_data_214_48 : _zz__zz_io_writeReqs_0_1_payload_data_214_50);
                     end else begin
                       _zz_io_writeReqs_0_1_payload_data_214 = io_operandA_0_1;
@@ -17101,16 +17105,16 @@ module ValuEngine (
           end
         end
       end else begin
-        if(when_ValuEngine_l477_1) begin
+        if(when_ValuEngine_l269_1) begin
           _zz_io_writeReqs_0_1_payload_data_214 = _zz_io_writeReqs_0_1_payload_data_2;
         end else begin
-          if(when_ValuEngine_l478_1) begin
+          if(when_ValuEngine_l270_1) begin
             _zz_io_writeReqs_0_1_payload_data_214 = _zz_io_writeReqs_0_1_payload_data_40;
           end else begin
-            if(when_ValuEngine_l479_1) begin
+            if(when_ValuEngine_l271_1) begin
               _zz_io_writeReqs_0_1_payload_data_214 = _zz_io_writeReqs_0_1_payload_data_60;
             end else begin
-              if(when_ValuEngine_l480_1) begin
+              if(when_ValuEngine_l272_1) begin
                 _zz_io_writeReqs_0_1_payload_data_214 = _zz_io_writeReqs_0_1_payload_data_213;
               end else begin
                 _zz_io_writeReqs_0_1_payload_data_214 = _zz_io_writeReqs_0_1_payload_data_1;
@@ -17122,42 +17126,42 @@ module ValuEngine (
     end
   end
 
-  assign when_ValuEngine_l452_1 = (io_slots_0_opcode == 4'b1111);
-  assign when_ValuEngine_l445_1 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
-  assign when_ValuEngine_l446_1 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l447_1 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l448_1 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l449_1 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
-  assign when_ValuEngine_l450_1 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l451_1 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l454_1 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l455_1 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l456_1 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l457_1 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l460_1 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l461_1 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l462_1 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l465_1 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l466_1 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l467_1 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l470_1 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l471_1 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l472_1 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l459_1 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l464_1 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l469_1 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
-  assign when_ValuEngine_l477_1 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l478_1 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l479_1 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l480_1 = (io_slots_0_ewidth == 3'b100);
+  assign when_ValuEngine_l244_1 = (io_slots_0_opcode == 4'b1111);
+  assign when_ValuEngine_l237_1 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
+  assign when_ValuEngine_l238_1 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l239_1 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l240_1 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l241_1 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
+  assign when_ValuEngine_l242_1 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l243_1 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l246_1 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l247_1 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l248_1 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l249_1 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l252_1 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l253_1 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l254_1 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l257_1 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l258_1 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l259_1 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l262_1 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l263_1 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l264_1 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l251_1 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l256_1 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l261_1 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
+  assign when_ValuEngine_l269_1 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l270_1 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l271_1 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l272_1 = (io_slots_0_ewidth == 3'b100);
   assign io_writeReqs_0_1_valid = (unsignedDivider_9_io_done || (_zz_io_writeReqs_0_0_valid && (! _zz_io_writeReqs_0_1_valid)));
   assign io_writeReqs_0_1_payload_addr = (unsignedDivider_9_io_done ? _zz_io_writeReqs_0_1_payload_addr : _zz_io_writeReqs_0_1_payload_addr_1);
   assign io_writeReqs_0_1_payload_data = (unsignedDivider_9_io_done ? ((_zz_io_writeReqs_0_1_payload_data == 2'b00) ? unsignedDivider_9_io_remainder : unsignedDivider_9_io_quotient) : _zz_io_writeReqs_0_1_payload_data_214);
   assign _zz_io_writeReqs_0_2_valid = (((io_slots_0_opcode == 4'b1010) || (io_slots_0_opcode == 4'b1011)) || (io_slots_0_opcode == 4'b1100));
   assign unsignedDivider_10_io_start = (((_zz_io_writeReqs_0_0_valid && _zz_io_writeReqs_0_2_valid) && (! unsignedDivider_10_io_busy)) && (io_slots_0_ewidth == 3'b000));
   assign unsignedDivider_10_io_dividend = ((io_slots_0_opcode == 4'b1100) ? _zz_io_dividend_4 : io_operandA_0_2);
-  assign when_ValuEngine_l305_2 = (io_slots_0_opcode == 4'b1010);
-  assign when_ValuEngine_l306_2 = (io_slots_0_opcode == 4'b1011);
+  assign when_ValuEngine_l97_2 = (io_slots_0_opcode == 4'b1010);
+  assign when_ValuEngine_l98_2 = (io_slots_0_opcode == 4'b1011);
   always @(*) begin
     _zz_io_writeReqs_0_2_payload_data_1 = 32'h0;
     case(io_slots_0_opcode)
@@ -17477,16 +17481,16 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_2_payload_data_133 = io_operandC_0_2[31 : 28];
   always @(*) begin
     _zz_io_writeReqs_0_2_payload_data_134 = 32'h0;
-    if(when_ValuEngine_l318_2) begin
+    if(when_ValuEngine_l110_2) begin
       _zz_io_writeReqs_0_2_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_134 : _zz__zz_io_writeReqs_0_2_payload_data_134_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_134_10 : _zz__zz_io_writeReqs_0_2_payload_data_134_16)};
     end else begin
-      if(when_ValuEngine_l319_2) begin
+      if(when_ValuEngine_l111_2) begin
         _zz_io_writeReqs_0_2_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_134_20 : _zz__zz_io_writeReqs_0_2_payload_data_134_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_134_35 : _zz__zz_io_writeReqs_0_2_payload_data_134_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l318_2 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l110_2 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_2_payload_data_135 = io_operandA_0_2[7 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_136 = io_operandB_0_2[7 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_137 = io_operandA_0_2[15 : 8];
@@ -17497,55 +17501,55 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_2_payload_data_142 = io_operandA_0_2[15 : 8];
   assign _zz_io_writeReqs_0_2_payload_data_143 = io_operandB_0_2[15 : 8];
   assign _zz_io_writeReqs_0_2_payload_data_144 = io_operandC_0_2[31 : 16];
-  assign when_ValuEngine_l319_2 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l111_2 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_2_payload_data_145 = 32'h0;
-    if(when_ValuEngine_l322_2) begin
+    if(when_ValuEngine_l114_2) begin
       _zz_io_writeReqs_0_2_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_145 : _zz__zz_io_writeReqs_0_2_payload_data_145_6);
     end else begin
-      if(when_ValuEngine_l323_2) begin
+      if(when_ValuEngine_l115_2) begin
         _zz_io_writeReqs_0_2_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_145_10 : _zz__zz_io_writeReqs_0_2_payload_data_145_19);
       end
     end
   end
 
-  assign when_ValuEngine_l322_2 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l114_2 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_2_payload_data_146 = io_operandA_0_2[7 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_147 = io_operandB_0_2[7 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_148 = io_operandA_0_2[7 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_149 = io_operandB_0_2[7 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_150 = io_operandC_0_2[31 : 0];
-  assign when_ValuEngine_l323_2 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l115_2 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_2_payload_data_151 = 32'h0;
-    if(when_ValuEngine_l326_2) begin
+    if(when_ValuEngine_l118_2) begin
       _zz_io_writeReqs_0_2_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_151 : _zz__zz_io_writeReqs_0_2_payload_data_151_6);
     end else begin
-      if(when_ValuEngine_l327_2) begin
+      if(when_ValuEngine_l119_2) begin
         _zz_io_writeReqs_0_2_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_151_10 : _zz__zz_io_writeReqs_0_2_payload_data_151_19);
       end
     end
   end
 
-  assign when_ValuEngine_l326_2 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l118_2 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_2_payload_data_152 = io_operandA_0_2[15 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_153 = io_operandB_0_2[15 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_154 = io_operandA_0_2[15 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_155 = io_operandB_0_2[15 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_156 = io_operandC_0_2[31 : 0];
-  assign when_ValuEngine_l327_2 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l119_2 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_2_payload_data_157 = 32'h0;
-    if(when_ValuEngine_l330_2) begin
+    if(when_ValuEngine_l122_2) begin
       _zz_io_writeReqs_0_2_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_157 : _zz__zz_io_writeReqs_0_2_payload_data_157_6),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_157_10 : _zz__zz_io_writeReqs_0_2_payload_data_157_16),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_157_20 : _zz__zz_io_writeReqs_0_2_payload_data_157_26),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_157_30 : _zz__zz_io_writeReqs_0_2_payload_data_157_36)}}};
     end else begin
-      if(when_ValuEngine_l331_2) begin
+      if(when_ValuEngine_l123_2) begin
         _zz_io_writeReqs_0_2_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_157_40 : _zz__zz_io_writeReqs_0_2_payload_data_157_49),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_157_55 : _zz__zz_io_writeReqs_0_2_payload_data_157_64),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_157_70 : _zz__zz_io_writeReqs_0_2_payload_data_157_79),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_157_85 : _zz__zz_io_writeReqs_0_2_payload_data_157_94)}}};
       end
     end
   end
 
-  assign when_ValuEngine_l330_2 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l122_2 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_2_payload_data_158 = io_operandA_0_2[3 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_159 = io_operandB_0_2[3 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_160 = io_operandA_0_2[7 : 4];
@@ -17566,19 +17570,19 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_2_payload_data_175 = io_operandA_0_2[15 : 12];
   assign _zz_io_writeReqs_0_2_payload_data_176 = io_operandB_0_2[15 : 12];
   assign _zz_io_writeReqs_0_2_payload_data_177 = io_operandC_0_2[31 : 24];
-  assign when_ValuEngine_l331_2 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l123_2 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_2_payload_data_178 = 32'h0;
-    if(when_ValuEngine_l334_2) begin
+    if(when_ValuEngine_l126_2) begin
       _zz_io_writeReqs_0_2_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_178 : _zz__zz_io_writeReqs_0_2_payload_data_178_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_178_10 : _zz__zz_io_writeReqs_0_2_payload_data_178_16)};
     end else begin
-      if(when_ValuEngine_l335_2) begin
+      if(when_ValuEngine_l127_2) begin
         _zz_io_writeReqs_0_2_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_178_20 : _zz__zz_io_writeReqs_0_2_payload_data_178_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_178_35 : _zz__zz_io_writeReqs_0_2_payload_data_178_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l334_2 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l126_2 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_2_payload_data_179 = io_operandA_0_2[3 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_180 = io_operandB_0_2[3 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_181 = io_operandA_0_2[7 : 4];
@@ -17589,25 +17593,25 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_2_payload_data_186 = io_operandA_0_2[7 : 4];
   assign _zz_io_writeReqs_0_2_payload_data_187 = io_operandB_0_2[7 : 4];
   assign _zz_io_writeReqs_0_2_payload_data_188 = io_operandC_0_2[31 : 16];
-  assign when_ValuEngine_l335_2 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l127_2 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_2_payload_data_189 = 32'h0;
-    if(when_ValuEngine_l338_2) begin
+    if(when_ValuEngine_l130_2) begin
       _zz_io_writeReqs_0_2_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_189 : _zz__zz_io_writeReqs_0_2_payload_data_189_6);
     end else begin
-      if(when_ValuEngine_l339_2) begin
+      if(when_ValuEngine_l131_2) begin
         _zz_io_writeReqs_0_2_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_189_10 : _zz__zz_io_writeReqs_0_2_payload_data_189_19);
       end
     end
   end
 
-  assign when_ValuEngine_l338_2 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l130_2 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_2_payload_data_190 = io_operandA_0_2[3 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_191 = io_operandB_0_2[3 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_192 = io_operandA_0_2[3 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_193 = io_operandB_0_2[3 : 0];
   assign _zz_io_writeReqs_0_2_payload_data_194 = io_operandC_0_2[31 : 0];
-  assign when_ValuEngine_l339_2 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l131_2 = (io_slots_0_opcode == 4'b1110);
   assign _zz_io_writeReqs_0_2_payload_data_195 = io_slots_0_src2Base[0];
   assign _zz_io_writeReqs_0_2_payload_data_196 = (_zz_io_writeReqs_0_2_payload_data_195 ? io_operandA_0_2[23 : 16] : io_operandA_0_2[7 : 0]);
   assign _zz_io_writeReqs_0_2_payload_data_197 = (_zz_io_writeReqs_0_2_payload_data_195 ? io_operandA_0_2[31 : 24] : io_operandA_0_2[15 : 8]);
@@ -17645,17 +17649,17 @@ module ValuEngine (
         _zz_io_writeReqs_0_2_payload_data_213 = (io_operandA_0_2 | io_operandB_0_2);
       end
       4'b0110 : begin
-        if(when_ValuEngine_l380_1) begin
+        if(when_ValuEngine_l172_1) begin
           _zz_io_writeReqs_0_2_payload_data_213 = 32'h0;
         end else begin
-          _zz_io_writeReqs_0_2_payload_data_213 = (io_operandA_0_2 <<< _zz_when_ValuEngine_l380_1);
+          _zz_io_writeReqs_0_2_payload_data_213 = (io_operandA_0_2 <<< _zz_when_ValuEngine_l172_1);
         end
       end
       4'b0111 : begin
-        if(when_ValuEngine_l386_1) begin
+        if(when_ValuEngine_l178_1) begin
           _zz_io_writeReqs_0_2_payload_data_213 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_213 : _zz__zz_io_writeReqs_0_2_payload_data_213_3);
         end else begin
-          if(when_ValuEngine_l388_1) begin
+          if(when_ValuEngine_l180_1) begin
             _zz_io_writeReqs_0_2_payload_data_213 = io_operandA_0_2;
           end else begin
             _zz_io_writeReqs_0_2_payload_data_213 = (_zz__zz_io_writeReqs_0_2_payload_data_213_5 | _zz__zz_io_writeReqs_0_2_payload_data_213_6);
@@ -17678,30 +17682,34 @@ module ValuEngine (
 
   assign _zz_carry64_0_1 = ({1'b0,_zz__zz_carry64_0_1} + {1'b0,_zz__zz_carry64_0_1_1});
   assign _zz_borrow64_0_1 = ({1'b0,_zz__zz_borrow64_0_1} - {1'b0,_zz__zz_borrow64_0_1_1});
-  assign _zz_when_ValuEngine_l380_1 = io_operandB_0_2[5 : 0];
-  assign when_ValuEngine_l380_1 = (6'h20 <= _zz_when_ValuEngine_l380_1);
-  assign _zz_when_ValuEngine_l386_1 = io_operandB_0_2[5 : 0];
-  assign when_ValuEngine_l386_1 = (6'h20 <= _zz_when_ValuEngine_l386_1);
-  assign when_ValuEngine_l388_1 = (_zz_when_ValuEngine_l386_1 == 6'h0);
+  assign carry64_0_1 = _zz_carry64_0_1[32];
+  assign borrow64_0_1 = _zz_borrow64_0_1[32];
+  assign ltLo64_0_1 = (io_operandA_0_2 < io_operandB_0_2);
+  assign eqLo64_0_1 = (io_operandA_0_2 == io_operandB_0_2);
+  assign _zz_when_ValuEngine_l172_1 = io_operandB_0_2[5 : 0];
+  assign when_ValuEngine_l172_1 = (6'h20 <= _zz_when_ValuEngine_l172_1);
+  assign _zz_when_ValuEngine_l178_1 = io_operandB_0_2[5 : 0];
+  assign when_ValuEngine_l178_1 = (6'h20 <= _zz_when_ValuEngine_l178_1);
+  assign when_ValuEngine_l180_1 = (_zz_when_ValuEngine_l178_1 == 6'h0);
   always @(*) begin
     _zz_io_writeReqs_0_2_payload_data_214 = _zz_io_writeReqs_0_2_payload_data_1;
-    if(when_ValuEngine_l445_2) begin
-      if(when_ValuEngine_l446_2) begin
+    if(when_ValuEngine_l237_2) begin
+      if(when_ValuEngine_l238_2) begin
         _zz_io_writeReqs_0_2_payload_data_214 = _zz_io_writeReqs_0_2_payload_data_134;
       end else begin
-        if(when_ValuEngine_l447_2) begin
+        if(when_ValuEngine_l239_2) begin
           _zz_io_writeReqs_0_2_payload_data_214 = _zz_io_writeReqs_0_2_payload_data_145;
         end else begin
-          if(when_ValuEngine_l448_2) begin
+          if(when_ValuEngine_l240_2) begin
             _zz_io_writeReqs_0_2_payload_data_214 = _zz_io_writeReqs_0_2_payload_data_151;
           end else begin
-            if(when_ValuEngine_l449_2) begin
+            if(when_ValuEngine_l241_2) begin
               _zz_io_writeReqs_0_2_payload_data_214 = _zz_io_writeReqs_0_2_payload_data_157;
             end else begin
-              if(when_ValuEngine_l450_2) begin
+              if(when_ValuEngine_l242_2) begin
                 _zz_io_writeReqs_0_2_payload_data_214 = _zz_io_writeReqs_0_2_payload_data_178;
               end else begin
-                if(when_ValuEngine_l451_2) begin
+                if(when_ValuEngine_l243_2) begin
                   _zz_io_writeReqs_0_2_payload_data_214 = _zz_io_writeReqs_0_2_payload_data_189;
                 end
               end
@@ -17710,15 +17718,15 @@ module ValuEngine (
         end
       end
     end else begin
-      if(when_ValuEngine_l452_2) begin
-        if(when_ValuEngine_l454_2) begin
-          if(when_ValuEngine_l455_2) begin
+      if(when_ValuEngine_l244_2) begin
+        if(when_ValuEngine_l246_2) begin
+          if(when_ValuEngine_l247_2) begin
             _zz_io_writeReqs_0_2_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_214 : _zz__zz_io_writeReqs_0_2_payload_data_214_2),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_214_3 : _zz__zz_io_writeReqs_0_2_payload_data_214_5)};
           end else begin
-            if(when_ValuEngine_l456_2) begin
+            if(when_ValuEngine_l248_2) begin
               _zz_io_writeReqs_0_2_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_214_6 : _zz__zz_io_writeReqs_0_2_payload_data_214_8);
             end else begin
-              if(when_ValuEngine_l457_2) begin
+              if(when_ValuEngine_l249_2) begin
                 _zz_io_writeReqs_0_2_payload_data_214 = (_zz_io_writeReqs_0_2_payload_data_195 ? _zz__zz_io_writeReqs_0_2_payload_data_214_9 : _zz__zz_io_writeReqs_0_2_payload_data_214_11);
               end else begin
                 _zz_io_writeReqs_0_2_payload_data_214 = io_operandA_0_2;
@@ -17726,14 +17734,14 @@ module ValuEngine (
             end
           end
         end else begin
-          if(when_ValuEngine_l459_2) begin
-            if(when_ValuEngine_l460_2) begin
+          if(when_ValuEngine_l251_2) begin
+            if(when_ValuEngine_l252_2) begin
               _zz_io_writeReqs_0_2_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_214_12 : _zz__zz_io_writeReqs_0_2_payload_data_214_14);
             end else begin
-              if(when_ValuEngine_l461_2) begin
+              if(when_ValuEngine_l253_2) begin
                 _zz_io_writeReqs_0_2_payload_data_214 = (_zz_io_writeReqs_0_2_payload_data_195 ? _zz__zz_io_writeReqs_0_2_payload_data_214_15 : _zz__zz_io_writeReqs_0_2_payload_data_214_17);
               end else begin
-                if(when_ValuEngine_l462_2) begin
+                if(when_ValuEngine_l254_2) begin
                   _zz_io_writeReqs_0_2_payload_data_214 = (_zz_io_writeReqs_0_2_payload_data_195 ? _zz__zz_io_writeReqs_0_2_payload_data_214_18 : _zz__zz_io_writeReqs_0_2_payload_data_214_20);
                 end else begin
                   _zz_io_writeReqs_0_2_payload_data_214 = io_operandA_0_2;
@@ -17741,14 +17749,14 @@ module ValuEngine (
               end
             end
           end else begin
-            if(when_ValuEngine_l464_2) begin
-              if(when_ValuEngine_l465_2) begin
+            if(when_ValuEngine_l256_2) begin
+              if(when_ValuEngine_l257_2) begin
                 _zz_io_writeReqs_0_2_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_214_21 : _zz__zz_io_writeReqs_0_2_payload_data_214_23),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_214_24 : _zz__zz_io_writeReqs_0_2_payload_data_214_26),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_214_27 : _zz__zz_io_writeReqs_0_2_payload_data_214_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_214_30 : _zz__zz_io_writeReqs_0_2_payload_data_214_32)}}};
               end else begin
-                if(when_ValuEngine_l466_2) begin
+                if(when_ValuEngine_l258_2) begin
                   _zz_io_writeReqs_0_2_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_214_33 : _zz__zz_io_writeReqs_0_2_payload_data_214_35),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_214_36 : _zz__zz_io_writeReqs_0_2_payload_data_214_38)};
                 end else begin
-                  if(when_ValuEngine_l467_2) begin
+                  if(when_ValuEngine_l259_2) begin
                     _zz_io_writeReqs_0_2_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_2_payload_data_214_39 : _zz__zz_io_writeReqs_0_2_payload_data_214_41);
                   end else begin
                     _zz_io_writeReqs_0_2_payload_data_214 = io_operandA_0_2;
@@ -17756,14 +17764,14 @@ module ValuEngine (
                 end
               end
             end else begin
-              if(when_ValuEngine_l469_2) begin
-                if(when_ValuEngine_l470_2) begin
+              if(when_ValuEngine_l261_2) begin
+                if(when_ValuEngine_l262_2) begin
                   _zz_io_writeReqs_0_2_payload_data_214 = (_zz_io_writeReqs_0_2_payload_data_195 ? _zz__zz_io_writeReqs_0_2_payload_data_214_42 : _zz__zz_io_writeReqs_0_2_payload_data_214_44);
                 end else begin
-                  if(when_ValuEngine_l471_2) begin
+                  if(when_ValuEngine_l263_2) begin
                     _zz_io_writeReqs_0_2_payload_data_214 = (_zz_io_writeReqs_0_2_payload_data_195 ? _zz__zz_io_writeReqs_0_2_payload_data_214_45 : _zz__zz_io_writeReqs_0_2_payload_data_214_47);
                   end else begin
-                    if(when_ValuEngine_l472_2) begin
+                    if(when_ValuEngine_l264_2) begin
                       _zz_io_writeReqs_0_2_payload_data_214 = (_zz_io_writeReqs_0_2_payload_data_195 ? _zz__zz_io_writeReqs_0_2_payload_data_214_48 : _zz__zz_io_writeReqs_0_2_payload_data_214_50);
                     end else begin
                       _zz_io_writeReqs_0_2_payload_data_214 = io_operandA_0_2;
@@ -17777,16 +17785,16 @@ module ValuEngine (
           end
         end
       end else begin
-        if(when_ValuEngine_l477_2) begin
+        if(when_ValuEngine_l269_2) begin
           _zz_io_writeReqs_0_2_payload_data_214 = _zz_io_writeReqs_0_2_payload_data_2;
         end else begin
-          if(when_ValuEngine_l478_2) begin
+          if(when_ValuEngine_l270_2) begin
             _zz_io_writeReqs_0_2_payload_data_214 = _zz_io_writeReqs_0_2_payload_data_40;
           end else begin
-            if(when_ValuEngine_l479_2) begin
+            if(when_ValuEngine_l271_2) begin
               _zz_io_writeReqs_0_2_payload_data_214 = _zz_io_writeReqs_0_2_payload_data_60;
             end else begin
-              if(when_ValuEngine_l480_2) begin
+              if(when_ValuEngine_l272_2) begin
                 _zz_io_writeReqs_0_2_payload_data_214 = _zz_io_writeReqs_0_2_payload_data_213;
               end else begin
                 _zz_io_writeReqs_0_2_payload_data_214 = _zz_io_writeReqs_0_2_payload_data_1;
@@ -17798,42 +17806,42 @@ module ValuEngine (
     end
   end
 
-  assign when_ValuEngine_l452_2 = (io_slots_0_opcode == 4'b1111);
-  assign when_ValuEngine_l445_2 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
-  assign when_ValuEngine_l446_2 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l447_2 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l448_2 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l449_2 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
-  assign when_ValuEngine_l450_2 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l451_2 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l454_2 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l455_2 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l456_2 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l457_2 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l460_2 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l461_2 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l462_2 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l465_2 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l466_2 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l467_2 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l470_2 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l471_2 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l472_2 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l459_2 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l464_2 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l469_2 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
-  assign when_ValuEngine_l477_2 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l478_2 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l479_2 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l480_2 = (io_slots_0_ewidth == 3'b100);
+  assign when_ValuEngine_l244_2 = (io_slots_0_opcode == 4'b1111);
+  assign when_ValuEngine_l237_2 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
+  assign when_ValuEngine_l238_2 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l239_2 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l240_2 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l241_2 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
+  assign when_ValuEngine_l242_2 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l243_2 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l246_2 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l247_2 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l248_2 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l249_2 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l252_2 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l253_2 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l254_2 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l257_2 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l258_2 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l259_2 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l262_2 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l263_2 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l264_2 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l251_2 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l256_2 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l261_2 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
+  assign when_ValuEngine_l269_2 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l270_2 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l271_2 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l272_2 = (io_slots_0_ewidth == 3'b100);
   assign io_writeReqs_0_2_valid = (unsignedDivider_10_io_done || (_zz_io_writeReqs_0_0_valid && (! _zz_io_writeReqs_0_2_valid)));
   assign io_writeReqs_0_2_payload_addr = (unsignedDivider_10_io_done ? _zz_io_writeReqs_0_2_payload_addr : _zz_io_writeReqs_0_2_payload_addr_1);
   assign io_writeReqs_0_2_payload_data = (unsignedDivider_10_io_done ? ((_zz_io_writeReqs_0_2_payload_data == 2'b00) ? unsignedDivider_10_io_remainder : unsignedDivider_10_io_quotient) : _zz_io_writeReqs_0_2_payload_data_214);
   assign _zz_io_writeReqs_0_3_valid = (((io_slots_0_opcode == 4'b1010) || (io_slots_0_opcode == 4'b1011)) || (io_slots_0_opcode == 4'b1100));
   assign unsignedDivider_11_io_start = (((_zz_io_writeReqs_0_0_valid && _zz_io_writeReqs_0_3_valid) && (! unsignedDivider_11_io_busy)) && (io_slots_0_ewidth == 3'b000));
   assign unsignedDivider_11_io_dividend = ((io_slots_0_opcode == 4'b1100) ? _zz_io_dividend_6 : io_operandA_0_3);
-  assign when_ValuEngine_l305_3 = (io_slots_0_opcode == 4'b1010);
-  assign when_ValuEngine_l306_3 = (io_slots_0_opcode == 4'b1011);
+  assign when_ValuEngine_l97_3 = (io_slots_0_opcode == 4'b1010);
+  assign when_ValuEngine_l98_3 = (io_slots_0_opcode == 4'b1011);
   always @(*) begin
     _zz_io_writeReqs_0_3_payload_data_1 = 32'h0;
     case(io_slots_0_opcode)
@@ -18153,16 +18161,16 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_3_payload_data_133 = io_operandC_0_3[31 : 28];
   always @(*) begin
     _zz_io_writeReqs_0_3_payload_data_134 = 32'h0;
-    if(when_ValuEngine_l318_3) begin
+    if(when_ValuEngine_l110_3) begin
       _zz_io_writeReqs_0_3_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_134 : _zz__zz_io_writeReqs_0_3_payload_data_134_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_134_10 : _zz__zz_io_writeReqs_0_3_payload_data_134_16)};
     end else begin
-      if(when_ValuEngine_l319_3) begin
+      if(when_ValuEngine_l111_3) begin
         _zz_io_writeReqs_0_3_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_134_20 : _zz__zz_io_writeReqs_0_3_payload_data_134_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_134_35 : _zz__zz_io_writeReqs_0_3_payload_data_134_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l318_3 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l110_3 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_3_payload_data_135 = io_operandA_0_3[7 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_136 = io_operandB_0_3[7 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_137 = io_operandA_0_3[15 : 8];
@@ -18173,55 +18181,55 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_3_payload_data_142 = io_operandA_0_3[15 : 8];
   assign _zz_io_writeReqs_0_3_payload_data_143 = io_operandB_0_3[15 : 8];
   assign _zz_io_writeReqs_0_3_payload_data_144 = io_operandC_0_3[31 : 16];
-  assign when_ValuEngine_l319_3 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l111_3 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_3_payload_data_145 = 32'h0;
-    if(when_ValuEngine_l322_3) begin
+    if(when_ValuEngine_l114_3) begin
       _zz_io_writeReqs_0_3_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_145 : _zz__zz_io_writeReqs_0_3_payload_data_145_6);
     end else begin
-      if(when_ValuEngine_l323_3) begin
+      if(when_ValuEngine_l115_3) begin
         _zz_io_writeReqs_0_3_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_145_10 : _zz__zz_io_writeReqs_0_3_payload_data_145_19);
       end
     end
   end
 
-  assign when_ValuEngine_l322_3 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l114_3 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_3_payload_data_146 = io_operandA_0_3[7 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_147 = io_operandB_0_3[7 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_148 = io_operandA_0_3[7 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_149 = io_operandB_0_3[7 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_150 = io_operandC_0_3[31 : 0];
-  assign when_ValuEngine_l323_3 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l115_3 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_3_payload_data_151 = 32'h0;
-    if(when_ValuEngine_l326_3) begin
+    if(when_ValuEngine_l118_3) begin
       _zz_io_writeReqs_0_3_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_151 : _zz__zz_io_writeReqs_0_3_payload_data_151_6);
     end else begin
-      if(when_ValuEngine_l327_3) begin
+      if(when_ValuEngine_l119_3) begin
         _zz_io_writeReqs_0_3_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_151_10 : _zz__zz_io_writeReqs_0_3_payload_data_151_19);
       end
     end
   end
 
-  assign when_ValuEngine_l326_3 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l118_3 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_3_payload_data_152 = io_operandA_0_3[15 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_153 = io_operandB_0_3[15 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_154 = io_operandA_0_3[15 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_155 = io_operandB_0_3[15 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_156 = io_operandC_0_3[31 : 0];
-  assign when_ValuEngine_l327_3 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l119_3 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_3_payload_data_157 = 32'h0;
-    if(when_ValuEngine_l330_3) begin
+    if(when_ValuEngine_l122_3) begin
       _zz_io_writeReqs_0_3_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_157 : _zz__zz_io_writeReqs_0_3_payload_data_157_6),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_157_10 : _zz__zz_io_writeReqs_0_3_payload_data_157_16),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_157_20 : _zz__zz_io_writeReqs_0_3_payload_data_157_26),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_157_30 : _zz__zz_io_writeReqs_0_3_payload_data_157_36)}}};
     end else begin
-      if(when_ValuEngine_l331_3) begin
+      if(when_ValuEngine_l123_3) begin
         _zz_io_writeReqs_0_3_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_157_40 : _zz__zz_io_writeReqs_0_3_payload_data_157_49),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_157_55 : _zz__zz_io_writeReqs_0_3_payload_data_157_64),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_157_70 : _zz__zz_io_writeReqs_0_3_payload_data_157_79),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_157_85 : _zz__zz_io_writeReqs_0_3_payload_data_157_94)}}};
       end
     end
   end
 
-  assign when_ValuEngine_l330_3 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l122_3 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_3_payload_data_158 = io_operandA_0_3[3 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_159 = io_operandB_0_3[3 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_160 = io_operandA_0_3[7 : 4];
@@ -18242,19 +18250,19 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_3_payload_data_175 = io_operandA_0_3[15 : 12];
   assign _zz_io_writeReqs_0_3_payload_data_176 = io_operandB_0_3[15 : 12];
   assign _zz_io_writeReqs_0_3_payload_data_177 = io_operandC_0_3[31 : 24];
-  assign when_ValuEngine_l331_3 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l123_3 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_3_payload_data_178 = 32'h0;
-    if(when_ValuEngine_l334_3) begin
+    if(when_ValuEngine_l126_3) begin
       _zz_io_writeReqs_0_3_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_178 : _zz__zz_io_writeReqs_0_3_payload_data_178_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_178_10 : _zz__zz_io_writeReqs_0_3_payload_data_178_16)};
     end else begin
-      if(when_ValuEngine_l335_3) begin
+      if(when_ValuEngine_l127_3) begin
         _zz_io_writeReqs_0_3_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_178_20 : _zz__zz_io_writeReqs_0_3_payload_data_178_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_178_35 : _zz__zz_io_writeReqs_0_3_payload_data_178_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l334_3 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l126_3 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_3_payload_data_179 = io_operandA_0_3[3 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_180 = io_operandB_0_3[3 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_181 = io_operandA_0_3[7 : 4];
@@ -18265,25 +18273,25 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_3_payload_data_186 = io_operandA_0_3[7 : 4];
   assign _zz_io_writeReqs_0_3_payload_data_187 = io_operandB_0_3[7 : 4];
   assign _zz_io_writeReqs_0_3_payload_data_188 = io_operandC_0_3[31 : 16];
-  assign when_ValuEngine_l335_3 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l127_3 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_3_payload_data_189 = 32'h0;
-    if(when_ValuEngine_l338_3) begin
+    if(when_ValuEngine_l130_3) begin
       _zz_io_writeReqs_0_3_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_189 : _zz__zz_io_writeReqs_0_3_payload_data_189_6);
     end else begin
-      if(when_ValuEngine_l339_3) begin
+      if(when_ValuEngine_l131_3) begin
         _zz_io_writeReqs_0_3_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_189_10 : _zz__zz_io_writeReqs_0_3_payload_data_189_19);
       end
     end
   end
 
-  assign when_ValuEngine_l338_3 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l130_3 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_3_payload_data_190 = io_operandA_0_3[3 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_191 = io_operandB_0_3[3 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_192 = io_operandA_0_3[3 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_193 = io_operandB_0_3[3 : 0];
   assign _zz_io_writeReqs_0_3_payload_data_194 = io_operandC_0_3[31 : 0];
-  assign when_ValuEngine_l339_3 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l131_3 = (io_slots_0_opcode == 4'b1110);
   assign _zz_io_writeReqs_0_3_payload_data_195 = io_slots_0_src2Base[0];
   assign _zz_io_writeReqs_0_3_payload_data_196 = (_zz_io_writeReqs_0_3_payload_data_195 ? io_operandA_0_3[23 : 16] : io_operandA_0_3[7 : 0]);
   assign _zz_io_writeReqs_0_3_payload_data_197 = (_zz_io_writeReqs_0_3_payload_data_195 ? io_operandA_0_3[31 : 24] : io_operandA_0_3[15 : 8]);
@@ -18321,10 +18329,10 @@ module ValuEngine (
         _zz_io_writeReqs_0_3_payload_data_213 = (io_operandA_0_3 | io_operandB_0_3);
       end
       4'b0110 : begin
-        if(when_ValuEngine_l409_1) begin
+        if(when_ValuEngine_l201_1) begin
           _zz_io_writeReqs_0_3_payload_data_213 = (io_operandA_0_2 <<< _zz__zz_io_writeReqs_0_3_payload_data_213_6);
         end else begin
-          if(when_ValuEngine_l411_1) begin
+          if(when_ValuEngine_l203_1) begin
             _zz_io_writeReqs_0_3_payload_data_213 = io_operandA_0_3;
           end else begin
             _zz_io_writeReqs_0_3_payload_data_213 = (_zz__zz_io_writeReqs_0_3_payload_data_213_7 | _zz__zz_io_writeReqs_0_3_payload_data_213_8);
@@ -18332,10 +18340,10 @@ module ValuEngine (
         end
       end
       4'b0111 : begin
-        if(when_ValuEngine_l417_1) begin
+        if(when_ValuEngine_l209_1) begin
           _zz_io_writeReqs_0_3_payload_data_213 = (io_slots_0_isSigned ? 32'h0 : 32'h0);
         end else begin
-          if(when_ValuEngine_l419_1) begin
+          if(when_ValuEngine_l211_1) begin
             _zz_io_writeReqs_0_3_payload_data_213 = io_operandA_0_3;
           end else begin
             _zz_io_writeReqs_0_3_payload_data_213 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_213_10 : _zz__zz_io_writeReqs_0_3_payload_data_213_12);
@@ -18356,31 +18364,31 @@ module ValuEngine (
     endcase
   end
 
-  assign _zz_when_ValuEngine_l409_1 = io_operandB_0_2[5 : 0];
-  assign when_ValuEngine_l409_1 = (6'h20 <= _zz_when_ValuEngine_l409_1);
-  assign when_ValuEngine_l411_1 = (_zz_when_ValuEngine_l409_1 == 6'h0);
-  assign _zz_when_ValuEngine_l417_1 = io_operandB_0_2[5 : 0];
-  assign when_ValuEngine_l417_1 = (6'h20 <= _zz_when_ValuEngine_l417_1);
-  assign when_ValuEngine_l419_1 = (_zz_when_ValuEngine_l417_1 == 6'h0);
+  assign _zz_when_ValuEngine_l201_1 = io_operandB_0_2[5 : 0];
+  assign when_ValuEngine_l201_1 = (6'h20 <= _zz_when_ValuEngine_l201_1);
+  assign when_ValuEngine_l203_1 = (_zz_when_ValuEngine_l201_1 == 6'h0);
+  assign _zz_when_ValuEngine_l209_1 = io_operandB_0_2[5 : 0];
+  assign when_ValuEngine_l209_1 = (6'h20 <= _zz_when_ValuEngine_l209_1);
+  assign when_ValuEngine_l211_1 = (_zz_when_ValuEngine_l209_1 == 6'h0);
   always @(*) begin
     _zz_io_writeReqs_0_3_payload_data_214 = _zz_io_writeReqs_0_3_payload_data_1;
-    if(when_ValuEngine_l445_3) begin
-      if(when_ValuEngine_l446_3) begin
+    if(when_ValuEngine_l237_3) begin
+      if(when_ValuEngine_l238_3) begin
         _zz_io_writeReqs_0_3_payload_data_214 = _zz_io_writeReqs_0_3_payload_data_134;
       end else begin
-        if(when_ValuEngine_l447_3) begin
+        if(when_ValuEngine_l239_3) begin
           _zz_io_writeReqs_0_3_payload_data_214 = _zz_io_writeReqs_0_3_payload_data_145;
         end else begin
-          if(when_ValuEngine_l448_3) begin
+          if(when_ValuEngine_l240_3) begin
             _zz_io_writeReqs_0_3_payload_data_214 = _zz_io_writeReqs_0_3_payload_data_151;
           end else begin
-            if(when_ValuEngine_l449_3) begin
+            if(when_ValuEngine_l241_3) begin
               _zz_io_writeReqs_0_3_payload_data_214 = _zz_io_writeReqs_0_3_payload_data_157;
             end else begin
-              if(when_ValuEngine_l450_3) begin
+              if(when_ValuEngine_l242_3) begin
                 _zz_io_writeReqs_0_3_payload_data_214 = _zz_io_writeReqs_0_3_payload_data_178;
               end else begin
-                if(when_ValuEngine_l451_3) begin
+                if(when_ValuEngine_l243_3) begin
                   _zz_io_writeReqs_0_3_payload_data_214 = _zz_io_writeReqs_0_3_payload_data_189;
                 end
               end
@@ -18389,15 +18397,15 @@ module ValuEngine (
         end
       end
     end else begin
-      if(when_ValuEngine_l452_3) begin
-        if(when_ValuEngine_l454_3) begin
-          if(when_ValuEngine_l455_3) begin
+      if(when_ValuEngine_l244_3) begin
+        if(when_ValuEngine_l246_3) begin
+          if(when_ValuEngine_l247_3) begin
             _zz_io_writeReqs_0_3_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_214 : _zz__zz_io_writeReqs_0_3_payload_data_214_2),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_214_3 : _zz__zz_io_writeReqs_0_3_payload_data_214_5)};
           end else begin
-            if(when_ValuEngine_l456_3) begin
+            if(when_ValuEngine_l248_3) begin
               _zz_io_writeReqs_0_3_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_214_6 : _zz__zz_io_writeReqs_0_3_payload_data_214_8);
             end else begin
-              if(when_ValuEngine_l457_3) begin
+              if(when_ValuEngine_l249_3) begin
                 _zz_io_writeReqs_0_3_payload_data_214 = (_zz_io_writeReqs_0_3_payload_data_195 ? _zz__zz_io_writeReqs_0_3_payload_data_214_9 : _zz__zz_io_writeReqs_0_3_payload_data_214_11);
               end else begin
                 _zz_io_writeReqs_0_3_payload_data_214 = io_operandA_0_3;
@@ -18405,14 +18413,14 @@ module ValuEngine (
             end
           end
         end else begin
-          if(when_ValuEngine_l459_3) begin
-            if(when_ValuEngine_l460_3) begin
+          if(when_ValuEngine_l251_3) begin
+            if(when_ValuEngine_l252_3) begin
               _zz_io_writeReqs_0_3_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_214_12 : _zz__zz_io_writeReqs_0_3_payload_data_214_14);
             end else begin
-              if(when_ValuEngine_l461_3) begin
+              if(when_ValuEngine_l253_3) begin
                 _zz_io_writeReqs_0_3_payload_data_214 = (_zz_io_writeReqs_0_3_payload_data_195 ? _zz__zz_io_writeReqs_0_3_payload_data_214_15 : _zz__zz_io_writeReqs_0_3_payload_data_214_17);
               end else begin
-                if(when_ValuEngine_l462_3) begin
+                if(when_ValuEngine_l254_3) begin
                   _zz_io_writeReqs_0_3_payload_data_214 = (_zz_io_writeReqs_0_3_payload_data_195 ? _zz__zz_io_writeReqs_0_3_payload_data_214_18 : _zz__zz_io_writeReqs_0_3_payload_data_214_20);
                 end else begin
                   _zz_io_writeReqs_0_3_payload_data_214 = io_operandA_0_3;
@@ -18420,14 +18428,14 @@ module ValuEngine (
               end
             end
           end else begin
-            if(when_ValuEngine_l464_3) begin
-              if(when_ValuEngine_l465_3) begin
+            if(when_ValuEngine_l256_3) begin
+              if(when_ValuEngine_l257_3) begin
                 _zz_io_writeReqs_0_3_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_214_21 : _zz__zz_io_writeReqs_0_3_payload_data_214_23),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_214_24 : _zz__zz_io_writeReqs_0_3_payload_data_214_26),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_214_27 : _zz__zz_io_writeReqs_0_3_payload_data_214_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_214_30 : _zz__zz_io_writeReqs_0_3_payload_data_214_32)}}};
               end else begin
-                if(when_ValuEngine_l466_3) begin
+                if(when_ValuEngine_l258_3) begin
                   _zz_io_writeReqs_0_3_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_214_33 : _zz__zz_io_writeReqs_0_3_payload_data_214_35),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_214_36 : _zz__zz_io_writeReqs_0_3_payload_data_214_38)};
                 end else begin
-                  if(when_ValuEngine_l467_3) begin
+                  if(when_ValuEngine_l259_3) begin
                     _zz_io_writeReqs_0_3_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_3_payload_data_214_39 : _zz__zz_io_writeReqs_0_3_payload_data_214_41);
                   end else begin
                     _zz_io_writeReqs_0_3_payload_data_214 = io_operandA_0_3;
@@ -18435,14 +18443,14 @@ module ValuEngine (
                 end
               end
             end else begin
-              if(when_ValuEngine_l469_3) begin
-                if(when_ValuEngine_l470_3) begin
+              if(when_ValuEngine_l261_3) begin
+                if(when_ValuEngine_l262_3) begin
                   _zz_io_writeReqs_0_3_payload_data_214 = (_zz_io_writeReqs_0_3_payload_data_195 ? _zz__zz_io_writeReqs_0_3_payload_data_214_42 : _zz__zz_io_writeReqs_0_3_payload_data_214_44);
                 end else begin
-                  if(when_ValuEngine_l471_3) begin
+                  if(when_ValuEngine_l263_3) begin
                     _zz_io_writeReqs_0_3_payload_data_214 = (_zz_io_writeReqs_0_3_payload_data_195 ? _zz__zz_io_writeReqs_0_3_payload_data_214_45 : _zz__zz_io_writeReqs_0_3_payload_data_214_47);
                   end else begin
-                    if(when_ValuEngine_l472_3) begin
+                    if(when_ValuEngine_l264_3) begin
                       _zz_io_writeReqs_0_3_payload_data_214 = (_zz_io_writeReqs_0_3_payload_data_195 ? _zz__zz_io_writeReqs_0_3_payload_data_214_48 : _zz__zz_io_writeReqs_0_3_payload_data_214_50);
                     end else begin
                       _zz_io_writeReqs_0_3_payload_data_214 = io_operandA_0_3;
@@ -18456,16 +18464,16 @@ module ValuEngine (
           end
         end
       end else begin
-        if(when_ValuEngine_l477_3) begin
+        if(when_ValuEngine_l269_3) begin
           _zz_io_writeReqs_0_3_payload_data_214 = _zz_io_writeReqs_0_3_payload_data_2;
         end else begin
-          if(when_ValuEngine_l478_3) begin
+          if(when_ValuEngine_l270_3) begin
             _zz_io_writeReqs_0_3_payload_data_214 = _zz_io_writeReqs_0_3_payload_data_40;
           end else begin
-            if(when_ValuEngine_l479_3) begin
+            if(when_ValuEngine_l271_3) begin
               _zz_io_writeReqs_0_3_payload_data_214 = _zz_io_writeReqs_0_3_payload_data_60;
             end else begin
-              if(when_ValuEngine_l480_3) begin
+              if(when_ValuEngine_l272_3) begin
                 _zz_io_writeReqs_0_3_payload_data_214 = _zz_io_writeReqs_0_3_payload_data_213;
               end else begin
                 _zz_io_writeReqs_0_3_payload_data_214 = _zz_io_writeReqs_0_3_payload_data_1;
@@ -18477,42 +18485,42 @@ module ValuEngine (
     end
   end
 
-  assign when_ValuEngine_l452_3 = (io_slots_0_opcode == 4'b1111);
-  assign when_ValuEngine_l445_3 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
-  assign when_ValuEngine_l446_3 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l447_3 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l448_3 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l449_3 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
-  assign when_ValuEngine_l450_3 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l451_3 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l454_3 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l455_3 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l456_3 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l457_3 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l460_3 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l461_3 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l462_3 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l465_3 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l466_3 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l467_3 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l470_3 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l471_3 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l472_3 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l459_3 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l464_3 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l469_3 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
-  assign when_ValuEngine_l477_3 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l478_3 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l479_3 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l480_3 = (io_slots_0_ewidth == 3'b100);
+  assign when_ValuEngine_l244_3 = (io_slots_0_opcode == 4'b1111);
+  assign when_ValuEngine_l237_3 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
+  assign when_ValuEngine_l238_3 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l239_3 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l240_3 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l241_3 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
+  assign when_ValuEngine_l242_3 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l243_3 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l246_3 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l247_3 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l248_3 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l249_3 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l252_3 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l253_3 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l254_3 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l257_3 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l258_3 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l259_3 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l262_3 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l263_3 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l264_3 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l251_3 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l256_3 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l261_3 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
+  assign when_ValuEngine_l269_3 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l270_3 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l271_3 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l272_3 = (io_slots_0_ewidth == 3'b100);
   assign io_writeReqs_0_3_valid = (unsignedDivider_11_io_done || (_zz_io_writeReqs_0_0_valid && (! _zz_io_writeReqs_0_3_valid)));
   assign io_writeReqs_0_3_payload_addr = (unsignedDivider_11_io_done ? _zz_io_writeReqs_0_3_payload_addr : _zz_io_writeReqs_0_3_payload_addr_1);
   assign io_writeReqs_0_3_payload_data = (unsignedDivider_11_io_done ? ((_zz_io_writeReqs_0_3_payload_data == 2'b00) ? unsignedDivider_11_io_remainder : unsignedDivider_11_io_quotient) : _zz_io_writeReqs_0_3_payload_data_214);
   assign _zz_io_writeReqs_0_4_valid = (((io_slots_0_opcode == 4'b1010) || (io_slots_0_opcode == 4'b1011)) || (io_slots_0_opcode == 4'b1100));
   assign unsignedDivider_12_io_start = (((_zz_io_writeReqs_0_0_valid && _zz_io_writeReqs_0_4_valid) && (! unsignedDivider_12_io_busy)) && (io_slots_0_ewidth == 3'b000));
   assign unsignedDivider_12_io_dividend = ((io_slots_0_opcode == 4'b1100) ? _zz_io_dividend_8 : io_operandA_0_4);
-  assign when_ValuEngine_l305_4 = (io_slots_0_opcode == 4'b1010);
-  assign when_ValuEngine_l306_4 = (io_slots_0_opcode == 4'b1011);
+  assign when_ValuEngine_l97_4 = (io_slots_0_opcode == 4'b1010);
+  assign when_ValuEngine_l98_4 = (io_slots_0_opcode == 4'b1011);
   always @(*) begin
     _zz_io_writeReqs_0_4_payload_data_1 = 32'h0;
     case(io_slots_0_opcode)
@@ -18832,16 +18840,16 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_4_payload_data_133 = io_operandC_0_4[31 : 28];
   always @(*) begin
     _zz_io_writeReqs_0_4_payload_data_134 = 32'h0;
-    if(when_ValuEngine_l318_4) begin
+    if(when_ValuEngine_l110_4) begin
       _zz_io_writeReqs_0_4_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_134 : _zz__zz_io_writeReqs_0_4_payload_data_134_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_134_10 : _zz__zz_io_writeReqs_0_4_payload_data_134_16)};
     end else begin
-      if(when_ValuEngine_l319_4) begin
+      if(when_ValuEngine_l111_4) begin
         _zz_io_writeReqs_0_4_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_134_20 : _zz__zz_io_writeReqs_0_4_payload_data_134_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_134_35 : _zz__zz_io_writeReqs_0_4_payload_data_134_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l318_4 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l110_4 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_4_payload_data_135 = io_operandA_0_4[7 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_136 = io_operandB_0_4[7 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_137 = io_operandA_0_4[15 : 8];
@@ -18852,55 +18860,55 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_4_payload_data_142 = io_operandA_0_4[15 : 8];
   assign _zz_io_writeReqs_0_4_payload_data_143 = io_operandB_0_4[15 : 8];
   assign _zz_io_writeReqs_0_4_payload_data_144 = io_operandC_0_4[31 : 16];
-  assign when_ValuEngine_l319_4 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l111_4 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_4_payload_data_145 = 32'h0;
-    if(when_ValuEngine_l322_4) begin
+    if(when_ValuEngine_l114_4) begin
       _zz_io_writeReqs_0_4_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_145 : _zz__zz_io_writeReqs_0_4_payload_data_145_6);
     end else begin
-      if(when_ValuEngine_l323_4) begin
+      if(when_ValuEngine_l115_4) begin
         _zz_io_writeReqs_0_4_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_145_10 : _zz__zz_io_writeReqs_0_4_payload_data_145_19);
       end
     end
   end
 
-  assign when_ValuEngine_l322_4 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l114_4 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_4_payload_data_146 = io_operandA_0_4[7 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_147 = io_operandB_0_4[7 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_148 = io_operandA_0_4[7 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_149 = io_operandB_0_4[7 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_150 = io_operandC_0_4[31 : 0];
-  assign when_ValuEngine_l323_4 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l115_4 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_4_payload_data_151 = 32'h0;
-    if(when_ValuEngine_l326_4) begin
+    if(when_ValuEngine_l118_4) begin
       _zz_io_writeReqs_0_4_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_151 : _zz__zz_io_writeReqs_0_4_payload_data_151_6);
     end else begin
-      if(when_ValuEngine_l327_4) begin
+      if(when_ValuEngine_l119_4) begin
         _zz_io_writeReqs_0_4_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_151_10 : _zz__zz_io_writeReqs_0_4_payload_data_151_19);
       end
     end
   end
 
-  assign when_ValuEngine_l326_4 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l118_4 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_4_payload_data_152 = io_operandA_0_4[15 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_153 = io_operandB_0_4[15 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_154 = io_operandA_0_4[15 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_155 = io_operandB_0_4[15 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_156 = io_operandC_0_4[31 : 0];
-  assign when_ValuEngine_l327_4 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l119_4 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_4_payload_data_157 = 32'h0;
-    if(when_ValuEngine_l330_4) begin
+    if(when_ValuEngine_l122_4) begin
       _zz_io_writeReqs_0_4_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_157 : _zz__zz_io_writeReqs_0_4_payload_data_157_6),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_157_10 : _zz__zz_io_writeReqs_0_4_payload_data_157_16),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_157_20 : _zz__zz_io_writeReqs_0_4_payload_data_157_26),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_157_30 : _zz__zz_io_writeReqs_0_4_payload_data_157_36)}}};
     end else begin
-      if(when_ValuEngine_l331_4) begin
+      if(when_ValuEngine_l123_4) begin
         _zz_io_writeReqs_0_4_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_157_40 : _zz__zz_io_writeReqs_0_4_payload_data_157_49),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_157_55 : _zz__zz_io_writeReqs_0_4_payload_data_157_64),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_157_70 : _zz__zz_io_writeReqs_0_4_payload_data_157_79),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_157_85 : _zz__zz_io_writeReqs_0_4_payload_data_157_94)}}};
       end
     end
   end
 
-  assign when_ValuEngine_l330_4 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l122_4 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_4_payload_data_158 = io_operandA_0_4[3 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_159 = io_operandB_0_4[3 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_160 = io_operandA_0_4[7 : 4];
@@ -18921,19 +18929,19 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_4_payload_data_175 = io_operandA_0_4[15 : 12];
   assign _zz_io_writeReqs_0_4_payload_data_176 = io_operandB_0_4[15 : 12];
   assign _zz_io_writeReqs_0_4_payload_data_177 = io_operandC_0_4[31 : 24];
-  assign when_ValuEngine_l331_4 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l123_4 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_4_payload_data_178 = 32'h0;
-    if(when_ValuEngine_l334_4) begin
+    if(when_ValuEngine_l126_4) begin
       _zz_io_writeReqs_0_4_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_178 : _zz__zz_io_writeReqs_0_4_payload_data_178_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_178_10 : _zz__zz_io_writeReqs_0_4_payload_data_178_16)};
     end else begin
-      if(when_ValuEngine_l335_4) begin
+      if(when_ValuEngine_l127_4) begin
         _zz_io_writeReqs_0_4_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_178_20 : _zz__zz_io_writeReqs_0_4_payload_data_178_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_178_35 : _zz__zz_io_writeReqs_0_4_payload_data_178_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l334_4 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l126_4 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_4_payload_data_179 = io_operandA_0_4[3 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_180 = io_operandB_0_4[3 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_181 = io_operandA_0_4[7 : 4];
@@ -18944,25 +18952,25 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_4_payload_data_186 = io_operandA_0_4[7 : 4];
   assign _zz_io_writeReqs_0_4_payload_data_187 = io_operandB_0_4[7 : 4];
   assign _zz_io_writeReqs_0_4_payload_data_188 = io_operandC_0_4[31 : 16];
-  assign when_ValuEngine_l335_4 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l127_4 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_4_payload_data_189 = 32'h0;
-    if(when_ValuEngine_l338_4) begin
+    if(when_ValuEngine_l130_4) begin
       _zz_io_writeReqs_0_4_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_189 : _zz__zz_io_writeReqs_0_4_payload_data_189_6);
     end else begin
-      if(when_ValuEngine_l339_4) begin
+      if(when_ValuEngine_l131_4) begin
         _zz_io_writeReqs_0_4_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_189_10 : _zz__zz_io_writeReqs_0_4_payload_data_189_19);
       end
     end
   end
 
-  assign when_ValuEngine_l338_4 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l130_4 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_4_payload_data_190 = io_operandA_0_4[3 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_191 = io_operandB_0_4[3 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_192 = io_operandA_0_4[3 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_193 = io_operandB_0_4[3 : 0];
   assign _zz_io_writeReqs_0_4_payload_data_194 = io_operandC_0_4[31 : 0];
-  assign when_ValuEngine_l339_4 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l131_4 = (io_slots_0_opcode == 4'b1110);
   assign _zz_io_writeReqs_0_4_payload_data_195 = io_slots_0_src2Base[0];
   assign _zz_io_writeReqs_0_4_payload_data_196 = (_zz_io_writeReqs_0_4_payload_data_195 ? io_operandA_0_4[23 : 16] : io_operandA_0_4[7 : 0]);
   assign _zz_io_writeReqs_0_4_payload_data_197 = (_zz_io_writeReqs_0_4_payload_data_195 ? io_operandA_0_4[31 : 24] : io_operandA_0_4[15 : 8]);
@@ -19000,17 +19008,17 @@ module ValuEngine (
         _zz_io_writeReqs_0_4_payload_data_213 = (io_operandA_0_4 | io_operandB_0_4);
       end
       4'b0110 : begin
-        if(when_ValuEngine_l380_2) begin
+        if(when_ValuEngine_l172_2) begin
           _zz_io_writeReqs_0_4_payload_data_213 = 32'h0;
         end else begin
-          _zz_io_writeReqs_0_4_payload_data_213 = (io_operandA_0_4 <<< _zz_when_ValuEngine_l380_2);
+          _zz_io_writeReqs_0_4_payload_data_213 = (io_operandA_0_4 <<< _zz_when_ValuEngine_l172_2);
         end
       end
       4'b0111 : begin
-        if(when_ValuEngine_l386_2) begin
+        if(when_ValuEngine_l178_2) begin
           _zz_io_writeReqs_0_4_payload_data_213 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_213 : _zz__zz_io_writeReqs_0_4_payload_data_213_3);
         end else begin
-          if(when_ValuEngine_l388_2) begin
+          if(when_ValuEngine_l180_2) begin
             _zz_io_writeReqs_0_4_payload_data_213 = io_operandA_0_4;
           end else begin
             _zz_io_writeReqs_0_4_payload_data_213 = (_zz__zz_io_writeReqs_0_4_payload_data_213_5 | _zz__zz_io_writeReqs_0_4_payload_data_213_6);
@@ -19033,30 +19041,34 @@ module ValuEngine (
 
   assign _zz_carry64_0_2 = ({1'b0,_zz__zz_carry64_0_2} + {1'b0,_zz__zz_carry64_0_2_1});
   assign _zz_borrow64_0_2 = ({1'b0,_zz__zz_borrow64_0_2} - {1'b0,_zz__zz_borrow64_0_2_1});
-  assign _zz_when_ValuEngine_l380_2 = io_operandB_0_4[5 : 0];
-  assign when_ValuEngine_l380_2 = (6'h20 <= _zz_when_ValuEngine_l380_2);
-  assign _zz_when_ValuEngine_l386_2 = io_operandB_0_4[5 : 0];
-  assign when_ValuEngine_l386_2 = (6'h20 <= _zz_when_ValuEngine_l386_2);
-  assign when_ValuEngine_l388_2 = (_zz_when_ValuEngine_l386_2 == 6'h0);
+  assign carry64_0_2 = _zz_carry64_0_2[32];
+  assign borrow64_0_2 = _zz_borrow64_0_2[32];
+  assign ltLo64_0_2 = (io_operandA_0_4 < io_operandB_0_4);
+  assign eqLo64_0_2 = (io_operandA_0_4 == io_operandB_0_4);
+  assign _zz_when_ValuEngine_l172_2 = io_operandB_0_4[5 : 0];
+  assign when_ValuEngine_l172_2 = (6'h20 <= _zz_when_ValuEngine_l172_2);
+  assign _zz_when_ValuEngine_l178_2 = io_operandB_0_4[5 : 0];
+  assign when_ValuEngine_l178_2 = (6'h20 <= _zz_when_ValuEngine_l178_2);
+  assign when_ValuEngine_l180_2 = (_zz_when_ValuEngine_l178_2 == 6'h0);
   always @(*) begin
     _zz_io_writeReqs_0_4_payload_data_214 = _zz_io_writeReqs_0_4_payload_data_1;
-    if(when_ValuEngine_l445_4) begin
-      if(when_ValuEngine_l446_4) begin
+    if(when_ValuEngine_l237_4) begin
+      if(when_ValuEngine_l238_4) begin
         _zz_io_writeReqs_0_4_payload_data_214 = _zz_io_writeReqs_0_4_payload_data_134;
       end else begin
-        if(when_ValuEngine_l447_4) begin
+        if(when_ValuEngine_l239_4) begin
           _zz_io_writeReqs_0_4_payload_data_214 = _zz_io_writeReqs_0_4_payload_data_145;
         end else begin
-          if(when_ValuEngine_l448_4) begin
+          if(when_ValuEngine_l240_4) begin
             _zz_io_writeReqs_0_4_payload_data_214 = _zz_io_writeReqs_0_4_payload_data_151;
           end else begin
-            if(when_ValuEngine_l449_4) begin
+            if(when_ValuEngine_l241_4) begin
               _zz_io_writeReqs_0_4_payload_data_214 = _zz_io_writeReqs_0_4_payload_data_157;
             end else begin
-              if(when_ValuEngine_l450_4) begin
+              if(when_ValuEngine_l242_4) begin
                 _zz_io_writeReqs_0_4_payload_data_214 = _zz_io_writeReqs_0_4_payload_data_178;
               end else begin
-                if(when_ValuEngine_l451_4) begin
+                if(when_ValuEngine_l243_4) begin
                   _zz_io_writeReqs_0_4_payload_data_214 = _zz_io_writeReqs_0_4_payload_data_189;
                 end
               end
@@ -19065,15 +19077,15 @@ module ValuEngine (
         end
       end
     end else begin
-      if(when_ValuEngine_l452_4) begin
-        if(when_ValuEngine_l454_4) begin
-          if(when_ValuEngine_l455_4) begin
+      if(when_ValuEngine_l244_4) begin
+        if(when_ValuEngine_l246_4) begin
+          if(when_ValuEngine_l247_4) begin
             _zz_io_writeReqs_0_4_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_214 : _zz__zz_io_writeReqs_0_4_payload_data_214_2),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_214_3 : _zz__zz_io_writeReqs_0_4_payload_data_214_5)};
           end else begin
-            if(when_ValuEngine_l456_4) begin
+            if(when_ValuEngine_l248_4) begin
               _zz_io_writeReqs_0_4_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_214_6 : _zz__zz_io_writeReqs_0_4_payload_data_214_8);
             end else begin
-              if(when_ValuEngine_l457_4) begin
+              if(when_ValuEngine_l249_4) begin
                 _zz_io_writeReqs_0_4_payload_data_214 = (_zz_io_writeReqs_0_4_payload_data_195 ? _zz__zz_io_writeReqs_0_4_payload_data_214_9 : _zz__zz_io_writeReqs_0_4_payload_data_214_11);
               end else begin
                 _zz_io_writeReqs_0_4_payload_data_214 = io_operandA_0_4;
@@ -19081,14 +19093,14 @@ module ValuEngine (
             end
           end
         end else begin
-          if(when_ValuEngine_l459_4) begin
-            if(when_ValuEngine_l460_4) begin
+          if(when_ValuEngine_l251_4) begin
+            if(when_ValuEngine_l252_4) begin
               _zz_io_writeReqs_0_4_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_214_12 : _zz__zz_io_writeReqs_0_4_payload_data_214_14);
             end else begin
-              if(when_ValuEngine_l461_4) begin
+              if(when_ValuEngine_l253_4) begin
                 _zz_io_writeReqs_0_4_payload_data_214 = (_zz_io_writeReqs_0_4_payload_data_195 ? _zz__zz_io_writeReqs_0_4_payload_data_214_15 : _zz__zz_io_writeReqs_0_4_payload_data_214_17);
               end else begin
-                if(when_ValuEngine_l462_4) begin
+                if(when_ValuEngine_l254_4) begin
                   _zz_io_writeReqs_0_4_payload_data_214 = (_zz_io_writeReqs_0_4_payload_data_195 ? _zz__zz_io_writeReqs_0_4_payload_data_214_18 : _zz__zz_io_writeReqs_0_4_payload_data_214_20);
                 end else begin
                   _zz_io_writeReqs_0_4_payload_data_214 = io_operandA_0_4;
@@ -19096,14 +19108,14 @@ module ValuEngine (
               end
             end
           end else begin
-            if(when_ValuEngine_l464_4) begin
-              if(when_ValuEngine_l465_4) begin
+            if(when_ValuEngine_l256_4) begin
+              if(when_ValuEngine_l257_4) begin
                 _zz_io_writeReqs_0_4_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_214_21 : _zz__zz_io_writeReqs_0_4_payload_data_214_23),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_214_24 : _zz__zz_io_writeReqs_0_4_payload_data_214_26),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_214_27 : _zz__zz_io_writeReqs_0_4_payload_data_214_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_214_30 : _zz__zz_io_writeReqs_0_4_payload_data_214_32)}}};
               end else begin
-                if(when_ValuEngine_l466_4) begin
+                if(when_ValuEngine_l258_4) begin
                   _zz_io_writeReqs_0_4_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_214_33 : _zz__zz_io_writeReqs_0_4_payload_data_214_35),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_214_36 : _zz__zz_io_writeReqs_0_4_payload_data_214_38)};
                 end else begin
-                  if(when_ValuEngine_l467_4) begin
+                  if(when_ValuEngine_l259_4) begin
                     _zz_io_writeReqs_0_4_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_4_payload_data_214_39 : _zz__zz_io_writeReqs_0_4_payload_data_214_41);
                   end else begin
                     _zz_io_writeReqs_0_4_payload_data_214 = io_operandA_0_4;
@@ -19111,14 +19123,14 @@ module ValuEngine (
                 end
               end
             end else begin
-              if(when_ValuEngine_l469_4) begin
-                if(when_ValuEngine_l470_4) begin
+              if(when_ValuEngine_l261_4) begin
+                if(when_ValuEngine_l262_4) begin
                   _zz_io_writeReqs_0_4_payload_data_214 = (_zz_io_writeReqs_0_4_payload_data_195 ? _zz__zz_io_writeReqs_0_4_payload_data_214_42 : _zz__zz_io_writeReqs_0_4_payload_data_214_44);
                 end else begin
-                  if(when_ValuEngine_l471_4) begin
+                  if(when_ValuEngine_l263_4) begin
                     _zz_io_writeReqs_0_4_payload_data_214 = (_zz_io_writeReqs_0_4_payload_data_195 ? _zz__zz_io_writeReqs_0_4_payload_data_214_45 : _zz__zz_io_writeReqs_0_4_payload_data_214_47);
                   end else begin
-                    if(when_ValuEngine_l472_4) begin
+                    if(when_ValuEngine_l264_4) begin
                       _zz_io_writeReqs_0_4_payload_data_214 = (_zz_io_writeReqs_0_4_payload_data_195 ? _zz__zz_io_writeReqs_0_4_payload_data_214_48 : _zz__zz_io_writeReqs_0_4_payload_data_214_50);
                     end else begin
                       _zz_io_writeReqs_0_4_payload_data_214 = io_operandA_0_4;
@@ -19132,16 +19144,16 @@ module ValuEngine (
           end
         end
       end else begin
-        if(when_ValuEngine_l477_4) begin
+        if(when_ValuEngine_l269_4) begin
           _zz_io_writeReqs_0_4_payload_data_214 = _zz_io_writeReqs_0_4_payload_data_2;
         end else begin
-          if(when_ValuEngine_l478_4) begin
+          if(when_ValuEngine_l270_4) begin
             _zz_io_writeReqs_0_4_payload_data_214 = _zz_io_writeReqs_0_4_payload_data_40;
           end else begin
-            if(when_ValuEngine_l479_4) begin
+            if(when_ValuEngine_l271_4) begin
               _zz_io_writeReqs_0_4_payload_data_214 = _zz_io_writeReqs_0_4_payload_data_60;
             end else begin
-              if(when_ValuEngine_l480_4) begin
+              if(when_ValuEngine_l272_4) begin
                 _zz_io_writeReqs_0_4_payload_data_214 = _zz_io_writeReqs_0_4_payload_data_213;
               end else begin
                 _zz_io_writeReqs_0_4_payload_data_214 = _zz_io_writeReqs_0_4_payload_data_1;
@@ -19153,42 +19165,42 @@ module ValuEngine (
     end
   end
 
-  assign when_ValuEngine_l452_4 = (io_slots_0_opcode == 4'b1111);
-  assign when_ValuEngine_l445_4 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
-  assign when_ValuEngine_l446_4 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l447_4 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l448_4 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l449_4 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
-  assign when_ValuEngine_l450_4 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l451_4 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l454_4 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l455_4 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l456_4 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l457_4 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l460_4 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l461_4 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l462_4 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l465_4 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l466_4 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l467_4 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l470_4 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l471_4 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l472_4 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l459_4 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l464_4 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l469_4 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
-  assign when_ValuEngine_l477_4 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l478_4 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l479_4 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l480_4 = (io_slots_0_ewidth == 3'b100);
+  assign when_ValuEngine_l244_4 = (io_slots_0_opcode == 4'b1111);
+  assign when_ValuEngine_l237_4 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
+  assign when_ValuEngine_l238_4 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l239_4 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l240_4 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l241_4 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
+  assign when_ValuEngine_l242_4 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l243_4 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l246_4 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l247_4 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l248_4 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l249_4 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l252_4 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l253_4 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l254_4 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l257_4 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l258_4 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l259_4 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l262_4 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l263_4 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l264_4 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l251_4 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l256_4 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l261_4 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
+  assign when_ValuEngine_l269_4 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l270_4 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l271_4 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l272_4 = (io_slots_0_ewidth == 3'b100);
   assign io_writeReqs_0_4_valid = (unsignedDivider_12_io_done || (_zz_io_writeReqs_0_0_valid && (! _zz_io_writeReqs_0_4_valid)));
   assign io_writeReqs_0_4_payload_addr = (unsignedDivider_12_io_done ? _zz_io_writeReqs_0_4_payload_addr : _zz_io_writeReqs_0_4_payload_addr_1);
   assign io_writeReqs_0_4_payload_data = (unsignedDivider_12_io_done ? ((_zz_io_writeReqs_0_4_payload_data == 2'b00) ? unsignedDivider_12_io_remainder : unsignedDivider_12_io_quotient) : _zz_io_writeReqs_0_4_payload_data_214);
   assign _zz_io_writeReqs_0_5_valid = (((io_slots_0_opcode == 4'b1010) || (io_slots_0_opcode == 4'b1011)) || (io_slots_0_opcode == 4'b1100));
   assign unsignedDivider_13_io_start = (((_zz_io_writeReqs_0_0_valid && _zz_io_writeReqs_0_5_valid) && (! unsignedDivider_13_io_busy)) && (io_slots_0_ewidth == 3'b000));
   assign unsignedDivider_13_io_dividend = ((io_slots_0_opcode == 4'b1100) ? _zz_io_dividend_10 : io_operandA_0_5);
-  assign when_ValuEngine_l305_5 = (io_slots_0_opcode == 4'b1010);
-  assign when_ValuEngine_l306_5 = (io_slots_0_opcode == 4'b1011);
+  assign when_ValuEngine_l97_5 = (io_slots_0_opcode == 4'b1010);
+  assign when_ValuEngine_l98_5 = (io_slots_0_opcode == 4'b1011);
   always @(*) begin
     _zz_io_writeReqs_0_5_payload_data_1 = 32'h0;
     case(io_slots_0_opcode)
@@ -19508,16 +19520,16 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_5_payload_data_133 = io_operandC_0_5[31 : 28];
   always @(*) begin
     _zz_io_writeReqs_0_5_payload_data_134 = 32'h0;
-    if(when_ValuEngine_l318_5) begin
+    if(when_ValuEngine_l110_5) begin
       _zz_io_writeReqs_0_5_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_134 : _zz__zz_io_writeReqs_0_5_payload_data_134_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_134_10 : _zz__zz_io_writeReqs_0_5_payload_data_134_16)};
     end else begin
-      if(when_ValuEngine_l319_5) begin
+      if(when_ValuEngine_l111_5) begin
         _zz_io_writeReqs_0_5_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_134_20 : _zz__zz_io_writeReqs_0_5_payload_data_134_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_134_35 : _zz__zz_io_writeReqs_0_5_payload_data_134_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l318_5 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l110_5 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_5_payload_data_135 = io_operandA_0_5[7 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_136 = io_operandB_0_5[7 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_137 = io_operandA_0_5[15 : 8];
@@ -19528,55 +19540,55 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_5_payload_data_142 = io_operandA_0_5[15 : 8];
   assign _zz_io_writeReqs_0_5_payload_data_143 = io_operandB_0_5[15 : 8];
   assign _zz_io_writeReqs_0_5_payload_data_144 = io_operandC_0_5[31 : 16];
-  assign when_ValuEngine_l319_5 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l111_5 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_5_payload_data_145 = 32'h0;
-    if(when_ValuEngine_l322_5) begin
+    if(when_ValuEngine_l114_5) begin
       _zz_io_writeReqs_0_5_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_145 : _zz__zz_io_writeReqs_0_5_payload_data_145_6);
     end else begin
-      if(when_ValuEngine_l323_5) begin
+      if(when_ValuEngine_l115_5) begin
         _zz_io_writeReqs_0_5_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_145_10 : _zz__zz_io_writeReqs_0_5_payload_data_145_19);
       end
     end
   end
 
-  assign when_ValuEngine_l322_5 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l114_5 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_5_payload_data_146 = io_operandA_0_5[7 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_147 = io_operandB_0_5[7 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_148 = io_operandA_0_5[7 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_149 = io_operandB_0_5[7 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_150 = io_operandC_0_5[31 : 0];
-  assign when_ValuEngine_l323_5 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l115_5 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_5_payload_data_151 = 32'h0;
-    if(when_ValuEngine_l326_5) begin
+    if(when_ValuEngine_l118_5) begin
       _zz_io_writeReqs_0_5_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_151 : _zz__zz_io_writeReqs_0_5_payload_data_151_6);
     end else begin
-      if(when_ValuEngine_l327_5) begin
+      if(when_ValuEngine_l119_5) begin
         _zz_io_writeReqs_0_5_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_151_10 : _zz__zz_io_writeReqs_0_5_payload_data_151_19);
       end
     end
   end
 
-  assign when_ValuEngine_l326_5 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l118_5 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_5_payload_data_152 = io_operandA_0_5[15 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_153 = io_operandB_0_5[15 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_154 = io_operandA_0_5[15 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_155 = io_operandB_0_5[15 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_156 = io_operandC_0_5[31 : 0];
-  assign when_ValuEngine_l327_5 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l119_5 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_5_payload_data_157 = 32'h0;
-    if(when_ValuEngine_l330_5) begin
+    if(when_ValuEngine_l122_5) begin
       _zz_io_writeReqs_0_5_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_157 : _zz__zz_io_writeReqs_0_5_payload_data_157_6),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_157_10 : _zz__zz_io_writeReqs_0_5_payload_data_157_16),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_157_20 : _zz__zz_io_writeReqs_0_5_payload_data_157_26),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_157_30 : _zz__zz_io_writeReqs_0_5_payload_data_157_36)}}};
     end else begin
-      if(when_ValuEngine_l331_5) begin
+      if(when_ValuEngine_l123_5) begin
         _zz_io_writeReqs_0_5_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_157_40 : _zz__zz_io_writeReqs_0_5_payload_data_157_49),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_157_55 : _zz__zz_io_writeReqs_0_5_payload_data_157_64),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_157_70 : _zz__zz_io_writeReqs_0_5_payload_data_157_79),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_157_85 : _zz__zz_io_writeReqs_0_5_payload_data_157_94)}}};
       end
     end
   end
 
-  assign when_ValuEngine_l330_5 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l122_5 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_5_payload_data_158 = io_operandA_0_5[3 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_159 = io_operandB_0_5[3 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_160 = io_operandA_0_5[7 : 4];
@@ -19597,19 +19609,19 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_5_payload_data_175 = io_operandA_0_5[15 : 12];
   assign _zz_io_writeReqs_0_5_payload_data_176 = io_operandB_0_5[15 : 12];
   assign _zz_io_writeReqs_0_5_payload_data_177 = io_operandC_0_5[31 : 24];
-  assign when_ValuEngine_l331_5 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l123_5 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_5_payload_data_178 = 32'h0;
-    if(when_ValuEngine_l334_5) begin
+    if(when_ValuEngine_l126_5) begin
       _zz_io_writeReqs_0_5_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_178 : _zz__zz_io_writeReqs_0_5_payload_data_178_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_178_10 : _zz__zz_io_writeReqs_0_5_payload_data_178_16)};
     end else begin
-      if(when_ValuEngine_l335_5) begin
+      if(when_ValuEngine_l127_5) begin
         _zz_io_writeReqs_0_5_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_178_20 : _zz__zz_io_writeReqs_0_5_payload_data_178_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_178_35 : _zz__zz_io_writeReqs_0_5_payload_data_178_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l334_5 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l126_5 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_5_payload_data_179 = io_operandA_0_5[3 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_180 = io_operandB_0_5[3 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_181 = io_operandA_0_5[7 : 4];
@@ -19620,25 +19632,25 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_5_payload_data_186 = io_operandA_0_5[7 : 4];
   assign _zz_io_writeReqs_0_5_payload_data_187 = io_operandB_0_5[7 : 4];
   assign _zz_io_writeReqs_0_5_payload_data_188 = io_operandC_0_5[31 : 16];
-  assign when_ValuEngine_l335_5 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l127_5 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_5_payload_data_189 = 32'h0;
-    if(when_ValuEngine_l338_5) begin
+    if(when_ValuEngine_l130_5) begin
       _zz_io_writeReqs_0_5_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_189 : _zz__zz_io_writeReqs_0_5_payload_data_189_6);
     end else begin
-      if(when_ValuEngine_l339_5) begin
+      if(when_ValuEngine_l131_5) begin
         _zz_io_writeReqs_0_5_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_189_10 : _zz__zz_io_writeReqs_0_5_payload_data_189_19);
       end
     end
   end
 
-  assign when_ValuEngine_l338_5 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l130_5 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_5_payload_data_190 = io_operandA_0_5[3 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_191 = io_operandB_0_5[3 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_192 = io_operandA_0_5[3 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_193 = io_operandB_0_5[3 : 0];
   assign _zz_io_writeReqs_0_5_payload_data_194 = io_operandC_0_5[31 : 0];
-  assign when_ValuEngine_l339_5 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l131_5 = (io_slots_0_opcode == 4'b1110);
   assign _zz_io_writeReqs_0_5_payload_data_195 = io_slots_0_src2Base[0];
   assign _zz_io_writeReqs_0_5_payload_data_196 = (_zz_io_writeReqs_0_5_payload_data_195 ? io_operandA_0_5[23 : 16] : io_operandA_0_5[7 : 0]);
   assign _zz_io_writeReqs_0_5_payload_data_197 = (_zz_io_writeReqs_0_5_payload_data_195 ? io_operandA_0_5[31 : 24] : io_operandA_0_5[15 : 8]);
@@ -19676,10 +19688,10 @@ module ValuEngine (
         _zz_io_writeReqs_0_5_payload_data_213 = (io_operandA_0_5 | io_operandB_0_5);
       end
       4'b0110 : begin
-        if(when_ValuEngine_l409_2) begin
+        if(when_ValuEngine_l201_2) begin
           _zz_io_writeReqs_0_5_payload_data_213 = (io_operandA_0_4 <<< _zz__zz_io_writeReqs_0_5_payload_data_213_6);
         end else begin
-          if(when_ValuEngine_l411_2) begin
+          if(when_ValuEngine_l203_2) begin
             _zz_io_writeReqs_0_5_payload_data_213 = io_operandA_0_5;
           end else begin
             _zz_io_writeReqs_0_5_payload_data_213 = (_zz__zz_io_writeReqs_0_5_payload_data_213_7 | _zz__zz_io_writeReqs_0_5_payload_data_213_8);
@@ -19687,10 +19699,10 @@ module ValuEngine (
         end
       end
       4'b0111 : begin
-        if(when_ValuEngine_l417_2) begin
+        if(when_ValuEngine_l209_2) begin
           _zz_io_writeReqs_0_5_payload_data_213 = (io_slots_0_isSigned ? 32'h0 : 32'h0);
         end else begin
-          if(when_ValuEngine_l419_2) begin
+          if(when_ValuEngine_l211_2) begin
             _zz_io_writeReqs_0_5_payload_data_213 = io_operandA_0_5;
           end else begin
             _zz_io_writeReqs_0_5_payload_data_213 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_213_10 : _zz__zz_io_writeReqs_0_5_payload_data_213_12);
@@ -19711,31 +19723,31 @@ module ValuEngine (
     endcase
   end
 
-  assign _zz_when_ValuEngine_l409_2 = io_operandB_0_4[5 : 0];
-  assign when_ValuEngine_l409_2 = (6'h20 <= _zz_when_ValuEngine_l409_2);
-  assign when_ValuEngine_l411_2 = (_zz_when_ValuEngine_l409_2 == 6'h0);
-  assign _zz_when_ValuEngine_l417_2 = io_operandB_0_4[5 : 0];
-  assign when_ValuEngine_l417_2 = (6'h20 <= _zz_when_ValuEngine_l417_2);
-  assign when_ValuEngine_l419_2 = (_zz_when_ValuEngine_l417_2 == 6'h0);
+  assign _zz_when_ValuEngine_l201_2 = io_operandB_0_4[5 : 0];
+  assign when_ValuEngine_l201_2 = (6'h20 <= _zz_when_ValuEngine_l201_2);
+  assign when_ValuEngine_l203_2 = (_zz_when_ValuEngine_l201_2 == 6'h0);
+  assign _zz_when_ValuEngine_l209_2 = io_operandB_0_4[5 : 0];
+  assign when_ValuEngine_l209_2 = (6'h20 <= _zz_when_ValuEngine_l209_2);
+  assign when_ValuEngine_l211_2 = (_zz_when_ValuEngine_l209_2 == 6'h0);
   always @(*) begin
     _zz_io_writeReqs_0_5_payload_data_214 = _zz_io_writeReqs_0_5_payload_data_1;
-    if(when_ValuEngine_l445_5) begin
-      if(when_ValuEngine_l446_5) begin
+    if(when_ValuEngine_l237_5) begin
+      if(when_ValuEngine_l238_5) begin
         _zz_io_writeReqs_0_5_payload_data_214 = _zz_io_writeReqs_0_5_payload_data_134;
       end else begin
-        if(when_ValuEngine_l447_5) begin
+        if(when_ValuEngine_l239_5) begin
           _zz_io_writeReqs_0_5_payload_data_214 = _zz_io_writeReqs_0_5_payload_data_145;
         end else begin
-          if(when_ValuEngine_l448_5) begin
+          if(when_ValuEngine_l240_5) begin
             _zz_io_writeReqs_0_5_payload_data_214 = _zz_io_writeReqs_0_5_payload_data_151;
           end else begin
-            if(when_ValuEngine_l449_5) begin
+            if(when_ValuEngine_l241_5) begin
               _zz_io_writeReqs_0_5_payload_data_214 = _zz_io_writeReqs_0_5_payload_data_157;
             end else begin
-              if(when_ValuEngine_l450_5) begin
+              if(when_ValuEngine_l242_5) begin
                 _zz_io_writeReqs_0_5_payload_data_214 = _zz_io_writeReqs_0_5_payload_data_178;
               end else begin
-                if(when_ValuEngine_l451_5) begin
+                if(when_ValuEngine_l243_5) begin
                   _zz_io_writeReqs_0_5_payload_data_214 = _zz_io_writeReqs_0_5_payload_data_189;
                 end
               end
@@ -19744,15 +19756,15 @@ module ValuEngine (
         end
       end
     end else begin
-      if(when_ValuEngine_l452_5) begin
-        if(when_ValuEngine_l454_5) begin
-          if(when_ValuEngine_l455_5) begin
+      if(when_ValuEngine_l244_5) begin
+        if(when_ValuEngine_l246_5) begin
+          if(when_ValuEngine_l247_5) begin
             _zz_io_writeReqs_0_5_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_214 : _zz__zz_io_writeReqs_0_5_payload_data_214_2),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_214_3 : _zz__zz_io_writeReqs_0_5_payload_data_214_5)};
           end else begin
-            if(when_ValuEngine_l456_5) begin
+            if(when_ValuEngine_l248_5) begin
               _zz_io_writeReqs_0_5_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_214_6 : _zz__zz_io_writeReqs_0_5_payload_data_214_8);
             end else begin
-              if(when_ValuEngine_l457_5) begin
+              if(when_ValuEngine_l249_5) begin
                 _zz_io_writeReqs_0_5_payload_data_214 = (_zz_io_writeReqs_0_5_payload_data_195 ? _zz__zz_io_writeReqs_0_5_payload_data_214_9 : _zz__zz_io_writeReqs_0_5_payload_data_214_11);
               end else begin
                 _zz_io_writeReqs_0_5_payload_data_214 = io_operandA_0_5;
@@ -19760,14 +19772,14 @@ module ValuEngine (
             end
           end
         end else begin
-          if(when_ValuEngine_l459_5) begin
-            if(when_ValuEngine_l460_5) begin
+          if(when_ValuEngine_l251_5) begin
+            if(when_ValuEngine_l252_5) begin
               _zz_io_writeReqs_0_5_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_214_12 : _zz__zz_io_writeReqs_0_5_payload_data_214_14);
             end else begin
-              if(when_ValuEngine_l461_5) begin
+              if(when_ValuEngine_l253_5) begin
                 _zz_io_writeReqs_0_5_payload_data_214 = (_zz_io_writeReqs_0_5_payload_data_195 ? _zz__zz_io_writeReqs_0_5_payload_data_214_15 : _zz__zz_io_writeReqs_0_5_payload_data_214_17);
               end else begin
-                if(when_ValuEngine_l462_5) begin
+                if(when_ValuEngine_l254_5) begin
                   _zz_io_writeReqs_0_5_payload_data_214 = (_zz_io_writeReqs_0_5_payload_data_195 ? _zz__zz_io_writeReqs_0_5_payload_data_214_18 : _zz__zz_io_writeReqs_0_5_payload_data_214_20);
                 end else begin
                   _zz_io_writeReqs_0_5_payload_data_214 = io_operandA_0_5;
@@ -19775,14 +19787,14 @@ module ValuEngine (
               end
             end
           end else begin
-            if(when_ValuEngine_l464_5) begin
-              if(when_ValuEngine_l465_5) begin
+            if(when_ValuEngine_l256_5) begin
+              if(when_ValuEngine_l257_5) begin
                 _zz_io_writeReqs_0_5_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_214_21 : _zz__zz_io_writeReqs_0_5_payload_data_214_23),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_214_24 : _zz__zz_io_writeReqs_0_5_payload_data_214_26),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_214_27 : _zz__zz_io_writeReqs_0_5_payload_data_214_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_214_30 : _zz__zz_io_writeReqs_0_5_payload_data_214_32)}}};
               end else begin
-                if(when_ValuEngine_l466_5) begin
+                if(when_ValuEngine_l258_5) begin
                   _zz_io_writeReqs_0_5_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_214_33 : _zz__zz_io_writeReqs_0_5_payload_data_214_35),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_214_36 : _zz__zz_io_writeReqs_0_5_payload_data_214_38)};
                 end else begin
-                  if(when_ValuEngine_l467_5) begin
+                  if(when_ValuEngine_l259_5) begin
                     _zz_io_writeReqs_0_5_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_5_payload_data_214_39 : _zz__zz_io_writeReqs_0_5_payload_data_214_41);
                   end else begin
                     _zz_io_writeReqs_0_5_payload_data_214 = io_operandA_0_5;
@@ -19790,14 +19802,14 @@ module ValuEngine (
                 end
               end
             end else begin
-              if(when_ValuEngine_l469_5) begin
-                if(when_ValuEngine_l470_5) begin
+              if(when_ValuEngine_l261_5) begin
+                if(when_ValuEngine_l262_5) begin
                   _zz_io_writeReqs_0_5_payload_data_214 = (_zz_io_writeReqs_0_5_payload_data_195 ? _zz__zz_io_writeReqs_0_5_payload_data_214_42 : _zz__zz_io_writeReqs_0_5_payload_data_214_44);
                 end else begin
-                  if(when_ValuEngine_l471_5) begin
+                  if(when_ValuEngine_l263_5) begin
                     _zz_io_writeReqs_0_5_payload_data_214 = (_zz_io_writeReqs_0_5_payload_data_195 ? _zz__zz_io_writeReqs_0_5_payload_data_214_45 : _zz__zz_io_writeReqs_0_5_payload_data_214_47);
                   end else begin
-                    if(when_ValuEngine_l472_5) begin
+                    if(when_ValuEngine_l264_5) begin
                       _zz_io_writeReqs_0_5_payload_data_214 = (_zz_io_writeReqs_0_5_payload_data_195 ? _zz__zz_io_writeReqs_0_5_payload_data_214_48 : _zz__zz_io_writeReqs_0_5_payload_data_214_50);
                     end else begin
                       _zz_io_writeReqs_0_5_payload_data_214 = io_operandA_0_5;
@@ -19811,16 +19823,16 @@ module ValuEngine (
           end
         end
       end else begin
-        if(when_ValuEngine_l477_5) begin
+        if(when_ValuEngine_l269_5) begin
           _zz_io_writeReqs_0_5_payload_data_214 = _zz_io_writeReqs_0_5_payload_data_2;
         end else begin
-          if(when_ValuEngine_l478_5) begin
+          if(when_ValuEngine_l270_5) begin
             _zz_io_writeReqs_0_5_payload_data_214 = _zz_io_writeReqs_0_5_payload_data_40;
           end else begin
-            if(when_ValuEngine_l479_5) begin
+            if(when_ValuEngine_l271_5) begin
               _zz_io_writeReqs_0_5_payload_data_214 = _zz_io_writeReqs_0_5_payload_data_60;
             end else begin
-              if(when_ValuEngine_l480_5) begin
+              if(when_ValuEngine_l272_5) begin
                 _zz_io_writeReqs_0_5_payload_data_214 = _zz_io_writeReqs_0_5_payload_data_213;
               end else begin
                 _zz_io_writeReqs_0_5_payload_data_214 = _zz_io_writeReqs_0_5_payload_data_1;
@@ -19832,42 +19844,42 @@ module ValuEngine (
     end
   end
 
-  assign when_ValuEngine_l452_5 = (io_slots_0_opcode == 4'b1111);
-  assign when_ValuEngine_l445_5 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
-  assign when_ValuEngine_l446_5 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l447_5 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l448_5 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l449_5 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
-  assign when_ValuEngine_l450_5 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l451_5 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l454_5 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l455_5 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l456_5 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l457_5 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l460_5 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l461_5 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l462_5 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l465_5 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l466_5 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l467_5 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l470_5 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l471_5 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l472_5 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l459_5 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l464_5 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l469_5 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
-  assign when_ValuEngine_l477_5 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l478_5 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l479_5 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l480_5 = (io_slots_0_ewidth == 3'b100);
+  assign when_ValuEngine_l244_5 = (io_slots_0_opcode == 4'b1111);
+  assign when_ValuEngine_l237_5 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
+  assign when_ValuEngine_l238_5 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l239_5 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l240_5 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l241_5 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
+  assign when_ValuEngine_l242_5 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l243_5 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l246_5 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l247_5 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l248_5 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l249_5 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l252_5 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l253_5 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l254_5 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l257_5 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l258_5 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l259_5 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l262_5 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l263_5 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l264_5 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l251_5 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l256_5 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l261_5 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
+  assign when_ValuEngine_l269_5 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l270_5 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l271_5 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l272_5 = (io_slots_0_ewidth == 3'b100);
   assign io_writeReqs_0_5_valid = (unsignedDivider_13_io_done || (_zz_io_writeReqs_0_0_valid && (! _zz_io_writeReqs_0_5_valid)));
   assign io_writeReqs_0_5_payload_addr = (unsignedDivider_13_io_done ? _zz_io_writeReqs_0_5_payload_addr : _zz_io_writeReqs_0_5_payload_addr_1);
   assign io_writeReqs_0_5_payload_data = (unsignedDivider_13_io_done ? ((_zz_io_writeReqs_0_5_payload_data == 2'b00) ? unsignedDivider_13_io_remainder : unsignedDivider_13_io_quotient) : _zz_io_writeReqs_0_5_payload_data_214);
   assign _zz_io_writeReqs_0_6_valid = (((io_slots_0_opcode == 4'b1010) || (io_slots_0_opcode == 4'b1011)) || (io_slots_0_opcode == 4'b1100));
   assign unsignedDivider_14_io_start = (((_zz_io_writeReqs_0_0_valid && _zz_io_writeReqs_0_6_valid) && (! unsignedDivider_14_io_busy)) && (io_slots_0_ewidth == 3'b000));
   assign unsignedDivider_14_io_dividend = ((io_slots_0_opcode == 4'b1100) ? _zz_io_dividend_12 : io_operandA_0_6);
-  assign when_ValuEngine_l305_6 = (io_slots_0_opcode == 4'b1010);
-  assign when_ValuEngine_l306_6 = (io_slots_0_opcode == 4'b1011);
+  assign when_ValuEngine_l97_6 = (io_slots_0_opcode == 4'b1010);
+  assign when_ValuEngine_l98_6 = (io_slots_0_opcode == 4'b1011);
   always @(*) begin
     _zz_io_writeReqs_0_6_payload_data_1 = 32'h0;
     case(io_slots_0_opcode)
@@ -20187,16 +20199,16 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_6_payload_data_133 = io_operandC_0_6[31 : 28];
   always @(*) begin
     _zz_io_writeReqs_0_6_payload_data_134 = 32'h0;
-    if(when_ValuEngine_l318_6) begin
+    if(when_ValuEngine_l110_6) begin
       _zz_io_writeReqs_0_6_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_134 : _zz__zz_io_writeReqs_0_6_payload_data_134_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_134_10 : _zz__zz_io_writeReqs_0_6_payload_data_134_16)};
     end else begin
-      if(when_ValuEngine_l319_6) begin
+      if(when_ValuEngine_l111_6) begin
         _zz_io_writeReqs_0_6_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_134_20 : _zz__zz_io_writeReqs_0_6_payload_data_134_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_134_35 : _zz__zz_io_writeReqs_0_6_payload_data_134_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l318_6 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l110_6 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_6_payload_data_135 = io_operandA_0_6[7 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_136 = io_operandB_0_6[7 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_137 = io_operandA_0_6[15 : 8];
@@ -20207,55 +20219,55 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_6_payload_data_142 = io_operandA_0_6[15 : 8];
   assign _zz_io_writeReqs_0_6_payload_data_143 = io_operandB_0_6[15 : 8];
   assign _zz_io_writeReqs_0_6_payload_data_144 = io_operandC_0_6[31 : 16];
-  assign when_ValuEngine_l319_6 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l111_6 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_6_payload_data_145 = 32'h0;
-    if(when_ValuEngine_l322_6) begin
+    if(when_ValuEngine_l114_6) begin
       _zz_io_writeReqs_0_6_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_145 : _zz__zz_io_writeReqs_0_6_payload_data_145_6);
     end else begin
-      if(when_ValuEngine_l323_6) begin
+      if(when_ValuEngine_l115_6) begin
         _zz_io_writeReqs_0_6_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_145_10 : _zz__zz_io_writeReqs_0_6_payload_data_145_19);
       end
     end
   end
 
-  assign when_ValuEngine_l322_6 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l114_6 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_6_payload_data_146 = io_operandA_0_6[7 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_147 = io_operandB_0_6[7 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_148 = io_operandA_0_6[7 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_149 = io_operandB_0_6[7 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_150 = io_operandC_0_6[31 : 0];
-  assign when_ValuEngine_l323_6 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l115_6 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_6_payload_data_151 = 32'h0;
-    if(when_ValuEngine_l326_6) begin
+    if(when_ValuEngine_l118_6) begin
       _zz_io_writeReqs_0_6_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_151 : _zz__zz_io_writeReqs_0_6_payload_data_151_6);
     end else begin
-      if(when_ValuEngine_l327_6) begin
+      if(when_ValuEngine_l119_6) begin
         _zz_io_writeReqs_0_6_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_151_10 : _zz__zz_io_writeReqs_0_6_payload_data_151_19);
       end
     end
   end
 
-  assign when_ValuEngine_l326_6 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l118_6 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_6_payload_data_152 = io_operandA_0_6[15 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_153 = io_operandB_0_6[15 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_154 = io_operandA_0_6[15 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_155 = io_operandB_0_6[15 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_156 = io_operandC_0_6[31 : 0];
-  assign when_ValuEngine_l327_6 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l119_6 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_6_payload_data_157 = 32'h0;
-    if(when_ValuEngine_l330_6) begin
+    if(when_ValuEngine_l122_6) begin
       _zz_io_writeReqs_0_6_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_157 : _zz__zz_io_writeReqs_0_6_payload_data_157_6),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_157_10 : _zz__zz_io_writeReqs_0_6_payload_data_157_16),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_157_20 : _zz__zz_io_writeReqs_0_6_payload_data_157_26),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_157_30 : _zz__zz_io_writeReqs_0_6_payload_data_157_36)}}};
     end else begin
-      if(when_ValuEngine_l331_6) begin
+      if(when_ValuEngine_l123_6) begin
         _zz_io_writeReqs_0_6_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_157_40 : _zz__zz_io_writeReqs_0_6_payload_data_157_49),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_157_55 : _zz__zz_io_writeReqs_0_6_payload_data_157_64),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_157_70 : _zz__zz_io_writeReqs_0_6_payload_data_157_79),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_157_85 : _zz__zz_io_writeReqs_0_6_payload_data_157_94)}}};
       end
     end
   end
 
-  assign when_ValuEngine_l330_6 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l122_6 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_6_payload_data_158 = io_operandA_0_6[3 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_159 = io_operandB_0_6[3 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_160 = io_operandA_0_6[7 : 4];
@@ -20276,19 +20288,19 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_6_payload_data_175 = io_operandA_0_6[15 : 12];
   assign _zz_io_writeReqs_0_6_payload_data_176 = io_operandB_0_6[15 : 12];
   assign _zz_io_writeReqs_0_6_payload_data_177 = io_operandC_0_6[31 : 24];
-  assign when_ValuEngine_l331_6 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l123_6 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_6_payload_data_178 = 32'h0;
-    if(when_ValuEngine_l334_6) begin
+    if(when_ValuEngine_l126_6) begin
       _zz_io_writeReqs_0_6_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_178 : _zz__zz_io_writeReqs_0_6_payload_data_178_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_178_10 : _zz__zz_io_writeReqs_0_6_payload_data_178_16)};
     end else begin
-      if(when_ValuEngine_l335_6) begin
+      if(when_ValuEngine_l127_6) begin
         _zz_io_writeReqs_0_6_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_178_20 : _zz__zz_io_writeReqs_0_6_payload_data_178_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_178_35 : _zz__zz_io_writeReqs_0_6_payload_data_178_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l334_6 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l126_6 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_6_payload_data_179 = io_operandA_0_6[3 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_180 = io_operandB_0_6[3 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_181 = io_operandA_0_6[7 : 4];
@@ -20299,25 +20311,25 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_6_payload_data_186 = io_operandA_0_6[7 : 4];
   assign _zz_io_writeReqs_0_6_payload_data_187 = io_operandB_0_6[7 : 4];
   assign _zz_io_writeReqs_0_6_payload_data_188 = io_operandC_0_6[31 : 16];
-  assign when_ValuEngine_l335_6 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l127_6 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_6_payload_data_189 = 32'h0;
-    if(when_ValuEngine_l338_6) begin
+    if(when_ValuEngine_l130_6) begin
       _zz_io_writeReqs_0_6_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_189 : _zz__zz_io_writeReqs_0_6_payload_data_189_6);
     end else begin
-      if(when_ValuEngine_l339_6) begin
+      if(when_ValuEngine_l131_6) begin
         _zz_io_writeReqs_0_6_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_189_10 : _zz__zz_io_writeReqs_0_6_payload_data_189_19);
       end
     end
   end
 
-  assign when_ValuEngine_l338_6 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l130_6 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_6_payload_data_190 = io_operandA_0_6[3 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_191 = io_operandB_0_6[3 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_192 = io_operandA_0_6[3 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_193 = io_operandB_0_6[3 : 0];
   assign _zz_io_writeReqs_0_6_payload_data_194 = io_operandC_0_6[31 : 0];
-  assign when_ValuEngine_l339_6 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l131_6 = (io_slots_0_opcode == 4'b1110);
   assign _zz_io_writeReqs_0_6_payload_data_195 = io_slots_0_src2Base[0];
   assign _zz_io_writeReqs_0_6_payload_data_196 = (_zz_io_writeReqs_0_6_payload_data_195 ? io_operandA_0_6[23 : 16] : io_operandA_0_6[7 : 0]);
   assign _zz_io_writeReqs_0_6_payload_data_197 = (_zz_io_writeReqs_0_6_payload_data_195 ? io_operandA_0_6[31 : 24] : io_operandA_0_6[15 : 8]);
@@ -20355,17 +20367,17 @@ module ValuEngine (
         _zz_io_writeReqs_0_6_payload_data_213 = (io_operandA_0_6 | io_operandB_0_6);
       end
       4'b0110 : begin
-        if(when_ValuEngine_l380_3) begin
+        if(when_ValuEngine_l172_3) begin
           _zz_io_writeReqs_0_6_payload_data_213 = 32'h0;
         end else begin
-          _zz_io_writeReqs_0_6_payload_data_213 = (io_operandA_0_6 <<< _zz_when_ValuEngine_l380_3);
+          _zz_io_writeReqs_0_6_payload_data_213 = (io_operandA_0_6 <<< _zz_when_ValuEngine_l172_3);
         end
       end
       4'b0111 : begin
-        if(when_ValuEngine_l386_3) begin
+        if(when_ValuEngine_l178_3) begin
           _zz_io_writeReqs_0_6_payload_data_213 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_213 : _zz__zz_io_writeReqs_0_6_payload_data_213_3);
         end else begin
-          if(when_ValuEngine_l388_3) begin
+          if(when_ValuEngine_l180_3) begin
             _zz_io_writeReqs_0_6_payload_data_213 = io_operandA_0_6;
           end else begin
             _zz_io_writeReqs_0_6_payload_data_213 = (_zz__zz_io_writeReqs_0_6_payload_data_213_5 | _zz__zz_io_writeReqs_0_6_payload_data_213_6);
@@ -20388,30 +20400,34 @@ module ValuEngine (
 
   assign _zz_carry64_0_3 = ({1'b0,_zz__zz_carry64_0_3} + {1'b0,_zz__zz_carry64_0_3_1});
   assign _zz_borrow64_0_3 = ({1'b0,_zz__zz_borrow64_0_3} - {1'b0,_zz__zz_borrow64_0_3_1});
-  assign _zz_when_ValuEngine_l380_3 = io_operandB_0_6[5 : 0];
-  assign when_ValuEngine_l380_3 = (6'h20 <= _zz_when_ValuEngine_l380_3);
-  assign _zz_when_ValuEngine_l386_3 = io_operandB_0_6[5 : 0];
-  assign when_ValuEngine_l386_3 = (6'h20 <= _zz_when_ValuEngine_l386_3);
-  assign when_ValuEngine_l388_3 = (_zz_when_ValuEngine_l386_3 == 6'h0);
+  assign carry64_0_3 = _zz_carry64_0_3[32];
+  assign borrow64_0_3 = _zz_borrow64_0_3[32];
+  assign ltLo64_0_3 = (io_operandA_0_6 < io_operandB_0_6);
+  assign eqLo64_0_3 = (io_operandA_0_6 == io_operandB_0_6);
+  assign _zz_when_ValuEngine_l172_3 = io_operandB_0_6[5 : 0];
+  assign when_ValuEngine_l172_3 = (6'h20 <= _zz_when_ValuEngine_l172_3);
+  assign _zz_when_ValuEngine_l178_3 = io_operandB_0_6[5 : 0];
+  assign when_ValuEngine_l178_3 = (6'h20 <= _zz_when_ValuEngine_l178_3);
+  assign when_ValuEngine_l180_3 = (_zz_when_ValuEngine_l178_3 == 6'h0);
   always @(*) begin
     _zz_io_writeReqs_0_6_payload_data_214 = _zz_io_writeReqs_0_6_payload_data_1;
-    if(when_ValuEngine_l445_6) begin
-      if(when_ValuEngine_l446_6) begin
+    if(when_ValuEngine_l237_6) begin
+      if(when_ValuEngine_l238_6) begin
         _zz_io_writeReqs_0_6_payload_data_214 = _zz_io_writeReqs_0_6_payload_data_134;
       end else begin
-        if(when_ValuEngine_l447_6) begin
+        if(when_ValuEngine_l239_6) begin
           _zz_io_writeReqs_0_6_payload_data_214 = _zz_io_writeReqs_0_6_payload_data_145;
         end else begin
-          if(when_ValuEngine_l448_6) begin
+          if(when_ValuEngine_l240_6) begin
             _zz_io_writeReqs_0_6_payload_data_214 = _zz_io_writeReqs_0_6_payload_data_151;
           end else begin
-            if(when_ValuEngine_l449_6) begin
+            if(when_ValuEngine_l241_6) begin
               _zz_io_writeReqs_0_6_payload_data_214 = _zz_io_writeReqs_0_6_payload_data_157;
             end else begin
-              if(when_ValuEngine_l450_6) begin
+              if(when_ValuEngine_l242_6) begin
                 _zz_io_writeReqs_0_6_payload_data_214 = _zz_io_writeReqs_0_6_payload_data_178;
               end else begin
-                if(when_ValuEngine_l451_6) begin
+                if(when_ValuEngine_l243_6) begin
                   _zz_io_writeReqs_0_6_payload_data_214 = _zz_io_writeReqs_0_6_payload_data_189;
                 end
               end
@@ -20420,15 +20436,15 @@ module ValuEngine (
         end
       end
     end else begin
-      if(when_ValuEngine_l452_6) begin
-        if(when_ValuEngine_l454_6) begin
-          if(when_ValuEngine_l455_6) begin
+      if(when_ValuEngine_l244_6) begin
+        if(when_ValuEngine_l246_6) begin
+          if(when_ValuEngine_l247_6) begin
             _zz_io_writeReqs_0_6_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_214 : _zz__zz_io_writeReqs_0_6_payload_data_214_2),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_214_3 : _zz__zz_io_writeReqs_0_6_payload_data_214_5)};
           end else begin
-            if(when_ValuEngine_l456_6) begin
+            if(when_ValuEngine_l248_6) begin
               _zz_io_writeReqs_0_6_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_214_6 : _zz__zz_io_writeReqs_0_6_payload_data_214_8);
             end else begin
-              if(when_ValuEngine_l457_6) begin
+              if(when_ValuEngine_l249_6) begin
                 _zz_io_writeReqs_0_6_payload_data_214 = (_zz_io_writeReqs_0_6_payload_data_195 ? _zz__zz_io_writeReqs_0_6_payload_data_214_9 : _zz__zz_io_writeReqs_0_6_payload_data_214_11);
               end else begin
                 _zz_io_writeReqs_0_6_payload_data_214 = io_operandA_0_6;
@@ -20436,14 +20452,14 @@ module ValuEngine (
             end
           end
         end else begin
-          if(when_ValuEngine_l459_6) begin
-            if(when_ValuEngine_l460_6) begin
+          if(when_ValuEngine_l251_6) begin
+            if(when_ValuEngine_l252_6) begin
               _zz_io_writeReqs_0_6_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_214_12 : _zz__zz_io_writeReqs_0_6_payload_data_214_14);
             end else begin
-              if(when_ValuEngine_l461_6) begin
+              if(when_ValuEngine_l253_6) begin
                 _zz_io_writeReqs_0_6_payload_data_214 = (_zz_io_writeReqs_0_6_payload_data_195 ? _zz__zz_io_writeReqs_0_6_payload_data_214_15 : _zz__zz_io_writeReqs_0_6_payload_data_214_17);
               end else begin
-                if(when_ValuEngine_l462_6) begin
+                if(when_ValuEngine_l254_6) begin
                   _zz_io_writeReqs_0_6_payload_data_214 = (_zz_io_writeReqs_0_6_payload_data_195 ? _zz__zz_io_writeReqs_0_6_payload_data_214_18 : _zz__zz_io_writeReqs_0_6_payload_data_214_20);
                 end else begin
                   _zz_io_writeReqs_0_6_payload_data_214 = io_operandA_0_6;
@@ -20451,14 +20467,14 @@ module ValuEngine (
               end
             end
           end else begin
-            if(when_ValuEngine_l464_6) begin
-              if(when_ValuEngine_l465_6) begin
+            if(when_ValuEngine_l256_6) begin
+              if(when_ValuEngine_l257_6) begin
                 _zz_io_writeReqs_0_6_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_214_21 : _zz__zz_io_writeReqs_0_6_payload_data_214_23),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_214_24 : _zz__zz_io_writeReqs_0_6_payload_data_214_26),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_214_27 : _zz__zz_io_writeReqs_0_6_payload_data_214_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_214_30 : _zz__zz_io_writeReqs_0_6_payload_data_214_32)}}};
               end else begin
-                if(when_ValuEngine_l466_6) begin
+                if(when_ValuEngine_l258_6) begin
                   _zz_io_writeReqs_0_6_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_214_33 : _zz__zz_io_writeReqs_0_6_payload_data_214_35),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_214_36 : _zz__zz_io_writeReqs_0_6_payload_data_214_38)};
                 end else begin
-                  if(when_ValuEngine_l467_6) begin
+                  if(when_ValuEngine_l259_6) begin
                     _zz_io_writeReqs_0_6_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_6_payload_data_214_39 : _zz__zz_io_writeReqs_0_6_payload_data_214_41);
                   end else begin
                     _zz_io_writeReqs_0_6_payload_data_214 = io_operandA_0_6;
@@ -20466,14 +20482,14 @@ module ValuEngine (
                 end
               end
             end else begin
-              if(when_ValuEngine_l469_6) begin
-                if(when_ValuEngine_l470_6) begin
+              if(when_ValuEngine_l261_6) begin
+                if(when_ValuEngine_l262_6) begin
                   _zz_io_writeReqs_0_6_payload_data_214 = (_zz_io_writeReqs_0_6_payload_data_195 ? _zz__zz_io_writeReqs_0_6_payload_data_214_42 : _zz__zz_io_writeReqs_0_6_payload_data_214_44);
                 end else begin
-                  if(when_ValuEngine_l471_6) begin
+                  if(when_ValuEngine_l263_6) begin
                     _zz_io_writeReqs_0_6_payload_data_214 = (_zz_io_writeReqs_0_6_payload_data_195 ? _zz__zz_io_writeReqs_0_6_payload_data_214_45 : _zz__zz_io_writeReqs_0_6_payload_data_214_47);
                   end else begin
-                    if(when_ValuEngine_l472_6) begin
+                    if(when_ValuEngine_l264_6) begin
                       _zz_io_writeReqs_0_6_payload_data_214 = (_zz_io_writeReqs_0_6_payload_data_195 ? _zz__zz_io_writeReqs_0_6_payload_data_214_48 : _zz__zz_io_writeReqs_0_6_payload_data_214_50);
                     end else begin
                       _zz_io_writeReqs_0_6_payload_data_214 = io_operandA_0_6;
@@ -20487,16 +20503,16 @@ module ValuEngine (
           end
         end
       end else begin
-        if(when_ValuEngine_l477_6) begin
+        if(when_ValuEngine_l269_6) begin
           _zz_io_writeReqs_0_6_payload_data_214 = _zz_io_writeReqs_0_6_payload_data_2;
         end else begin
-          if(when_ValuEngine_l478_6) begin
+          if(when_ValuEngine_l270_6) begin
             _zz_io_writeReqs_0_6_payload_data_214 = _zz_io_writeReqs_0_6_payload_data_40;
           end else begin
-            if(when_ValuEngine_l479_6) begin
+            if(when_ValuEngine_l271_6) begin
               _zz_io_writeReqs_0_6_payload_data_214 = _zz_io_writeReqs_0_6_payload_data_60;
             end else begin
-              if(when_ValuEngine_l480_6) begin
+              if(when_ValuEngine_l272_6) begin
                 _zz_io_writeReqs_0_6_payload_data_214 = _zz_io_writeReqs_0_6_payload_data_213;
               end else begin
                 _zz_io_writeReqs_0_6_payload_data_214 = _zz_io_writeReqs_0_6_payload_data_1;
@@ -20508,42 +20524,42 @@ module ValuEngine (
     end
   end
 
-  assign when_ValuEngine_l452_6 = (io_slots_0_opcode == 4'b1111);
-  assign when_ValuEngine_l445_6 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
-  assign when_ValuEngine_l446_6 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l447_6 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l448_6 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l449_6 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
-  assign when_ValuEngine_l450_6 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l451_6 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l454_6 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l455_6 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l456_6 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l457_6 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l460_6 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l461_6 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l462_6 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l465_6 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l466_6 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l467_6 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l470_6 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l471_6 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l472_6 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l459_6 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l464_6 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l469_6 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
-  assign when_ValuEngine_l477_6 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l478_6 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l479_6 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l480_6 = (io_slots_0_ewidth == 3'b100);
+  assign when_ValuEngine_l244_6 = (io_slots_0_opcode == 4'b1111);
+  assign when_ValuEngine_l237_6 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
+  assign when_ValuEngine_l238_6 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l239_6 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l240_6 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l241_6 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
+  assign when_ValuEngine_l242_6 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l243_6 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l246_6 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l247_6 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l248_6 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l249_6 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l252_6 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l253_6 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l254_6 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l257_6 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l258_6 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l259_6 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l262_6 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l263_6 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l264_6 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l251_6 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l256_6 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l261_6 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
+  assign when_ValuEngine_l269_6 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l270_6 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l271_6 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l272_6 = (io_slots_0_ewidth == 3'b100);
   assign io_writeReqs_0_6_valid = (unsignedDivider_14_io_done || (_zz_io_writeReqs_0_0_valid && (! _zz_io_writeReqs_0_6_valid)));
   assign io_writeReqs_0_6_payload_addr = (unsignedDivider_14_io_done ? _zz_io_writeReqs_0_6_payload_addr : _zz_io_writeReqs_0_6_payload_addr_1);
   assign io_writeReqs_0_6_payload_data = (unsignedDivider_14_io_done ? ((_zz_io_writeReqs_0_6_payload_data == 2'b00) ? unsignedDivider_14_io_remainder : unsignedDivider_14_io_quotient) : _zz_io_writeReqs_0_6_payload_data_214);
   assign _zz_io_writeReqs_0_7_valid = (((io_slots_0_opcode == 4'b1010) || (io_slots_0_opcode == 4'b1011)) || (io_slots_0_opcode == 4'b1100));
   assign unsignedDivider_15_io_start = (((_zz_io_writeReqs_0_0_valid && _zz_io_writeReqs_0_7_valid) && (! unsignedDivider_15_io_busy)) && (io_slots_0_ewidth == 3'b000));
   assign unsignedDivider_15_io_dividend = ((io_slots_0_opcode == 4'b1100) ? _zz_io_dividend_14 : io_operandA_0_7);
-  assign when_ValuEngine_l305_7 = (io_slots_0_opcode == 4'b1010);
-  assign when_ValuEngine_l306_7 = (io_slots_0_opcode == 4'b1011);
+  assign when_ValuEngine_l97_7 = (io_slots_0_opcode == 4'b1010);
+  assign when_ValuEngine_l98_7 = (io_slots_0_opcode == 4'b1011);
   always @(*) begin
     _zz_io_writeReqs_0_7_payload_data_1 = 32'h0;
     case(io_slots_0_opcode)
@@ -20863,16 +20879,16 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_7_payload_data_133 = io_operandC_0_7[31 : 28];
   always @(*) begin
     _zz_io_writeReqs_0_7_payload_data_134 = 32'h0;
-    if(when_ValuEngine_l318_7) begin
+    if(when_ValuEngine_l110_7) begin
       _zz_io_writeReqs_0_7_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_134 : _zz__zz_io_writeReqs_0_7_payload_data_134_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_134_10 : _zz__zz_io_writeReqs_0_7_payload_data_134_16)};
     end else begin
-      if(when_ValuEngine_l319_7) begin
+      if(when_ValuEngine_l111_7) begin
         _zz_io_writeReqs_0_7_payload_data_134 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_134_20 : _zz__zz_io_writeReqs_0_7_payload_data_134_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_134_35 : _zz__zz_io_writeReqs_0_7_payload_data_134_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l318_7 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l110_7 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_7_payload_data_135 = io_operandA_0_7[7 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_136 = io_operandB_0_7[7 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_137 = io_operandA_0_7[15 : 8];
@@ -20883,55 +20899,55 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_7_payload_data_142 = io_operandA_0_7[15 : 8];
   assign _zz_io_writeReqs_0_7_payload_data_143 = io_operandB_0_7[15 : 8];
   assign _zz_io_writeReqs_0_7_payload_data_144 = io_operandC_0_7[31 : 16];
-  assign when_ValuEngine_l319_7 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l111_7 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_7_payload_data_145 = 32'h0;
-    if(when_ValuEngine_l322_7) begin
+    if(when_ValuEngine_l114_7) begin
       _zz_io_writeReqs_0_7_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_145 : _zz__zz_io_writeReqs_0_7_payload_data_145_6);
     end else begin
-      if(when_ValuEngine_l323_7) begin
+      if(when_ValuEngine_l115_7) begin
         _zz_io_writeReqs_0_7_payload_data_145 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_145_10 : _zz__zz_io_writeReqs_0_7_payload_data_145_19);
       end
     end
   end
 
-  assign when_ValuEngine_l322_7 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l114_7 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_7_payload_data_146 = io_operandA_0_7[7 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_147 = io_operandB_0_7[7 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_148 = io_operandA_0_7[7 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_149 = io_operandB_0_7[7 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_150 = io_operandC_0_7[31 : 0];
-  assign when_ValuEngine_l323_7 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l115_7 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_7_payload_data_151 = 32'h0;
-    if(when_ValuEngine_l326_7) begin
+    if(when_ValuEngine_l118_7) begin
       _zz_io_writeReqs_0_7_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_151 : _zz__zz_io_writeReqs_0_7_payload_data_151_6);
     end else begin
-      if(when_ValuEngine_l327_7) begin
+      if(when_ValuEngine_l119_7) begin
         _zz_io_writeReqs_0_7_payload_data_151 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_151_10 : _zz__zz_io_writeReqs_0_7_payload_data_151_19);
       end
     end
   end
 
-  assign when_ValuEngine_l326_7 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l118_7 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_7_payload_data_152 = io_operandA_0_7[15 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_153 = io_operandB_0_7[15 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_154 = io_operandA_0_7[15 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_155 = io_operandB_0_7[15 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_156 = io_operandC_0_7[31 : 0];
-  assign when_ValuEngine_l327_7 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l119_7 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_7_payload_data_157 = 32'h0;
-    if(when_ValuEngine_l330_7) begin
+    if(when_ValuEngine_l122_7) begin
       _zz_io_writeReqs_0_7_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_157 : _zz__zz_io_writeReqs_0_7_payload_data_157_6),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_157_10 : _zz__zz_io_writeReqs_0_7_payload_data_157_16),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_157_20 : _zz__zz_io_writeReqs_0_7_payload_data_157_26),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_157_30 : _zz__zz_io_writeReqs_0_7_payload_data_157_36)}}};
     end else begin
-      if(when_ValuEngine_l331_7) begin
+      if(when_ValuEngine_l123_7) begin
         _zz_io_writeReqs_0_7_payload_data_157 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_157_40 : _zz__zz_io_writeReqs_0_7_payload_data_157_49),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_157_55 : _zz__zz_io_writeReqs_0_7_payload_data_157_64),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_157_70 : _zz__zz_io_writeReqs_0_7_payload_data_157_79),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_157_85 : _zz__zz_io_writeReqs_0_7_payload_data_157_94)}}};
       end
     end
   end
 
-  assign when_ValuEngine_l330_7 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l122_7 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_7_payload_data_158 = io_operandA_0_7[3 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_159 = io_operandB_0_7[3 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_160 = io_operandA_0_7[7 : 4];
@@ -20952,19 +20968,19 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_7_payload_data_175 = io_operandA_0_7[15 : 12];
   assign _zz_io_writeReqs_0_7_payload_data_176 = io_operandB_0_7[15 : 12];
   assign _zz_io_writeReqs_0_7_payload_data_177 = io_operandC_0_7[31 : 24];
-  assign when_ValuEngine_l331_7 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l123_7 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_7_payload_data_178 = 32'h0;
-    if(when_ValuEngine_l334_7) begin
+    if(when_ValuEngine_l126_7) begin
       _zz_io_writeReqs_0_7_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_178 : _zz__zz_io_writeReqs_0_7_payload_data_178_6),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_178_10 : _zz__zz_io_writeReqs_0_7_payload_data_178_16)};
     end else begin
-      if(when_ValuEngine_l335_7) begin
+      if(when_ValuEngine_l127_7) begin
         _zz_io_writeReqs_0_7_payload_data_178 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_178_20 : _zz__zz_io_writeReqs_0_7_payload_data_178_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_178_35 : _zz__zz_io_writeReqs_0_7_payload_data_178_44)};
       end
     end
   end
 
-  assign when_ValuEngine_l334_7 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l126_7 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_7_payload_data_179 = io_operandA_0_7[3 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_180 = io_operandB_0_7[3 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_181 = io_operandA_0_7[7 : 4];
@@ -20975,25 +20991,25 @@ module ValuEngine (
   assign _zz_io_writeReqs_0_7_payload_data_186 = io_operandA_0_7[7 : 4];
   assign _zz_io_writeReqs_0_7_payload_data_187 = io_operandB_0_7[7 : 4];
   assign _zz_io_writeReqs_0_7_payload_data_188 = io_operandC_0_7[31 : 16];
-  assign when_ValuEngine_l335_7 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l127_7 = (io_slots_0_opcode == 4'b1110);
   always @(*) begin
     _zz_io_writeReqs_0_7_payload_data_189 = 32'h0;
-    if(when_ValuEngine_l338_7) begin
+    if(when_ValuEngine_l130_7) begin
       _zz_io_writeReqs_0_7_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_189 : _zz__zz_io_writeReqs_0_7_payload_data_189_6);
     end else begin
-      if(when_ValuEngine_l339_7) begin
+      if(when_ValuEngine_l131_7) begin
         _zz_io_writeReqs_0_7_payload_data_189 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_189_10 : _zz__zz_io_writeReqs_0_7_payload_data_189_19);
       end
     end
   end
 
-  assign when_ValuEngine_l338_7 = (io_slots_0_opcode == 4'b0010);
+  assign when_ValuEngine_l130_7 = (io_slots_0_opcode == 4'b0010);
   assign _zz_io_writeReqs_0_7_payload_data_190 = io_operandA_0_7[3 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_191 = io_operandB_0_7[3 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_192 = io_operandA_0_7[3 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_193 = io_operandB_0_7[3 : 0];
   assign _zz_io_writeReqs_0_7_payload_data_194 = io_operandC_0_7[31 : 0];
-  assign when_ValuEngine_l339_7 = (io_slots_0_opcode == 4'b1110);
+  assign when_ValuEngine_l131_7 = (io_slots_0_opcode == 4'b1110);
   assign _zz_io_writeReqs_0_7_payload_data_195 = io_slots_0_src2Base[0];
   assign _zz_io_writeReqs_0_7_payload_data_196 = (_zz_io_writeReqs_0_7_payload_data_195 ? io_operandA_0_7[23 : 16] : io_operandA_0_7[7 : 0]);
   assign _zz_io_writeReqs_0_7_payload_data_197 = (_zz_io_writeReqs_0_7_payload_data_195 ? io_operandA_0_7[31 : 24] : io_operandA_0_7[15 : 8]);
@@ -21031,10 +21047,10 @@ module ValuEngine (
         _zz_io_writeReqs_0_7_payload_data_213 = (io_operandA_0_7 | io_operandB_0_7);
       end
       4'b0110 : begin
-        if(when_ValuEngine_l409_3) begin
+        if(when_ValuEngine_l201_3) begin
           _zz_io_writeReqs_0_7_payload_data_213 = (io_operandA_0_6 <<< _zz__zz_io_writeReqs_0_7_payload_data_213_6);
         end else begin
-          if(when_ValuEngine_l411_3) begin
+          if(when_ValuEngine_l203_3) begin
             _zz_io_writeReqs_0_7_payload_data_213 = io_operandA_0_7;
           end else begin
             _zz_io_writeReqs_0_7_payload_data_213 = (_zz__zz_io_writeReqs_0_7_payload_data_213_7 | _zz__zz_io_writeReqs_0_7_payload_data_213_8);
@@ -21042,10 +21058,10 @@ module ValuEngine (
         end
       end
       4'b0111 : begin
-        if(when_ValuEngine_l417_3) begin
+        if(when_ValuEngine_l209_3) begin
           _zz_io_writeReqs_0_7_payload_data_213 = (io_slots_0_isSigned ? 32'h0 : 32'h0);
         end else begin
-          if(when_ValuEngine_l419_3) begin
+          if(when_ValuEngine_l211_3) begin
             _zz_io_writeReqs_0_7_payload_data_213 = io_operandA_0_7;
           end else begin
             _zz_io_writeReqs_0_7_payload_data_213 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_213_10 : _zz__zz_io_writeReqs_0_7_payload_data_213_12);
@@ -21066,31 +21082,31 @@ module ValuEngine (
     endcase
   end
 
-  assign _zz_when_ValuEngine_l409_3 = io_operandB_0_6[5 : 0];
-  assign when_ValuEngine_l409_3 = (6'h20 <= _zz_when_ValuEngine_l409_3);
-  assign when_ValuEngine_l411_3 = (_zz_when_ValuEngine_l409_3 == 6'h0);
-  assign _zz_when_ValuEngine_l417_3 = io_operandB_0_6[5 : 0];
-  assign when_ValuEngine_l417_3 = (6'h20 <= _zz_when_ValuEngine_l417_3);
-  assign when_ValuEngine_l419_3 = (_zz_when_ValuEngine_l417_3 == 6'h0);
+  assign _zz_when_ValuEngine_l201_3 = io_operandB_0_6[5 : 0];
+  assign when_ValuEngine_l201_3 = (6'h20 <= _zz_when_ValuEngine_l201_3);
+  assign when_ValuEngine_l203_3 = (_zz_when_ValuEngine_l201_3 == 6'h0);
+  assign _zz_when_ValuEngine_l209_3 = io_operandB_0_6[5 : 0];
+  assign when_ValuEngine_l209_3 = (6'h20 <= _zz_when_ValuEngine_l209_3);
+  assign when_ValuEngine_l211_3 = (_zz_when_ValuEngine_l209_3 == 6'h0);
   always @(*) begin
     _zz_io_writeReqs_0_7_payload_data_214 = _zz_io_writeReqs_0_7_payload_data_1;
-    if(when_ValuEngine_l445_7) begin
-      if(when_ValuEngine_l446_7) begin
+    if(when_ValuEngine_l237_7) begin
+      if(when_ValuEngine_l238_7) begin
         _zz_io_writeReqs_0_7_payload_data_214 = _zz_io_writeReqs_0_7_payload_data_134;
       end else begin
-        if(when_ValuEngine_l447_7) begin
+        if(when_ValuEngine_l239_7) begin
           _zz_io_writeReqs_0_7_payload_data_214 = _zz_io_writeReqs_0_7_payload_data_145;
         end else begin
-          if(when_ValuEngine_l448_7) begin
+          if(when_ValuEngine_l240_7) begin
             _zz_io_writeReqs_0_7_payload_data_214 = _zz_io_writeReqs_0_7_payload_data_151;
           end else begin
-            if(when_ValuEngine_l449_7) begin
+            if(when_ValuEngine_l241_7) begin
               _zz_io_writeReqs_0_7_payload_data_214 = _zz_io_writeReqs_0_7_payload_data_157;
             end else begin
-              if(when_ValuEngine_l450_7) begin
+              if(when_ValuEngine_l242_7) begin
                 _zz_io_writeReqs_0_7_payload_data_214 = _zz_io_writeReqs_0_7_payload_data_178;
               end else begin
-                if(when_ValuEngine_l451_7) begin
+                if(when_ValuEngine_l243_7) begin
                   _zz_io_writeReqs_0_7_payload_data_214 = _zz_io_writeReqs_0_7_payload_data_189;
                 end
               end
@@ -21099,15 +21115,15 @@ module ValuEngine (
         end
       end
     end else begin
-      if(when_ValuEngine_l452_7) begin
-        if(when_ValuEngine_l454_7) begin
-          if(when_ValuEngine_l455_7) begin
+      if(when_ValuEngine_l244_7) begin
+        if(when_ValuEngine_l246_7) begin
+          if(when_ValuEngine_l247_7) begin
             _zz_io_writeReqs_0_7_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_214 : _zz__zz_io_writeReqs_0_7_payload_data_214_2),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_214_3 : _zz__zz_io_writeReqs_0_7_payload_data_214_5)};
           end else begin
-            if(when_ValuEngine_l456_7) begin
+            if(when_ValuEngine_l248_7) begin
               _zz_io_writeReqs_0_7_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_214_6 : _zz__zz_io_writeReqs_0_7_payload_data_214_8);
             end else begin
-              if(when_ValuEngine_l457_7) begin
+              if(when_ValuEngine_l249_7) begin
                 _zz_io_writeReqs_0_7_payload_data_214 = (_zz_io_writeReqs_0_7_payload_data_195 ? _zz__zz_io_writeReqs_0_7_payload_data_214_9 : _zz__zz_io_writeReqs_0_7_payload_data_214_11);
               end else begin
                 _zz_io_writeReqs_0_7_payload_data_214 = io_operandA_0_7;
@@ -21115,14 +21131,14 @@ module ValuEngine (
             end
           end
         end else begin
-          if(when_ValuEngine_l459_7) begin
-            if(when_ValuEngine_l460_7) begin
+          if(when_ValuEngine_l251_7) begin
+            if(when_ValuEngine_l252_7) begin
               _zz_io_writeReqs_0_7_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_214_12 : _zz__zz_io_writeReqs_0_7_payload_data_214_14);
             end else begin
-              if(when_ValuEngine_l461_7) begin
+              if(when_ValuEngine_l253_7) begin
                 _zz_io_writeReqs_0_7_payload_data_214 = (_zz_io_writeReqs_0_7_payload_data_195 ? _zz__zz_io_writeReqs_0_7_payload_data_214_15 : _zz__zz_io_writeReqs_0_7_payload_data_214_17);
               end else begin
-                if(when_ValuEngine_l462_7) begin
+                if(when_ValuEngine_l254_7) begin
                   _zz_io_writeReqs_0_7_payload_data_214 = (_zz_io_writeReqs_0_7_payload_data_195 ? _zz__zz_io_writeReqs_0_7_payload_data_214_18 : _zz__zz_io_writeReqs_0_7_payload_data_214_20);
                 end else begin
                   _zz_io_writeReqs_0_7_payload_data_214 = io_operandA_0_7;
@@ -21130,14 +21146,14 @@ module ValuEngine (
               end
             end
           end else begin
-            if(when_ValuEngine_l464_7) begin
-              if(when_ValuEngine_l465_7) begin
+            if(when_ValuEngine_l256_7) begin
+              if(when_ValuEngine_l257_7) begin
                 _zz_io_writeReqs_0_7_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_214_21 : _zz__zz_io_writeReqs_0_7_payload_data_214_23),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_214_24 : _zz__zz_io_writeReqs_0_7_payload_data_214_26),{(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_214_27 : _zz__zz_io_writeReqs_0_7_payload_data_214_29),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_214_30 : _zz__zz_io_writeReqs_0_7_payload_data_214_32)}}};
               end else begin
-                if(when_ValuEngine_l466_7) begin
+                if(when_ValuEngine_l258_7) begin
                   _zz_io_writeReqs_0_7_payload_data_214 = {(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_214_33 : _zz__zz_io_writeReqs_0_7_payload_data_214_35),(io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_214_36 : _zz__zz_io_writeReqs_0_7_payload_data_214_38)};
                 end else begin
-                  if(when_ValuEngine_l467_7) begin
+                  if(when_ValuEngine_l259_7) begin
                     _zz_io_writeReqs_0_7_payload_data_214 = (io_slots_0_isSigned ? _zz__zz_io_writeReqs_0_7_payload_data_214_39 : _zz__zz_io_writeReqs_0_7_payload_data_214_41);
                   end else begin
                     _zz_io_writeReqs_0_7_payload_data_214 = io_operandA_0_7;
@@ -21145,14 +21161,14 @@ module ValuEngine (
                 end
               end
             end else begin
-              if(when_ValuEngine_l469_7) begin
-                if(when_ValuEngine_l470_7) begin
+              if(when_ValuEngine_l261_7) begin
+                if(when_ValuEngine_l262_7) begin
                   _zz_io_writeReqs_0_7_payload_data_214 = (_zz_io_writeReqs_0_7_payload_data_195 ? _zz__zz_io_writeReqs_0_7_payload_data_214_42 : _zz__zz_io_writeReqs_0_7_payload_data_214_44);
                 end else begin
-                  if(when_ValuEngine_l471_7) begin
+                  if(when_ValuEngine_l263_7) begin
                     _zz_io_writeReqs_0_7_payload_data_214 = (_zz_io_writeReqs_0_7_payload_data_195 ? _zz__zz_io_writeReqs_0_7_payload_data_214_45 : _zz__zz_io_writeReqs_0_7_payload_data_214_47);
                   end else begin
-                    if(when_ValuEngine_l472_7) begin
+                    if(when_ValuEngine_l264_7) begin
                       _zz_io_writeReqs_0_7_payload_data_214 = (_zz_io_writeReqs_0_7_payload_data_195 ? _zz__zz_io_writeReqs_0_7_payload_data_214_48 : _zz__zz_io_writeReqs_0_7_payload_data_214_50);
                     end else begin
                       _zz_io_writeReqs_0_7_payload_data_214 = io_operandA_0_7;
@@ -21166,16 +21182,16 @@ module ValuEngine (
           end
         end
       end else begin
-        if(when_ValuEngine_l477_7) begin
+        if(when_ValuEngine_l269_7) begin
           _zz_io_writeReqs_0_7_payload_data_214 = _zz_io_writeReqs_0_7_payload_data_2;
         end else begin
-          if(when_ValuEngine_l478_7) begin
+          if(when_ValuEngine_l270_7) begin
             _zz_io_writeReqs_0_7_payload_data_214 = _zz_io_writeReqs_0_7_payload_data_40;
           end else begin
-            if(when_ValuEngine_l479_7) begin
+            if(when_ValuEngine_l271_7) begin
               _zz_io_writeReqs_0_7_payload_data_214 = _zz_io_writeReqs_0_7_payload_data_60;
             end else begin
-              if(when_ValuEngine_l480_7) begin
+              if(when_ValuEngine_l272_7) begin
                 _zz_io_writeReqs_0_7_payload_data_214 = _zz_io_writeReqs_0_7_payload_data_213;
               end else begin
                 _zz_io_writeReqs_0_7_payload_data_214 = _zz_io_writeReqs_0_7_payload_data_1;
@@ -21187,55 +21203,39 @@ module ValuEngine (
     end
   end
 
-  assign when_ValuEngine_l452_7 = (io_slots_0_opcode == 4'b1111);
-  assign when_ValuEngine_l445_7 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
-  assign when_ValuEngine_l446_7 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l447_7 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l448_7 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l449_7 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
-  assign when_ValuEngine_l450_7 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
-  assign when_ValuEngine_l451_7 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
-  assign when_ValuEngine_l454_7 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l455_7 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l456_7 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l457_7 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l460_7 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l461_7 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l462_7 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l465_7 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l466_7 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l467_7 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
-  assign when_ValuEngine_l470_7 = (io_slots_0_dwidth == 3'b010);
-  assign when_ValuEngine_l471_7 = (io_slots_0_dwidth == 3'b001);
-  assign when_ValuEngine_l472_7 = (io_slots_0_dwidth == 3'b011);
-  assign when_ValuEngine_l459_7 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l464_7 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l469_7 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
-  assign when_ValuEngine_l477_7 = (io_slots_0_ewidth == 3'b001);
-  assign when_ValuEngine_l478_7 = (io_slots_0_ewidth == 3'b010);
-  assign when_ValuEngine_l479_7 = (io_slots_0_ewidth == 3'b011);
-  assign when_ValuEngine_l480_7 = (io_slots_0_ewidth == 3'b100);
+  assign when_ValuEngine_l244_7 = (io_slots_0_opcode == 4'b1111);
+  assign when_ValuEngine_l237_7 = (((((io_slots_0_opcode == 4'b0010) || (io_slots_0_opcode == 4'b1110)) && (io_slots_0_ewidth != io_slots_0_dwidth)) && (io_slots_0_ewidth != 3'b000)) && (io_slots_0_ewidth != 3'b100));
+  assign when_ValuEngine_l238_7 = ((io_slots_0_ewidth == 3'b001) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l239_7 = ((io_slots_0_ewidth == 3'b001) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l240_7 = ((io_slots_0_ewidth == 3'b010) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l241_7 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b001));
+  assign when_ValuEngine_l242_7 = ((io_slots_0_ewidth == 3'b011) && (io_slots_0_dwidth == 3'b010));
+  assign when_ValuEngine_l243_7 = ((io_slots_0_ewidth == 3'b011) && ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000)));
+  assign when_ValuEngine_l246_7 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l247_7 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l248_7 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l249_7 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l252_7 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l253_7 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l254_7 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l257_7 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l258_7 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l259_7 = ((io_slots_0_dwidth == 3'b000) || (io_slots_0_dwidth == 3'b000));
+  assign when_ValuEngine_l262_7 = (io_slots_0_dwidth == 3'b010);
+  assign when_ValuEngine_l263_7 = (io_slots_0_dwidth == 3'b001);
+  assign when_ValuEngine_l264_7 = (io_slots_0_dwidth == 3'b011);
+  assign when_ValuEngine_l251_7 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l256_7 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l261_7 = ((io_slots_0_ewidth == 3'b000) || (io_slots_0_ewidth == 3'b000));
+  assign when_ValuEngine_l269_7 = (io_slots_0_ewidth == 3'b001);
+  assign when_ValuEngine_l270_7 = (io_slots_0_ewidth == 3'b010);
+  assign when_ValuEngine_l271_7 = (io_slots_0_ewidth == 3'b011);
+  assign when_ValuEngine_l272_7 = (io_slots_0_ewidth == 3'b100);
   assign io_writeReqs_0_7_valid = (unsignedDivider_15_io_done || (_zz_io_writeReqs_0_0_valid && (! _zz_io_writeReqs_0_7_valid)));
   assign io_writeReqs_0_7_payload_addr = (unsignedDivider_15_io_done ? _zz_io_writeReqs_0_7_payload_addr : _zz_io_writeReqs_0_7_payload_addr_1);
   assign io_writeReqs_0_7_payload_data = (unsignedDivider_15_io_done ? ((_zz_io_writeReqs_0_7_payload_data == 2'b00) ? unsignedDivider_15_io_remainder : unsignedDivider_15_io_quotient) : _zz_io_writeReqs_0_7_payload_data_214);
   always @(posedge clk) begin
     if(reset) begin
-      carry64_0_0 <= 1'b0;
-      carry64_0_1 <= 1'b0;
-      carry64_0_2 <= 1'b0;
-      carry64_0_3 <= 1'b0;
-      borrow64_0_0 <= 1'b0;
-      borrow64_0_1 <= 1'b0;
-      borrow64_0_2 <= 1'b0;
-      borrow64_0_3 <= 1'b0;
-      ltLo64_0_0 <= 1'b0;
-      ltLo64_0_1 <= 1'b0;
-      ltLo64_0_2 <= 1'b0;
-      ltLo64_0_3 <= 1'b0;
-      eqLo64_0_0 <= 1'b0;
-      eqLo64_0_1 <= 1'b0;
-      eqLo64_0_2 <= 1'b0;
-      eqLo64_0_3 <= 1'b0;
       _zz_io_writeReqs_0_0_payload_addr <= 11'h0;
       _zz_io_writeReqs_0_0_payload_data <= 2'b00;
       _zz_io_writeReqs_0_1_payload_addr <= 11'h0;
@@ -21255,26 +21255,22 @@ module ValuEngine (
     end else begin
       if(unsignedDivider_8_io_start) begin
         _zz_io_writeReqs_0_0_payload_addr <= (io_slots_0_destBase + 11'h0);
-        if(when_ValuEngine_l305) begin
+        if(when_ValuEngine_l97) begin
           _zz_io_writeReqs_0_0_payload_data <= 2'b00;
         end else begin
-          if(when_ValuEngine_l306) begin
+          if(when_ValuEngine_l98) begin
             _zz_io_writeReqs_0_0_payload_data <= 2'b01;
           end else begin
             _zz_io_writeReqs_0_0_payload_data <= 2'b10;
           end
         end
       end
-      carry64_0_0 <= _zz_carry64_0_0[32];
-      borrow64_0_0 <= _zz_borrow64_0_0[32];
-      ltLo64_0_0 <= (io_operandA_0_0 < io_operandB_0_0);
-      eqLo64_0_0 <= (io_operandA_0_0 == io_operandB_0_0);
       if(unsignedDivider_9_io_start) begin
         _zz_io_writeReqs_0_1_payload_addr <= (io_slots_0_destBase + 11'h001);
-        if(when_ValuEngine_l305_1) begin
+        if(when_ValuEngine_l97_1) begin
           _zz_io_writeReqs_0_1_payload_data <= 2'b00;
         end else begin
-          if(when_ValuEngine_l306_1) begin
+          if(when_ValuEngine_l98_1) begin
             _zz_io_writeReqs_0_1_payload_data <= 2'b01;
           end else begin
             _zz_io_writeReqs_0_1_payload_data <= 2'b10;
@@ -21283,26 +21279,22 @@ module ValuEngine (
       end
       if(unsignedDivider_10_io_start) begin
         _zz_io_writeReqs_0_2_payload_addr <= (io_slots_0_destBase + 11'h002);
-        if(when_ValuEngine_l305_2) begin
+        if(when_ValuEngine_l97_2) begin
           _zz_io_writeReqs_0_2_payload_data <= 2'b00;
         end else begin
-          if(when_ValuEngine_l306_2) begin
+          if(when_ValuEngine_l98_2) begin
             _zz_io_writeReqs_0_2_payload_data <= 2'b01;
           end else begin
             _zz_io_writeReqs_0_2_payload_data <= 2'b10;
           end
         end
       end
-      carry64_0_1 <= _zz_carry64_0_1[32];
-      borrow64_0_1 <= _zz_borrow64_0_1[32];
-      ltLo64_0_1 <= (io_operandA_0_2 < io_operandB_0_2);
-      eqLo64_0_1 <= (io_operandA_0_2 == io_operandB_0_2);
       if(unsignedDivider_11_io_start) begin
         _zz_io_writeReqs_0_3_payload_addr <= (io_slots_0_destBase + 11'h003);
-        if(when_ValuEngine_l305_3) begin
+        if(when_ValuEngine_l97_3) begin
           _zz_io_writeReqs_0_3_payload_data <= 2'b00;
         end else begin
-          if(when_ValuEngine_l306_3) begin
+          if(when_ValuEngine_l98_3) begin
             _zz_io_writeReqs_0_3_payload_data <= 2'b01;
           end else begin
             _zz_io_writeReqs_0_3_payload_data <= 2'b10;
@@ -21311,26 +21303,22 @@ module ValuEngine (
       end
       if(unsignedDivider_12_io_start) begin
         _zz_io_writeReqs_0_4_payload_addr <= (io_slots_0_destBase + 11'h004);
-        if(when_ValuEngine_l305_4) begin
+        if(when_ValuEngine_l97_4) begin
           _zz_io_writeReqs_0_4_payload_data <= 2'b00;
         end else begin
-          if(when_ValuEngine_l306_4) begin
+          if(when_ValuEngine_l98_4) begin
             _zz_io_writeReqs_0_4_payload_data <= 2'b01;
           end else begin
             _zz_io_writeReqs_0_4_payload_data <= 2'b10;
           end
         end
       end
-      carry64_0_2 <= _zz_carry64_0_2[32];
-      borrow64_0_2 <= _zz_borrow64_0_2[32];
-      ltLo64_0_2 <= (io_operandA_0_4 < io_operandB_0_4);
-      eqLo64_0_2 <= (io_operandA_0_4 == io_operandB_0_4);
       if(unsignedDivider_13_io_start) begin
         _zz_io_writeReqs_0_5_payload_addr <= (io_slots_0_destBase + 11'h005);
-        if(when_ValuEngine_l305_5) begin
+        if(when_ValuEngine_l97_5) begin
           _zz_io_writeReqs_0_5_payload_data <= 2'b00;
         end else begin
-          if(when_ValuEngine_l306_5) begin
+          if(when_ValuEngine_l98_5) begin
             _zz_io_writeReqs_0_5_payload_data <= 2'b01;
           end else begin
             _zz_io_writeReqs_0_5_payload_data <= 2'b10;
@@ -21339,26 +21327,22 @@ module ValuEngine (
       end
       if(unsignedDivider_14_io_start) begin
         _zz_io_writeReqs_0_6_payload_addr <= (io_slots_0_destBase + 11'h006);
-        if(when_ValuEngine_l305_6) begin
+        if(when_ValuEngine_l97_6) begin
           _zz_io_writeReqs_0_6_payload_data <= 2'b00;
         end else begin
-          if(when_ValuEngine_l306_6) begin
+          if(when_ValuEngine_l98_6) begin
             _zz_io_writeReqs_0_6_payload_data <= 2'b01;
           end else begin
             _zz_io_writeReqs_0_6_payload_data <= 2'b10;
           end
         end
       end
-      carry64_0_3 <= _zz_carry64_0_3[32];
-      borrow64_0_3 <= _zz_borrow64_0_3[32];
-      ltLo64_0_3 <= (io_operandA_0_6 < io_operandB_0_6);
-      eqLo64_0_3 <= (io_operandA_0_6 == io_operandB_0_6);
       if(unsignedDivider_15_io_start) begin
         _zz_io_writeReqs_0_7_payload_addr <= (io_slots_0_destBase + 11'h007);
-        if(when_ValuEngine_l305_7) begin
+        if(when_ValuEngine_l97_7) begin
           _zz_io_writeReqs_0_7_payload_data <= 2'b00;
         end else begin
-          if(when_ValuEngine_l306_7) begin
+          if(when_ValuEngine_l98_7) begin
             _zz_io_writeReqs_0_7_payload_data <= 2'b01;
           end else begin
             _zz_io_writeReqs_0_7_payload_data <= 2'b10;

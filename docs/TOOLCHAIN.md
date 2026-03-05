@@ -17,6 +17,7 @@
 8. [Bank Conflict Model](#8-bank-conflict-model)
 9. [Worked Examples](#9-worked-examples)
 10. [Limitations & Optimization Opportunities](#10-limitations--optimization-opportunities)
+11. [Verification Runner Modules](#11-verification-runner-modules)
 
 ---
 
@@ -585,6 +586,8 @@ Constraints:
 
 After a bundle containing a non-CONST memory op, the scheduler advances `current_cycle` by `1 + mem_post_gap` (default: 3 total cycles). This is a conservative guard — the actual stall duration depends on AXI timing, and the pipeline handles it via hardware stall.
 
+> **Hardware Safety Net (March 2026):** VliwCore now includes hardware load-use hazard detection that stalls the pipeline when a consuming instruction reads a register still being written by an in-flight load. The scheduler's conservative `mem_post_gap` means this rarely activates, but it guarantees correctness even if software scheduling is imperfect. See `ARCHITECTURE.md § Load-Use Hazard Detection` for details.
+
 ### Jump Handling
 
 After a jump op at cycle `C`:
@@ -742,6 +745,7 @@ Note: VALU bundles block all scalar reads. The scheduler enforces this by checki
 | S6 | No register allocation/spilling | User must manually assign scratch addresses | Add register allocator |
 | S7 | Single-pass greedy scheduling | Sub-optimal packing | Implement list scheduling with priority |
 | S8 | `NORMAL_LATENCY=2` is conservative | Could be 1 with write bypass enabled | Coordinate with HW bypass enable |
+| S9 | Scheduler unaware of HW load-use stalls | Over-conservative spacing around loads | Tighten `mem_post_gap` now that HW stalls provide safety net |
 
 ### Assembler Limitations
 
@@ -768,6 +772,8 @@ Note: VALU bundles block all scalar reads. The scheduler enforces this by checki
 
 ## 11. Verification Runner Modules
 
+> **Status (March 2026):** 114/114 tests pass — 47 unit + 67 integration.
+
 Integration tests are split into grouped modules under verification/cocotb/integration.
 
 Common commands:
@@ -782,6 +788,10 @@ python verification/cocotb/integration/run_integration.py --modules test_integra
 python verification/cocotb/integration/run_integration.py --modules test_integration_memory
 python verification/cocotb/integration/run_integration.py --modules test_integration_control
 python verification/cocotb/integration/run_integration.py --modules test_integration_vector
+
+# Run slot configuration and driver integration modules
+python verification/cocotb/integration/run_integration.py --modules test_slot_configs
+python verification/cocotb/integration/run_integration.py --modules test_driver_integration
 
 # Run grouped algorithm domains
 python verification/cocotb/integration/run_integration.py --modules test_algorithms_kernels

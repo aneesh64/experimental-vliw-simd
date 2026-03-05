@@ -2,11 +2,96 @@
 
 **Project:** VLIW SIMD Processor Simplification  
 **Timeline:** Phase 0 (Planning) → Phase 5 (Verification)  
-**Current Status:** Phase 3 Complete, Baseline Production-Ready
+**Current Status:** Phase 5 Complete, Load-Use Hazard Detection + Multi-Width Vector ISA
 
 **Project:** VLIW SIMD Processor  
 **Timeline:** Phase 0 (Planning) → Phase 5 (Verification)  
-**Current Status:** Phase 4 Complete, Multi-Width Vector ISA
+**Current Status:** Phase 5 Complete, 114/114 Tests Passing
+
+---
+
+## Load-Use Hazard Detection & Verification Sweep (March 5, 2026)
+
+### Summary
+Re-introduced hardware load-use hazard detection into VliwCore to handle asynchronous AXI
+load latency that cannot be statically scheduled. Fixed FetchUnit stall-address bug, added
+MemoryEngine alignment assertions, fixed VALU unit test initialization, and rewrote driver
+integration tests. Achieved 114/114 tests passing (100%).
+
+### Architecture Changes
+
+**VliwCore.scala (361 → 677 LOC, +316 LOC):**
+Load-use hazard detection was added as a targeted exception to the compiler-trusted design.
+While Phase 2 removed WAW/RAW/WAR hazard detection (which the scheduler can handle statically),
+AXI load responses arrive asynchronously and cannot be reliably predicted at compile time.
+
+Key additions:
+- **Hazard detection signals:** `loadPendingValid`, `exIssuingLoad`, `wbCommittingLoadValid`
+  track loads across pipeline stages
+- **`decodeReadsPendingDest()`** — checks ALL engine slot types (ALU src1/src2, Load addrReg,
+  Store addrReg/srcReg, VALU src1Base/src2Base/src3Base, Flow operands) for overlap with a
+  pending load destination, including scalar-in-vector-range detection
+- **`exReadsPendingDest()`** — same checks applied to registered EX-stage slots
+- **Three hazard sources:**
+  1. `hazardFromPending` — load already in-flight, decode reads its destination
+  2. `hazardFromIssuing` — load being issued this EX cycle, decode reads its destination
+  3. `hazardFromWbCommit` — load data at writeback, decode reads its destination
+- **Stall path:** `fetch.io.stall := mem.io.stall || loadUseHazard || exLoadUseHazard`
+- **Bubble injection:** On decode-side hazard, EX slot valid signals forced `False`
+- **Pipeline register hold:** On memory backpressure, all `exSlotsReg` are frozen
+
+**FetchUnit.scala (130 LOC) — Stall-Address Fix:**
+- Changed `io.imemAddr` from always driving `pc` to `Mux(io.stall, (pc - 1).resized, pc)`
+- During stalls, drives `pc-1` so the IMEM keeps outputting the instruction that was in-flight
+  when the stall began. Without this fix, the IMEM output drifts to `mem[pc]` and the stalled
+  instruction at `mem[pc-1]` is lost — causing an instruction skip on stall release.
+
+**MemoryEngine.scala (367 → 391 LOC, +24 LOC):**
+- Added hazard metadata output ports: `loadPendingValid`, `loadPendingDestAddr`,
+  `loadPendingIsVector` — consumed by VliwCore's load-use hazard detection
+- Added debug-time alignment assertions for VLOAD and VSTORE: catch beat boundary overflow
+  (`wordOffset + VLEN > wordsPerBeat`) at simulation time
+
+### Verification Fixes
+
+**VALU Unit Tests (test_valu.py):**
+- `reset()` now initializes `io_slots_0_ewidth=0`, `io_slots_0_dwidth=0`,
+  `io_slots_0_isSigned=0` — Phase 4 added these fields to `ValuSlot`, but the unit test
+  wasn't initializing them. In Icarus Verilog, uninitialized signals are X/Z:
+  - DIV/MOD: divider start condition `ew === EW32` (EW32=0) evaluated false → timeout
+  - `test_all_single_cycle_ops`: X propagated through result MUX
+- VBROADCAST test: changed `c_vec` from `[42]+[999]*7` to `[42]*8` — standalone ValuEngine
+  outputs each lane's own operandC (broadcasting happens at VliwCore level)
+
+**Driver Integration Tests (test_driver_integration.py — rewritten):**
+- All 5 tests rewritten from raw assembly text to use `VliwScheduler` + `build_program()` pattern
+- Tests now use proper `Op` objects and `AssemblerConfig` matching the hardware config
+- Added result verification via AXI memory reads for arithmetic, memory round-trip, and
+  loop control flow tests
+
+### Test Results
+
+| Suite | Tests | Status |
+|-------|-------|--------|
+| Unit: divider | 6 | PASS |
+| Unit: alu | 6 | PASS |
+| Unit: valu | 7 | PASS |
+| Unit: flow | 13 | PASS |
+| Unit: mem | 4 | PASS |
+| Unit: scratch | 5 | PASS |
+| Unit: core | 6 | PASS |
+| Integration: test_integration | 31 | PASS |
+| Integration: test_algorithms | 28 | PASS |
+| Integration: test_slot_configs | 3 | PASS |
+| Integration: test_driver_integration | 5 | PASS |
+| **Total** | **114** | **114 PASS, 0 FAIL** |
+
+### Files Modified
+- `src/main/scala/vliw/core/VliwCore.scala` — Load-use hazard detection (+316 LOC)
+- `src/main/scala/vliw/core/FetchUnit.scala` — Stall-address Mux fix
+- `src/main/scala/vliw/engine/MemoryEngine.scala` — Hazard metadata + alignment assertions
+- `verification/cocotb/tests/test_valu.py` — reset() initialization + VBROADCAST fix
+- `verification/cocotb/integration/test_driver_integration.py` — Complete rewrite
 
 ---
 
@@ -498,16 +583,15 @@ Executed multi-configuration verification sweep and comprehensive documentation 
 | **Total** | **1,278 LOC** | **1,105 LOC** | **-173 LOC** | **-15.3%** |
 
 ### Verification Status
-- **Test Suite:** 23 comprehensive integration tests
-- **Passing (Baseline):** 22/23 (95.7%)
-- **Coverage:** ALU, VALU, memory, control flow, vector ops
-- **Performance:** 23,272 ns/s simulation throughput
+- **Test Suite:** 114 comprehensive tests (47 unit + 67 integration)
+- **Passing (Baseline):** 114/114 (100%)
+- **Coverage:** ALU, VALU, memory, control flow, vector ops, load-use hazards, multi-width, driver integration
 
 ### Deliverables
-- **RTL Modules:** 5 core files (1,105 LOC)
+- **RTL Modules:** Core files (~1,500 LOC including hazard detection)
 - **Software:** C driver library (290 LOC)
 - **Tools:** Assembler, scheduler, validator
-- **Tests:** 23 integration tests + unit tests
+- **Tests:** 47 unit tests + 67 integration tests
 - **Documentation:** 10+ comprehensive documents
 
 ### Architecture Evolution
@@ -516,37 +600,39 @@ Phase 0: Baseline with hazard detection (1,278 LOC)
          ↓
 Phase 1: Validation infrastructure created
          ↓
-Phase 2: Hazard detection removed (-116 LOC)
+Phase 2: WAW/RAW/WAR hazard detection removed (-116 LOC)
          ↓
 Phase 3: Memory engine simplified (-57 LOC)
          ↓
-Phase 4: Driver library added (+290 LOC)
+Phase 4: Multi-width vector ISA + driver library + C API
          ↓
 Phase 5: Comprehensive verification complete
          ↓
-Result: 1,105 LOC RTL + 290 LOC driver = Production Ready
+Load-Use: Hardware hazard detection re-added for async loads (+316 LOC)
+         ↓
+Result: 677 LOC VliwCore + 391 LOC MemEngine + 290 LOC driver
+        114/114 tests = Production Ready
 ```
 
 ---
 
-## Current Status (February 28, 2026)
+## Current Status (March 5, 2026)
 
 ### Production Ready ✅
-- **Baseline Config:** 22/23 tests passing
-- **RTL:** Simplified and verified
-- **Driver:** Complete C API
-- **Documentation:** Comprehensive
+- **Baseline Config:** 114/114 tests passing (47 unit + 67 integration)
+- **RTL:** Simplified core with targeted load-use hazard detection
+- **Driver:** Complete C API with verified integration tests
+- **Documentation:** Comprehensive and up-to-date
 - **Toolchain:** Java 21 + sbt 1.12.4 + Scala 2.13.16 (project)
 
 ### Known Issues ⚠️
 - **Multi-ALU:** Requires investigation (4-6 hours)
-- **Driver Tests:** API bridge needed (2-3 hours)
-- **Long Timeout:** Non-critical (accepted)
 
-### Next Steps
-1. **Option A:** Fix dual-ALU issue (high-impact)
-2. **Option B:** Complete driver integration (medium-impact)
-3. **Option C:** Release baseline (documentation)
+### Resolved Issues ✅
+- **Long Memory Timeout:** Fixed (JUMP_BUBBLE=3)
+- **FetchUnit Stall Skip:** Fixed (Mux stall-address)
+- **Driver Integration API:** Rewritten to use scheduler pattern
+- **VALU Unit Test Init:** Fixed (ewidth/dwidth/isSigned initialization)
 
 ---
 

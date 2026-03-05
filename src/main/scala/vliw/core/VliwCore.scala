@@ -249,6 +249,223 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
     flowSlot := decode.io.flowSlot
   }
 
+  // ======================== Decode-time load-use hazard detection ========================
+  // Hazard source #1: pending MemoryEngine load register.
+  // Hazard source #2: load being issued by current EX slot this cycle.
+  val exIssuingLoad = Bool()
+  val exIssuingLoadIsVector = Bool()
+  val exIssuingLoadDest = UInt(cfg.scratchAddrWidth bits)
+
+  // One-cycle extension for load-use hazard after AXI response has arrived,
+  // because load/vload data is still traveling through WB pipeline registers.
+  val wbCommittingLoadValid = RegInit(False)
+  val wbCommittingLoadIsVector = RegInit(False)
+  val wbCommittingLoadDest = Reg(UInt(cfg.scratchAddrWidth bits)) init 0
+
+  val exLoadIssueValid = Vec(Bool(), cfg.nLoadSlots)
+  val exLoadIssueIsVector = Vec(Bool(), cfg.nLoadSlots)
+  val exLoadIssueDest = Vec(UInt(cfg.scratchAddrWidth bits), cfg.nLoadSlots)
+
+  for (i <- 0 until cfg.nLoadSlots) {
+    val slot = exSlotsReg.loadSlots(i)
+    val isMemLoad = exSlotsReg.valid && slot.valid &&
+      (slot.opcode === LoadOpcode.LOAD || slot.opcode === LoadOpcode.LOAD_OFFSET || slot.opcode === LoadOpcode.VLOAD)
+    exLoadIssueValid(i) := isMemLoad
+    exLoadIssueIsVector(i) := slot.opcode === LoadOpcode.VLOAD
+    exLoadIssueDest(i) := Mux(slot.opcode === LoadOpcode.LOAD_OFFSET,
+                              (slot.dest + slot.offset).resize(cfg.scratchAddrWidth),
+                              slot.dest)
+  }
+
+  exIssuingLoad := exLoadIssueValid.reduce(_ || _)
+
+  var issuingVecSel: Bool = False
+  var issuingDestSel: UInt = U(0, cfg.scratchAddrWidth bits)
+  for (i <- 0 until cfg.nLoadSlots) {
+    issuingVecSel = Mux(exLoadIssueValid(i), exLoadIssueIsVector(i), issuingVecSel)
+    issuingDestSel = Mux(exLoadIssueValid(i), exLoadIssueDest(i), issuingDestSel)
+  }
+  exIssuingLoadIsVector := issuingVecSel
+  exIssuingLoadDest := issuingDestSel
+
+  val anyLoadWriteRsp = mem.io.loadWriteReqs.map(_.valid).reduce(_ || _)
+  val anyVloadWriteRsp = mem.io.vloadWriteReqs.map(_.map(_.valid).reduce(_ || _)).reduce(_ || _)
+
+  wbCommittingLoadValid := anyLoadWriteRsp || anyVloadWriteRsp
+  wbCommittingLoadIsVector := anyVloadWriteRsp
+  when(anyVloadWriteRsp) {
+    wbCommittingLoadDest := mem.io.vloadWriteReqs(0)(0).addr
+  } elsewhen(anyLoadWriteRsp) {
+    wbCommittingLoadDest := mem.io.loadWriteReqs(0).addr
+  }
+
+  def decodeReadsPendingDest(pendingDest: UInt, pendingIsVector: Bool): Bool = {
+    val pendingVecEnd = (pendingDest + (cfg.vlen - 1)).resize(cfg.scratchAddrWidth)
+
+    def scalarHits(addr: UInt): Bool = {
+      val inVecRange = (addr >= pendingDest) && (addr <= pendingVecEnd)
+      Mux(pendingIsVector, inVecRange, addr === pendingDest)
+    }
+
+    def vectorBaseHits(base: UInt): Bool = {
+      val srcEnd = (base + (cfg.vlen - 1)).resize(cfg.scratchAddrWidth)
+      val overlapsVec = (base <= pendingVecEnd) && (pendingDest <= srcEnd)
+      val coversScalar = (base <= pendingDest) && (pendingDest <= srcEnd)
+      Mux(pendingIsVector, overlapsVec, coversScalar)
+    }
+
+    val hasDep = Bool()
+    hasDep := False
+
+    for (i <- 0 until cfg.nAluSlots) {
+      val slot = decode.io.aluSlots(i)
+      when(slot.valid && (scalarHits(slot.src1) || scalarHits(slot.src2))) {
+        hasDep := True
+      }
+    }
+
+    for (i <- 0 until cfg.nLoadSlots) {
+      val slot = decode.io.loadSlots(i)
+      val needsAddrRead = slot.valid && (slot.opcode =/= LoadOpcode.CONST)
+      when(needsAddrRead && scalarHits(slot.addrReg)) {
+        hasDep := True
+      }
+    }
+
+    for (i <- 0 until cfg.nStoreSlots) {
+      val slot = decode.io.storeSlots(i)
+      when(slot.valid) {
+        val srcHazard = Mux(slot.opcode === StoreOpcode.VSTORE,
+                            vectorBaseHits(slot.srcReg),
+                            scalarHits(slot.srcReg))
+        when(scalarHits(slot.addrReg) || srcHazard) {
+          hasDep := True
+        }
+      }
+    }
+
+    for (s <- 0 until cfg.nValuSlots) {
+      val slot = decode.io.valuSlots(s)
+      val usesSrc3 = slot.opcode === ValuOpcode.VBROADCAST || slot.opcode === ValuOpcode.MULTIPLY_ADD
+      when(slot.valid) {
+        when(vectorBaseHits(slot.src1Base) || vectorBaseHits(slot.src2Base) ||
+             (usesSrc3 && scalarHits(slot.src3Base))) {
+          hasDep := True
+        }
+      }
+    }
+
+    {
+      val fv = decode.io.flowSlot.valid
+      val op = decode.io.flowSlot.opcode
+
+      val needsCond = fv && (op === FlowOpcode.SELECT || op === FlowOpcode.VSELECT ||
+                             op === FlowOpcode.ADD_IMM || op === FlowOpcode.COND_JUMP ||
+                             op === FlowOpcode.COND_JUMP_REL || op === FlowOpcode.JUMP_INDIRECT)
+      val needsSrcA = fv && (op === FlowOpcode.SELECT || op === FlowOpcode.VSELECT)
+      val needsSrcB = fv && (op === FlowOpcode.SELECT || op === FlowOpcode.VSELECT)
+
+      when((needsCond && scalarHits(decode.io.flowSlot.operandA)) ||
+           (needsSrcA && scalarHits(decode.io.flowSlot.operandB)) ||
+           (needsSrcB && scalarHits(decode.io.flowSlot.immediate.resize(cfg.scratchAddrWidth)))) {
+        hasDep := True
+      }
+    }
+
+    hasDep
+  }
+
+  def exReadsPendingDest(pendingDest: UInt, pendingIsVector: Bool): Bool = {
+    val pendingVecEnd = (pendingDest + (cfg.vlen - 1)).resize(cfg.scratchAddrWidth)
+
+    def scalarHits(addr: UInt): Bool = {
+      val inVecRange = (addr >= pendingDest) && (addr <= pendingVecEnd)
+      Mux(pendingIsVector, inVecRange, addr === pendingDest)
+    }
+
+    def vectorBaseHits(base: UInt): Bool = {
+      val srcEnd = (base + (cfg.vlen - 1)).resize(cfg.scratchAddrWidth)
+      val overlapsVec = (base <= pendingVecEnd) && (pendingDest <= srcEnd)
+      val coversScalar = (base <= pendingDest) && (pendingDest <= srcEnd)
+      Mux(pendingIsVector, overlapsVec, coversScalar)
+    }
+
+    val hasDep = Bool()
+    hasDep := False
+
+    when(exSlotsReg.valid) {
+      for (i <- 0 until cfg.nAluSlots) {
+        val slot = exSlotsReg.aluSlots(i)
+        when(slot.valid && (scalarHits(slot.src1) || scalarHits(slot.src2))) {
+          hasDep := True
+        }
+      }
+
+      for (i <- 0 until cfg.nLoadSlots) {
+        val slot = exSlotsReg.loadSlots(i)
+        val needsAddrRead = slot.valid && (slot.opcode =/= LoadOpcode.CONST)
+        when(needsAddrRead && scalarHits(slot.addrReg)) {
+          hasDep := True
+        }
+      }
+
+      for (i <- 0 until cfg.nStoreSlots) {
+        val slot = exSlotsReg.storeSlots(i)
+        when(slot.valid) {
+          val srcHazard = Mux(slot.opcode === StoreOpcode.VSTORE,
+                              vectorBaseHits(slot.srcReg),
+                              scalarHits(slot.srcReg))
+          when(scalarHits(slot.addrReg) || srcHazard) {
+            hasDep := True
+          }
+        }
+      }
+
+      for (s <- 0 until cfg.nValuSlots) {
+        val slot = exSlotsReg.valuSlots(s)
+        val usesSrc3 = slot.opcode === ValuOpcode.VBROADCAST || slot.opcode === ValuOpcode.MULTIPLY_ADD
+        when(slot.valid) {
+          when(vectorBaseHits(slot.src1Base) || vectorBaseHits(slot.src2Base) ||
+               (usesSrc3 && scalarHits(slot.src3Base))) {
+            hasDep := True
+          }
+        }
+      }
+
+      {
+        val fv = exSlotsReg.flowSlot.valid
+        val op = exSlotsReg.flowSlot.opcode
+
+        val needsCond = fv && (op === FlowOpcode.SELECT || op === FlowOpcode.VSELECT ||
+                               op === FlowOpcode.ADD_IMM || op === FlowOpcode.COND_JUMP ||
+                               op === FlowOpcode.COND_JUMP_REL || op === FlowOpcode.JUMP_INDIRECT)
+        val needsSrcA = fv && (op === FlowOpcode.SELECT || op === FlowOpcode.VSELECT)
+        val needsSrcB = fv && (op === FlowOpcode.SELECT || op === FlowOpcode.VSELECT)
+
+        when((needsCond && scalarHits(exSlotsReg.flowSlot.operandA)) ||
+             (needsSrcA && scalarHits(exSlotsReg.flowSlot.operandB)) ||
+             (needsSrcB && scalarHits(exSlotsReg.flowSlot.immediate.resize(cfg.scratchAddrWidth)))) {
+          hasDep := True
+        }
+      }
+    }
+
+    hasDep
+  }
+
+  val hazardFromPending = mem.io.loadPendingValid &&
+    decodeReadsPendingDest(mem.io.loadPendingDestAddr, mem.io.loadPendingIsVector)
+  val hazardFromIssuing = exIssuingLoad && decodeReadsPendingDest(exIssuingLoadDest, exIssuingLoadIsVector)
+  val hazardFromWbCommit = wbCommittingLoadValid &&
+    decodeReadsPendingDest(wbCommittingLoadDest, wbCommittingLoadIsVector)
+  val loadUseHazard = hazardFromPending || hazardFromIssuing || hazardFromWbCommit
+
+  val exHazardFromPending = mem.io.loadPendingValid &&
+    exReadsPendingDest(mem.io.loadPendingDestAddr, mem.io.loadPendingIsVector)
+  val exHazardFromWbCommit = wbCommittingLoadValid &&
+    exReadsPendingDest(wbCommittingLoadDest, wbCommittingLoadIsVector)
+  val exLoadUseHazard = exHazardFromPending || exHazardFromWbCommit
+
   // When stalled, hold ALL pipeline registers (not just valid).
   // Without this, the next instruction's decode output leaks into
   // exSlotsReg during stall, causing premature execution of the
@@ -270,6 +487,17 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
     exSlotsReg.pc       := exSlotsReg.pc
   }
 
+  // On decode-side load-use hazard, inject bubble into EX so the already-issued
+  // load can complete and clear pending state without deadlocking.
+  when(loadUseHazard && !mem.io.stall && !exLoadUseHazard) {
+    exSlotsReg.valid := False
+    for (i <- 0 until cfg.nAluSlots)   exSlotsReg.aluSlots(i).valid := False
+    for (i <- 0 until cfg.nValuSlots)  exSlotsReg.valuSlots(i).valid := False
+    for (i <- 0 until cfg.nLoadSlots)  exSlotsReg.loadSlots(i).valid := False
+    for (i <- 0 until cfg.nStoreSlots) exSlotsReg.storeSlots(i).valid := False
+    exSlotsReg.flowSlot.valid := False
+  }
+
   // ======================== Engine data wiring (EX stage) ========================
   // BRAM read data is now available (1 cycle after address was presented)
 
@@ -277,7 +505,7 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
   // Stall directly gates engine firing — no suppressRefire needed.
   // When stall clears, the held instruction fires exactly once (memProcessed
   // in MemoryEngine prevents double-push; WB register captures results).
-  val engineFireValid = exSlotsReg.valid && !pipelineStall
+  val engineFireValid = exSlotsReg.valid && !pipelineStall && !exLoadUseHazard
 
   // ---- ALU operand wiring ----
   alu.io.valid := engineFireValid
@@ -327,7 +555,7 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
   }
 
   // ---- Flow engine wiring ----
-  flow.io.valid := exSlotsReg.valid
+  flow.io.valid := engineFireValid
   flow.io.slot  := exSlotsReg.flowSlot
   flow.io.currentPc := exSlotsReg.pc
 
@@ -352,7 +580,7 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
   // same conflict persists).  The scheduler is responsible for avoiding
   // bank conflicts; any unintended conflict degrades to stale data
   // rather than a livelock.
-  fetch.io.stall := pipelineStall
+  fetch.io.stall := mem.io.stall || loadUseHazard || exLoadUseHazard
 
   // ======================== WB Pipeline Registers (3-stage) ========================
   // Synchronous engine writes are registered here for 1-cycle delay (EX→WB).

@@ -1,5 +1,9 @@
 from test_integration_common import *
 
+
+def _assemble_direct(bundles):
+    return ASM.assemble_program(bundles)
+
 @cocotb.test()
 async def test_load_store_roundtrip(dut):
     """Store 42 to mem[0], load it back, store to mem[256]."""
@@ -270,3 +274,165 @@ async def test_vector_load_compute_store_pipeline(dut):
         assert got == exp, (
             f"VALU mul lane {lane}: expected {exp}, got {got}"
         )
+
+
+# ============================================================================
+#  Targeted load-use hazard tests (test-first for hardware stall feature)
+# ============================================================================
+
+@cocotb.test()
+async def test_scalar_load_use_immediate_dependency_stalls(dut):
+    """Immediate scalar load-use dependency with forced read latency."""
+    harness = VliwCoreHarness(dut, axi_latency=8)
+    harness.axi_mem.preload(100, [21])
+    await harness.init()
+
+    program = _assemble_direct([
+        {},
+        {"load": [("const", 0, 100)]},
+        {},
+        {},
+        {"load": [("load", 1, 0)]},
+        {"alu": [("add", 2, 1, 1)]},
+        {"load": [("const", 10, 1000)]},
+        {},
+        {},
+        {"store": [("store", 10, 2)]},
+        {"flow": [("halt",)]},
+    ])
+
+    await harness.load_program(program)
+    await harness.run(max_cycles=4000)
+
+    got = harness.axi_mem.read_word(1000)
+    assert got == 42, f"Expected doubled loaded value 42, got {got}"
+
+
+@cocotb.test()
+async def test_vector_vload_use_immediate_dependency_stalls(dut):
+    """Immediate vector vload-use dependency with forced read latency.
+
+    VLOAD → VALU (same-cycle dependency) → VSTORE must stall the pipeline
+    until the VLOAD data is committed.  The VSTORE AXI address must be
+    beat-aligned for the vector width (addr % 16 <= 8 for VLEN=8 with a
+    512-bit / 16-word AXI bus) to avoid lane-wrapping within a single beat.
+    """
+    harness = VliwCoreHarness(dut, axi_latency=9)
+    src = [1, 2, 3, 4, 5, 6, 7, 8]
+    harness.axi_mem.preload(0, src)   # offset=0 → positions 0-7 in beat
+    await harness.init()
+
+    # Use beat-aligned VSTORE address: 2000 % 16 == 0
+    program = _assemble_direct([
+        {},
+        {"load": [("const", 0, 0)]},
+        {},
+        {},
+        {"load": [("vload", 320, 0)]},
+        {"valu": [("add", 328, 320, 320)]},
+        {"load": [("const", 10, 2000)]},
+        {},
+        {},
+        {"store": [("vstore", 10, 328)]},
+        {"flow": [("halt",)]},
+    ])
+
+    await harness.load_program(program)
+    await harness.run(max_cycles=6000)
+
+    expected = [v * 2 for v in src]
+    results = [harness.axi_mem.read_word(2000 + lane) for lane in range(8)]
+    dut._log.info(f"[diag] vload-use vector results: {results}")
+    dut._log.info(f"[diag] vload-use vector expected: {expected}")
+    for lane, exp in enumerate(expected):
+        got = results[lane]
+        assert got == exp, f"lane {lane}: expected {exp}, got {got}"
+
+
+@cocotb.test()
+async def test_load_use_independent_before_dependent_progress(dut):
+    """Independent bundle after load should progress; later dependent bundle must be correct."""
+    harness = VliwCoreHarness(dut, axi_latency=10)
+    harness.axi_mem.preload(300, [5])
+    await harness.init()
+
+    program = _assemble_direct([
+        {},
+        {"load": [("const", 0, 300)]},
+        {"load": [("const", 20, 100)]},
+        {},
+        {},
+        {"load": [("load", 1, 0)]},
+        {"flow": [("add_imm", 20, 20, 7)]},
+        {"alu": [("add", 2, 1, 1)]},
+        {"load": [("const", 10, 1300)]},
+        {},
+        {},
+        {"store": [("store", 10, 20)]},
+        {"flow": [("add_imm", 10, 10, 1)]},
+        {"store": [("store", 10, 2)]},
+        {"flow": [("halt",)]},
+    ])
+
+    await harness.load_program(program)
+    cycles = await harness.run(max_cycles=6000)
+
+    independent = harness.axi_mem.read_word(1300)
+    dependent = harness.axi_mem.read_word(1301)
+    assert independent == 107, f"Independent op expected 107, got {independent}"
+    assert dependent == 10, f"Dependent load-use op expected 10, got {dependent}"
+    assert cycles < 3000, f"Unexpected excessive stalling: cycles={cycles}"
+
+
+@cocotb.test()
+async def test_load_use_randomized_axi_latency_robustness(dut):
+    """Stress immediate load-use dependencies under randomized per-transaction AXI read latency."""
+    harness = VliwCoreHarness(dut, axi_latency_mode="stress", axi_latency_n=20)
+    harness.axi_mem.preload(400, [3])
+    harness.axi_mem.preload(401, [7])
+    harness.axi_mem.preload(500, [2, 4, 6, 8, 10, 12, 14, 16])
+    await harness.init()
+
+    program = _assemble_direct([
+        {},
+        {"load": [("const", 0, 400)]},
+        {},
+        {},
+        {"load": [("load", 1, 0)]},
+        {"alu": [("add", 2, 1, 1)]},
+
+        {"flow": [("add_imm", 0, 0, 1)]},
+        {"load": [("load", 3, 0)]},
+        {"alu": [("add", 4, 3, 3)]},
+
+        {"load": [("const", 5, 500)]},
+        {},
+        {},
+        {"load": [("vload", 320, 5)]},
+        {"valu": [("add", 328, 320, 320)]},
+
+        {"load": [("const", 10, 2000)]},
+        {},
+        {},
+        {"store": [("store", 10, 2)]},
+        {"flow": [("add_imm", 10, 10, 1)]},
+        {"store": [("store", 10, 4)]},
+        {"flow": [("add_imm", 10, 10, 1)]},
+        {"store": [("vstore", 10, 328)]},
+        {"flow": [("halt",)]},
+    ])
+
+    await harness.load_program(program)
+    await harness.run(max_cycles=12000)
+
+    assert harness.axi_mem.read_word(2000) == 6, "Scalar hazard #1 mismatch"
+    assert harness.axi_mem.read_word(2001) == 14, "Scalar hazard #2 mismatch"
+    expected_vec = [4, 8, 12, 16, 20, 24, 28, 32]
+    for lane, exp in enumerate(expected_vec):
+        got = harness.axi_mem.read_word(2002 + lane)
+        assert got == exp, f"Random stress vector lane {lane}: expected {exp}, got {got}"
+
+    assert harness.axi_mem.read_txn_count >= 3, "Expected multiple AXI read transactions"
+    assert len(set(harness.axi_mem.read_latencies)) > 1, (
+        f"Expected varied read latencies, got {harness.axi_mem.read_latencies}"
+    )

@@ -45,10 +45,36 @@ class VliwCoreHarness:
     """
 
     def __init__(self, dut, clock_period_ns: int = 10, mem_words: int = 16384,
-                 axi_latency: int = 0):
+                 axi_latency: int = 0, axi_latency_mode: str = "fixed",
+                 axi_latency_sequence: list[int] | None = None,
+                 axi_latency_n: int = 20, axi_seed: int | None = None):
         self.dut = dut
         self.clock_period = clock_period_ns
-        self.axi_mem = Axi4MemoryModel(dut, "io_dmemAxi", mem_words, axi_latency)
+        self.axi_latency_mode = axi_latency_mode
+        self.axi_seed = axi_seed
+
+        if axi_latency_mode == "fixed":
+            self.axi_mem = Axi4MemoryModel(dut, "io_dmemAxi", mem_words, axi_latency)
+        elif axi_latency_mode == "sequence":
+            self.axi_mem = Axi4MemoryModel(
+                dut,
+                "io_dmemAxi",
+                mem_words,
+                latency=0,
+                latency_sequence=axi_latency_sequence,
+            )
+        elif axi_latency_mode == "stress":
+            latency_fn = Axi4MemoryModel.make_stress_latency_fn(n=axi_latency_n, seed=axi_seed)
+            self.axi_seed = getattr(latency_fn, "seed", axi_seed)
+            self.axi_mem = Axi4MemoryModel(
+                dut,
+                "io_dmemAxi",
+                mem_words,
+                latency=0,
+                latency_fn=latency_fn,
+            )
+        else:
+            raise ValueError(f"Unknown axi_latency_mode: {axi_latency_mode}")
 
     async def init(self, reset_cycles: int = 5):
         """Initialize clock, reset, and tie off control signals."""
@@ -81,6 +107,8 @@ class VliwCoreHarness:
 
         # Start AXI memory model
         self.axi_mem.start()
+        if self.axi_latency_mode == "stress":
+            self.dut._log.info(f"[axi] stress latency enabled (seed={self.axi_seed})")
 
     async def load_program(self, bundles: list):
         """Load a list of 256-bit bundle integers into IMEM via io_imemWrite."""
@@ -103,7 +131,7 @@ class VliwCoreHarness:
         await RisingEdge(self.dut.clk)
         self.dut.io_start.value = 0
 
-    async def run(self, max_cycles: int = 500, drain_cycles: int = 20) -> int:
+    async def run(self, max_cycles: int = 2000, drain_cycles: int = 20) -> int:
         """Start the core and wait for halt. Returns number of cycles.
         
         After halt, continues for drain_cycles to allow pending AXI

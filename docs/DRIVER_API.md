@@ -4,6 +4,13 @@
 
 The VLIW SoC exposes itself as a memory-mapped co-processor peripheral. A **driver** (hardware + software) manages the control flow: loading programs, starting execution, and retrieving results.
 
+**Verification Status:** 5 driver integration tests pass end-to-end (`test_driver_integration` module),
+covering program loading, arithmetic, memory access, control flow loops, and vector operations.
+
+**Pipeline Note:** The processor includes hardware load-use hazard detection. Programs loaded
+via the driver do not need special handling for load dependencies — the pipeline stalls
+automatically.
+
 ---
 
 ## 1. Memory Map
@@ -380,10 +387,13 @@ close(fd);
 
 ## 11. Testing Checklist
 
-- [ ] Write/read CTRL, STAT registers
-- [ ] Load simple 1-bundle program; verify execution
-- [ ] Multi-bundle program with jumps
-- [ ] Read scratch memory post-execution
+- [x] Write/read CTRL, STAT registers
+- [x] Load simple 1-bundle program; verify execution
+- [x] Multi-bundle program with arithmetic (10+20=30)
+- [x] Memory store/load round-trip verification
+- [x] Control flow with counting loop (0→5)
+- [x] Vector operations (VBROADCAST)
+- [ ] Read scratch memory post-execution (via CSR)
 - [ ] Verify cycle counter increments
 - [ ] Test ERROR flag on invalid memory access
 - [ ] Test MEM_STALL flag during DMEM operations

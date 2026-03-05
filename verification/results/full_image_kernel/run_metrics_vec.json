@@ -1,0 +1,9 @@
+{
+  "kernel": "full_image_threshold_vec",
+  "width": 64,
+  "height": 64,
+  "pixels": 4096,
+  "threshold": 128,
+  "cycles": 19982,
+  "cycles_per_pixel": 4.878418
+}

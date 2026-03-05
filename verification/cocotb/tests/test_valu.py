@@ -59,6 +59,9 @@ async def reset(dut, cycles=5):
     dut.io_slots_0_src1Base.value = 0
     dut.io_slots_0_src2Base.value = 0
     dut.io_slots_0_src3Base.value = 0
+    dut.io_slots_0_ewidth.value = 0   # EW32
+    dut.io_slots_0_dwidth.value = 0   # EW32
+    dut.io_slots_0_isSigned.value = 0
     for lane in range(VLEN):
         getattr(dut, f"io_operandA_0_{lane}").value = 0
         getattr(dut, f"io_operandB_0_{lane}").value = 0
@@ -163,7 +166,9 @@ async def test_vbroadcast(dut):
     await reset(dut)
 
     broadcast_val = 42
-    c_vec = [broadcast_val] + [999] * (VLEN - 1)  # only index 0 matters
+    # In standalone ValuEngine, VBROADCAST at EW32 outputs operandC per lane.
+    # VliwCore broadcasts one scalar to all lanes — mirror that here.
+    c_vec = [broadcast_val] * VLEN
 
     dut.io_valid.value = 1
     dut.io_slots_0_valid.value = 1

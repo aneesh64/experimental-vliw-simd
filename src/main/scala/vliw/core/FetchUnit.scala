@@ -84,7 +84,13 @@ class FetchUnit(cfg: VliwSocConfig) extends Component {
   }
 
   // ---- IMEM address ----
-  io.imemAddr := pc
+  // During a stall, drive pc-1 so the IMEM keeps outputting the instruction
+  // that was "in flight" when the stall began.  Normally the IMEM has 1-cycle
+  // read latency and pc is always 1 ahead of what exBundleReg holds.  If we
+  // leave imemAddr=pc during a stall, the IMEM output drifts to mem[pc] and
+  // the instruction at mem[pc-1] is lost — causing an instruction skip on
+  // stall release.
+  io.imemAddr := Mux(io.stall, (pc - 1).resized, pc)
 
   // ---- Pipeline progression ----
   when(!io.stall) {

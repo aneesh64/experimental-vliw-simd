@@ -52,6 +52,11 @@ class MemoryEngine(cfg: VliwSocConfig) extends Component with EnginePlugin {
 
     // Pipeline stall: only when FIFOs are full
     val stall = out Bool()
+
+    // Pending load metadata (for load-use hazard detection in core)
+    val loadPendingValid    = out Bool()
+    val loadPendingDestAddr = out UInt(cfg.scratchAddrWidth bits)
+    val loadPendingIsVector = out Bool()
   }
 
   override def engineName: String = "MEM"
@@ -135,6 +140,10 @@ class MemoryEngine(cfg: VliwSocConfig) extends Component with EnginePlugin {
   val loadReqValid = RegInit(False)
   val loadReqEntry = Reg(LoadReqEntry())
 
+  io.loadPendingValid    := loadReqValid
+  io.loadPendingDestAddr := loadReqEntry.destAddr
+  io.loadPendingIsVector := loadReqEntry.isVector
+
   // ===================== Pipeline → Load Register & Store FIFO Logic =====================
 
   val anyLoadOp = Bool()
@@ -204,6 +213,14 @@ class MemoryEngine(cfg: VliwSocConfig) extends Component with EnginePlugin {
         is(LoadOpcode.VLOAD) {
           loadReqEntry.axiAddr  := alignedAddr
           loadReqEntry.destAddr := slot.dest
+          // Debug: vector word offset must fit within a single AXI beat.
+          // wordOffset + VLEN - 1 must be < wordsPerBeat, else lanes wrap.
+          if (cfg.enableTracePort || true) {
+            assert(
+              wordOffset <= U(wordsPerBeat - cfg.vlen, cfg.wordOffsetBits bits),
+              "VLOAD: vector crosses AXI beat boundary (word offset + VLEN > wordsPerBeat). Use aligned address."
+            )
+          }
         }
       }
       loadReqValid := True
@@ -239,7 +256,14 @@ class MemoryEngine(cfg: VliwSocConfig) extends Component with EnginePlugin {
           }
         }
         is(StoreOpcode.VSTORE) {
-          // VLEN words starting at wordOffset
+          // VLEN words starting at wordOffset.
+          // Debug: vector word offset must fit within a single AXI beat.
+          if (cfg.enableTracePort || true) {
+            assert(
+              wordOffset <= U(wordsPerBeat - cfg.vlen, cfg.wordOffsetBits bits),
+              "VSTORE: vector crosses AXI beat boundary (word offset + VLEN > wordsPerBeat). Use aligned address."
+            )
+          }
           for (lane <- 0 until cfg.vlen) {
             val wpos = (wordOffset + lane).resize(cfg.wordOffsetBits)
             for (w <- 0 until wordsPerBeat) {

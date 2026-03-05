@@ -1,7 +1,7 @@
 # Known Issues and Limitations
 
-**Last Updated:** February 28, 2026  
-**Current Version:** Multi-Width Vector Extensions (Phase 3 + Multi-Width)
+**Last Updated:** March 5, 2026  
+**Current Version:** Load-Use Hazard Detection + Multi-Width Vector Extensions
 
 ---
 
@@ -121,6 +121,15 @@ memory locations.
 Ensure VSTORE/VLOAD word addresses satisfy `addr % 16 ≤ 8`. The simplest approach
 is to use addresses that are multiples of 16 (word-aligned to AXI beat boundary).
 
+**Debug Support:**  
+RTL assertions were added to MemoryEngine.scala that fire at simulation time when a
+VLOAD or VSTORE would cross the AXI beat boundary:
+```
+assert(wordOffset <= wordsPerBeat - VLEN,
+       "VLOAD/VSTORE: vector crosses AXI beat boundary")
+```
+These assertions immediately identify alignment violations during cocotb simulation.
+
 **Future Enhancement:**  
 Split VSTORE/VLOAD into 2 AXI beats when data crosses the beat boundary, or
 always align to beat boundaries in hardware.
@@ -204,50 +213,81 @@ Could add minimal B channel response checking if store confirmation becomes crit
 
 ## Tool Integration Issues
 
-### 5. Driver Assembler API Mismatch
+### ~~5. Driver Assembler API Mismatch~~ ✅ RESOLVED
 
-**Priority:** MEDIUM  
-**Impact:** Blocks driver integration test suite, does not affect main verification  
-**Severity:** Test infrastructure issue
-
-**Description:**  
-Driver integration tests (`verification/cocotb/test_driver_integration.py`) pass assembly text strings to assembler, but `assembler.py` expects pre-parsed JSON bundle objects.
-
-**Error:**
-```
-AttributeError: 'str' object has no attribute 'get'
-at assembler.py:426 - instruction.get("alu", [])
-```
+**Status:** RESOLVED (March 5, 2026)  
+**Resolution:** All 5 driver integration tests rewritten to use `VliwScheduler` + `build_program()` pattern
 
 **Root Cause:**  
-API architectural mismatch. The assembler expects:
+Driver integration tests passed raw assembly text strings to `Assembler.assemble_program()`,
+which expects structured instruction dictionaries (list of dicts mapping engine names to slot
+tuples). The assembler has no text parser — it encodes pre-parsed bundle objects.
+
+**Fix Applied:**  
+Rewrote `test_driver_integration.py` to use the same `VliwScheduler` + `Assembler` pattern
+as all other integration tests. Programs are now built using `Op` objects:
 ```python
-bundles = [
-  {"alu": [...], "valu": [...], "load": [...], ...},
-  ...
-]
+program = build_program([
+    S.const(0, 10),
+    S.const(1, 20),
+    S.add(2, 0, 1),
+    S.halt(),
+])
 ```
 
-But driver tests pass:
-```python
-program = "ADD r1, r2, r3\nVADD v0, v1, v2"
-```
-
-**Fix Options:**
-1. Update driver tests to use pre-assembled bundles (like main test suite)
-2. Add full assembly text parsing to driver test infrastructure
-3. Use existing `test_integration.py` patterns for bundle loading
-
-**Time Estimate:** 2-3 hours (straightforward parameter fix)
-
-**Workaround:**  
-Use main integration test suite (`test_integration.py`) which properly loads bundles.
-
-**Status:** Infrastructure complete, API bridge needed
+**Verification:**  
+All 5 driver integration tests pass: program load, arithmetic, memory round-trip,
+control flow (counting loop), and vector operations.
 
 ---
 
-## Resolved Issues
+### ~~8. FetchUnit Instruction Skip on Stall~~ ✅ RESOLVED
+
+**Status:** RESOLVED (March 5, 2026)  
+**Resolution:** `io.imemAddr := Mux(io.stall, (pc - 1).resized, pc)` in FetchUnit.scala
+
+**Root Cause:**  
+When the pipeline stall signal was asserted (from load-use hazard detection), FetchUnit
+continued driving `io.imemAddr = pc` (the next instruction address). Since IMEM has 1-cycle
+read latency and `pc` is always 1 ahead of the instruction in `exBundleReg`, the IMEM output
+drifted to `mem[pc]` during the stall. On stall release, the instruction at `mem[pc-1]` had
+been lost — causing it to be skipped entirely.
+
+**Fix Applied:**  
+During stalls, drive `imemAddr = pc - 1` so the IMEM keeps outputting the instruction that
+was in-flight when the stall began. This ensures correct instruction re-read on stall release.
+
+**Verification:**  
+All 10 load-use hazard integration tests pass, including:
+- `test_scalar_load_use_immediate_dependency_stalls`
+- `test_vector_vload_use_immediate_dependency_stalls`
+- `test_load_use_independent_before_dependent_progress`
+- `test_load_use_randomized_axi_latency_robustness`
+
+---
+
+### ~~9. VALU Unit Test Initialization for Multi-Width Fields~~ ✅ RESOLVED
+
+**Status:** RESOLVED (March 5, 2026)  
+**Resolution:** Added `ewidth=0`, `dwidth=0`, `isSigned=0` initialization to `reset()`
+
+**Root Cause:**  
+Phase 4 added `ewidth`, `dwidth`, and `isSigned` fields to the VALU slot bundle, but the
+standalone VALU unit test's `reset()` function was not initializing these signals. In Icarus
+Verilog, uninitialized signals remain X/Z:
+- **DIV/MOD timeout:** Divider start condition requires `ew === EW32` (where EW32=0). With
+  X/Z ewidth, the comparison evaluates false and dividers never start.
+- **Result MUX corruption:** X/Z ewidth propagated through the packed-result selection MUX,
+  producing `LogicArray` values containing non-0/1 bits.
+- **VBROADCAST mismatch:** Test expected VliwCore-level broadcasting (all lanes get lane 0's
+  value), but standalone ValuEngine outputs each lane's own operandC at EW32.
+
+**Verification:**  
+All 7 VALU unit tests pass: single-cycle ops, div, mod, multiply_add, vbroadcast, and all_single_cycle_ops.
+
+---
+
+## Resolved Issues (Legacy)
 
 ### 6. Phase 3 RTL Compilation Duplicate Definitions ✅
 
@@ -291,9 +331,11 @@ All memory operations pass in baseline configuration (22/23 tests).
 | #4 | No store response | MEDIUM | Accepted | Future enhancement |
 | #4a | VSTORE/VLOAD alignment | MEDIUM | Accepted | Future enhancement |
 | #4b | VALU FMA src3 blocked | MEDIUM | Accepted | Future enhancement |
-| #5 | Driver API mismatch | MEDIUM | Identified | Quick fix available |
+| #5 | Driver API mismatch | — | RESOLVED | — |
 | #6 | Phase 3 duplicates | — | RESOLVED | — |
 | #7 | Phase 3 AXI conflicts | — | RESOLVED | — |
+| #8 | FetchUnit stall skip | — | RESOLVED | — |
+| #9 | VALU test init | — | RESOLVED | — |
 
 ---
 
@@ -302,8 +344,8 @@ All memory operations pass in baseline configuration (22/23 tests).
 ### Production Deployment (Baseline Config)
 - **Blockers:** None
 - **Workarounds Required:** None
-- **Known Limitations:** Single pending load (compiler handles), VSTORE alignment (compiler handles), FMA uses 2-instruction sequence
-- **Test Coverage:** 28/28 PASS (100%) — includes 16 multi-width vector tests
+- **Known Limitations:** Single pending load (compiler handles), VSTORE alignment (compiler handles + RTL assertions), FMA uses 2-instruction sequence
+- **Test Coverage:** 114/114 PASS (100%) — 47 unit + 67 integration
 - **Recommendation:** ✅ Production ready
 
 ### Multi-ALU Scaling
@@ -311,12 +353,6 @@ All memory operations pass in baseline configuration (22/23 tests).
 - **Workarounds Required:** Use single-ALU only
 - **Investigation:** 4-6 hours estimated
 - **Recommendation:** ⚠️ Fix before multi-core deployment
-
-### Driver Integration
-- **Blockers:** Issue #5 (API mismatch)
-- **Workarounds Required:** Use main test suite
-- **Fix Time:** 2-3 hours
-- **Recommendation:** Low priority (infrastructure already works)
 
 ---
 
@@ -330,5 +366,5 @@ All memory operations pass in baseline configuration (22/23 tests).
 
 ---
 
-**Last Review:** February 28, 2026  
+**Last Review:** March 5, 2026  
 **Next Review:** After dual-ALU fix investigation

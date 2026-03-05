@@ -15,6 +15,8 @@ and uses WSTRB byte strobes to select which bytes are written.
 
 import cocotb
 from cocotb.triggers import RisingEdge
+import random
+import time
 
 
 class Axi4MemoryModel:
@@ -33,17 +35,55 @@ class Axi4MemoryModel:
     """
 
     def __init__(self, dut, prefix: str = "io_dmemAxi", mem_words: int = 16384,
-                 latency: int = 0, data_width_bits: int = 512):
+                 latency: int = 0, data_width_bits: int = 512,
+                 latency_fn=None, latency_sequence=None):
         self.dut = dut
         self.prefix = prefix
         self.mem = [0] * mem_words
         self.mem_words = mem_words
         self.latency = latency
+        self.latency_fn = latency_fn
+        self.latency_sequence = list(latency_sequence) if latency_sequence else None
+        self._latency_seq_idx = 0
         self.data_width_bits = data_width_bits
         self.data_bytes = data_width_bits // 8        # 64 for 512-bit
         self.words_per_beat = data_width_bits // 32   # 16 for 512-bit
         self._running = False
         self._tasks = []
+        self.read_latencies = []
+        self.read_txn_count = 0
+
+    @staticmethod
+    def make_stress_latency_fn(n: int = 20, seed: int | None = None):
+        actual_seed = seed if seed is not None else time.time_ns()
+        rng = random.Random(actual_seed)
+        near_lo = max(0, int(round(n * 0.9)))
+        near_hi = max(near_lo, int(round(n * 1.1)))
+        under_hi = max(0, n - 1)
+
+        def _latency() -> int:
+            if rng.random() < 0.6:
+                return rng.randint(near_lo, near_hi)
+            if under_hi == 0:
+                return 0
+            return rng.randint(0, under_hi)
+
+        _latency.seed = actual_seed
+        return _latency
+
+    def _next_read_latency(self) -> int:
+        if self.latency_fn is not None:
+            latency = int(self.latency_fn())
+        elif self.latency_sequence:
+            latency = int(self.latency_sequence[self._latency_seq_idx % len(self.latency_sequence)])
+            self._latency_seq_idx += 1
+        else:
+            latency = int(self.latency)
+
+        latency = max(0, latency)
+        self.read_txn_count += 1
+        self.read_latencies.append(latency)
+        return latency
 
     def _sig(self, name: str):
         """Get a DUT signal by name under the AXI prefix."""
@@ -127,7 +167,8 @@ class Axi4MemoryModel:
                 self._sig("ar_ready").value = 0
 
                 # Optional read latency
-                for _ in range(self.latency):
+                latency_cycles = self._next_read_latency()
+                for _ in range(latency_cycles):
                     await RisingEdge(self.dut.clk)
 
                 # Base word address: byte_addr aligned down to beat boundary

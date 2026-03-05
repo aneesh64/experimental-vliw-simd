@@ -1,7 +1,7 @@
 # VLIW SIMD Documentation Index
 
-**Project Status:** Production Ready (Baseline Configuration)  
-**Last Updated:** February 28, 2026
+**Project Status:** Production Ready — 114/114 tests pass (47 unit + 67 integration)  
+**Last Updated:** March 5, 2026
 
 ---
 
@@ -23,7 +23,7 @@
 
 ### 🐛 Issues & History
 - **[KNOWN_ISSUES.md](KNOWN_ISSUES.md)** - Known limitations and workarounds
-- **[CHANGELOG.md](CHANGELOG.md)** - Development history (Phases 0-5)
+- **[CHANGELOG.md](CHANGELOG.md)** - Development history (Phases 0-5 + load-use hazard sweep)
 
 ---
 
@@ -50,11 +50,11 @@
 
 | Document | Lines | Purpose |
 |----------|-------|---------|
-| ARCHITECTURE.md | ~450 | Complete technical reference |
-| CHANGELOG.md | ~350 | Development history (Phases 0-5) |
-| KNOWN_ISSUES.md | ~250 | Issue tracking and workarounds |
+| ARCHITECTURE.md | ~500 | Complete technical reference (incl. load-use hazard detection) |
+| CHANGELOG.md | ~420 | Development history (Phases 0-5 + hazard sweep) |
+| KNOWN_ISSUES.md | ~300 | Issue tracking and workarounds |
 | DRIVER_API.md | ~200 | C API reference |
-| TOOLCHAIN.md | ~150 | Build and test procedures |
+| TOOLCHAIN.md | ~810 | Build, test, and toolchain reference |
 
 ---
 
@@ -85,7 +85,7 @@ All documents include:
 ## Additional Resources
 
 ### Source Code
-- `src/main/scala/vliw/` - RTL implementation (Chisel)
+- `src/main/scala/vliw/` - RTL implementation (SpinalHDL)
 - `tools/` - Assembler and scheduler
 - `verification/` - Test infrastructure
 

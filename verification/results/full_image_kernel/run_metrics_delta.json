@@ -1,6 +1,6 @@
 {
-  "baseline_cycles": 155657,
-  "swp_cycles": 137232,
+  "baseline_cycles": 155659,
+  "swp_cycles": 137234,
   "cycles_delta": 18425,
-  "speedup": 1.134262
+  "speedup": 1.134260
 }
