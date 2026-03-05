@@ -182,32 +182,34 @@ valu_op("add", dest, dest, c, ew=16)        # packed accumulate
 
 ---
 
-### 5. No Store Response Tracking
+### 5. ~~No Store Response Tracking~~ ✅ Resolved
 
-**Priority:** MEDIUM  
-**Impact:** Fire-and-forget stores, no completion confirmation  
-**Severity:** Design constraint, not a bug
+**Priority:** —  
+**Impact:** Resolved by bounded store FIFO + AXI B-response tracking  
+**Severity:** —
 
 **Description:**  
-Store operations do not track AXI write responses. Stores are fire-and-forget with no confirmation of completion.
+Store operations now enqueue into a bounded FIFO and complete through AW/W plus B-response tracking.
+Under sustained AXI write backpressure, store issue stalls when queue capacity is full (default depth 4),
+then recovers as writes drain.
 
 **Technical Details:**
-- AW and W channels driven directly
-- No B channel handling
-- Assumes AXI interconnect always ready
+- FIFO-backed store request buffering
+- B channel completion handling in MemoryEngine store FSM
+- Explicit backpressure stall-on-full behavior
 
 **Impact on Compiler:**
-- Must add NOPs after stores before dependent loads
-- Cannot guarantee store ordering without explicit synchronization
-- Risk of lost stores if AXI backpressures (currently assumes no backpressure)
+- Scheduler/hardware replay safely handle temporary store saturation
+- Store completion remains ordered via AXI write response path
+- No lost-store risk from ordinary AW/W/B backpressure in the verified model
 
 **Workaround:**  
-Compiler adds sufficient padding after stores (already implemented).
+No special workaround required beyond normal scheduling constraints.
 
 **Future Enhancement:**  
-Could add minimal B channel response checking if store confirmation becomes critical.
+Future tuning can increase `storeQueueDepth` for burst-heavy workloads.
 
-**Status:** Accepted design trade-off
+**Status:** Resolved (March 2026)
 
 ---
 
@@ -328,7 +330,7 @@ All memory operations pass in baseline configuration (22/23 tests).
 | #1 | Dual-ALU writeback | HIGH | Investigation | Next sprint |
 | #2 | Long memory timeout | — | RESOLVED | — |
 | #3 | Single pending load | MEDIUM | Accepted | Future enhancement |
-| #4 | No store response | MEDIUM | Accepted | Future enhancement |
+| #4 | No store response | — | RESOLVED | — |
 | #4a | VSTORE/VLOAD alignment | MEDIUM | Accepted | Future enhancement |
 | #4b | VALU FMA src3 blocked | MEDIUM | Accepted | Future enhancement |
 | #5 | Driver API mismatch | — | RESOLVED | — |
@@ -345,7 +347,7 @@ All memory operations pass in baseline configuration (22/23 tests).
 - **Blockers:** None
 - **Workarounds Required:** None
 - **Known Limitations:** Single pending load (compiler handles), VSTORE alignment (compiler handles + RTL assertions), FMA uses 2-instruction sequence
-- **Test Coverage:** 114/114 PASS (100%) — 47 unit + 67 integration
+- **Test Coverage:** 176/176 PASS (100%) — 48 unit + 128 integration
 - **Recommendation:** ✅ Production ready
 
 ### Multi-ALU Scaling

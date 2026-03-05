@@ -255,3 +255,60 @@ async def test_const_does_not_stall(dut):
         dut._log.warning("BUG: CONST causes stall — should be stall-free")
 
     dut._log.info("test_const_does_not_stall: DONE")
+
+
+async def _issue_store_cycle(dut, addr_word: int, value: int):
+    dut.io_valid.value = 1
+    dut.io_loadSlots_0_valid.value = 0
+    dut.io_storeSlots_0_valid.value = 1
+    dut.io_storeSlots_0_opcode.value = StOp.STORE
+    dut.io_storeAddrData_0.value = addr_word
+    dut.io_storeSrcData_0.value = value & MASK32
+    await RisingEdge(dut.clk)
+
+
+@cocotb.test()
+async def test_store_fifo_full_stalls_then_recovers(dut):
+    """Fill store FIFO under AXI write backpressure and verify full-stall + recovery."""
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+    await reset(dut)
+
+    # Hold write channels blocked so queued stores cannot drain.
+    dut.io_axiMaster_aw_ready.value = 0
+    dut.io_axiMaster_w_ready.value = 0
+    dut.io_axiMaster_b_valid.value = 0
+
+    # Default store queue depth is 4. First 4 stores should enqueue without stalling.
+    for idx in range(4):
+        await _issue_store_cycle(dut, addr_word=(0x300 + idx), value=(0xA0 + idx))
+        stall = int(dut.io_stall.value)
+        assert stall == 0, f"Unexpected stall before FIFO full at idx={idx}"
+
+    # 5th store while FIFO is full must stall the pipeline.
+    await _issue_store_cycle(dut, addr_word=0x400, value=0x55)
+    stall = int(dut.io_stall.value)
+    assert stall == 1, "Expected stall when issuing store while FIFO is full"
+
+    # Stop issuing while we drain queued stores.
+    dut.io_valid.value = 0
+    dut.io_storeSlots_0_valid.value = 0
+
+    # Release AXI backpressure and allow FSM/FIFO to drain.
+    dut.io_axiMaster_aw_ready.value = 1
+    dut.io_axiMaster_w_ready.value = 1
+    dut.io_axiMaster_b_valid.value = 1
+    for _ in range(40):
+        await RisingEdge(dut.clk)
+
+    # Block again and verify a new store can be accepted after drain.
+    dut.io_axiMaster_aw_ready.value = 0
+    dut.io_axiMaster_w_ready.value = 0
+    dut.io_axiMaster_b_valid.value = 0
+
+    await _issue_store_cycle(dut, addr_word=0x401, value=0x66)
+    stall = int(dut.io_stall.value)
+    assert stall == 0, "Store should be accepted after queue has drained"
+
+    dut.io_valid.value = 0
+    dut.io_storeSlots_0_valid.value = 0
+    dut._log.info("test_store_fifo_full_stalls_then_recovers: PASS")

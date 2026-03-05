@@ -1,6 +1,6 @@
 // Generator : SpinalHDL v1.10.2a    git head : a348a60b7e8b6a455c72e1536ec3d74a2ea16935
 // Component : FetchUnit
-// Git hash  : e5c7dd9bd283f27e44e50f1efeae0b7e0dcd5208
+// Git hash  : a8da78e2b1f81267a095ab65c53f95a59b70c238
 
 `timescale 1ns/1ps
 
@@ -24,18 +24,20 @@ module FetchUnit (
   localparam CoreState_RUNNING = 2'd1;
   localparam CoreState_HALTED = 2'd2;
 
+  wire       [9:0]    _zz_io_imemAddr;
   reg        [1:0]    state;
   reg        [9:0]    pc;
   wire                cycleActive;
   reg        [255:0]  exBundleReg;
   reg                 exValidReg;
   reg                 startupBubble;
-  wire                when_FetchUnit_l90;
+  wire                when_FetchUnit_l96;
   `ifndef SYNTHESIS
   reg [55:0] state_string;
   `endif
 
 
+  assign _zz_io_imemAddr = (pc - 10'h001);
   `ifndef SYNTHESIS
   always @(*) begin
     case(state)
@@ -48,8 +50,8 @@ module FetchUnit (
   `endif
 
   assign cycleActive = (state == CoreState_RUNNING);
-  assign io_imemAddr = pc;
-  assign when_FetchUnit_l90 = (! io_stall);
+  assign io_imemAddr = (io_stall ? _zz_io_imemAddr : pc);
+  assign when_FetchUnit_l96 = (! io_stall);
   assign io_exBundle = exBundleReg;
   assign io_exValid = exValidReg;
   assign io_pc = pc;
@@ -84,7 +86,7 @@ module FetchUnit (
           end
         end
       endcase
-      if(when_FetchUnit_l90) begin
+      if(when_FetchUnit_l96) begin
         if(cycleActive) begin
           if(startupBubble) begin
             startupBubble <= 1'b0;

@@ -6,7 +6,7 @@ A simplified VLIW (Very Long Instruction Word) processor with SIMD capabilities,
 
 ## Status: Production Ready (Baseline)
 
-**Verification Snapshot (Mar 2026):** 114/114 PASS (100%) — 47 unit tests + 67 integration tests  
+**Verification Snapshot (Mar 2026):** 176/176 PASS (100%) — 48 unit tests + 128 integration tests  
 **Architecture:** 3-stage pipeline with hardware load-use hazard stalling  
 **Configuration:** 1 ALU, 1 VALU, 1 Load, 1 Store engines
 
@@ -20,21 +20,15 @@ sbt "runMain vliw.gen.GenerateCore"
 
 ### Run Tests
 ```bash
-# Unit tests (47 tests: divider, alu, valu, flow, mem, scratch, core)
+# Unit tests (48 tests: divider, alu, valu, flow, mem, scratch, core)
 python verification/cocotb/tests/run_tests.py
 
-# Integration tests (67 tests across 4 modules)
-python verification/cocotb/integration/run_integration.py --modules test_integration
-python verification/cocotb/integration/run_integration.py --modules test_algorithms
-python verification/cocotb/integration/run_integration.py --modules test_slot_configs
-python verification/cocotb/integration/run_integration.py --modules test_driver_integration
+# Full integration regression (128 tests across grouped modules)
+python verification/cocotb/integration/run_integration.py --modules test_slot_configs,test_integration,test_algorithms,test_driver_integration,test_integration_scalar,test_integration_memory,test_integration_control,test_integration_vector,test_algorithms_kernels,test_algorithms_multiwidth
 
 # Recent verified status:
-# - Unit tests: 47/47 PASS (divider 6, alu 6, valu 7, flow 13, mem 4, scratch 5, core 6)
-# - test_integration: 31/31 PASS (scalar + memory + control + vector)
-# - test_algorithms: 28/28 PASS (kernels + multiwidth)
-# - test_slot_configs: 3/3 PASS
-# - test_driver_integration: 5/5 PASS
+# - Unit tests: 48/48 PASS (divider 6, alu 6, valu 7, flow 13, mem 5, scratch 5, core 6)
+# - Integration tests: 128/128 PASS (all grouped modules)
 ```
 
 ### Use C Driver
@@ -60,7 +54,7 @@ uint32_t result = vliw_read_dmem(0); // Read result
 - **1× ALU:** Add, sub, mul, shift, compare, divide
 - **1× VALU:** 8-lane vector operations with multi-width packed execution
 - **1× Load:** Combinatorial AR drive, single pending request, load-use hazard metadata
-- **1× Store:** Direct memory write
+- **1× Store:** FIFO-backed AXI write path (default queue depth 4), stalls on full
 - **1× Flow:** Branches, jumps, conditionals
 
 ### VALU Capabilities
@@ -71,7 +65,7 @@ uint32_t result = vliw_read_dmem(0); // Read result
 
 ### Memory
 - **Banked Scratch:** 16KB (4 banks × 4KB)
-- **AXI4 Interface:** 32-bit data, 32-bit address
+- **AXI4 Interface:** 512-bit data, 32-bit address
 - **Load Tracking:** Single-item register (simplified)
 
 ### SoC Integration
@@ -139,7 +133,7 @@ vliw_simd/
 
 Configuration files in `verification/config/`:
 
-- **test_config.properties** (Baseline): 1 ALU, 1 VALU - ✅ 114/114 tests passing
+- **test_config.properties** (Baseline): 1 ALU, 1 VALU - ✅ 176/176 tests passing
 - **test_config_alu2.properties**: 2 ALU - ⚠️ Known writeback issue
 - **test_config_expanded.properties**: 2 ALU, 2 VALU - ⏳ Not tested
 
@@ -157,14 +151,11 @@ Configuration files in `verification/config/`:
 # 1. Generate RTL
 sbt "runMain vliw.gen.GenerateCore"
 
-# 2. Run unit tests (47 tests)
+# 2. Run unit tests (48 tests)
 python verification/cocotb/tests/run_tests.py
 
-# 3. Run integration suites (67 tests, auto-detects RTL changes)
-python verification/cocotb/integration/run_integration.py --modules test_integration
-python verification/cocotb/integration/run_integration.py --modules test_algorithms
-python verification/cocotb/integration/run_integration.py --modules test_slot_configs
-python verification/cocotb/integration/run_integration.py --modules test_driver_integration
+# 3. Run integration regression (128 tests, auto-detects RTL changes)
+python verification/cocotb/integration/run_integration.py --modules test_slot_configs,test_integration,test_algorithms,test_driver_integration,test_integration_scalar,test_integration_memory,test_integration_control,test_integration_vector,test_algorithms_kernels,test_algorithms_multiwidth
 
 # Optional: run individual integration domains
 python verification/cocotb/integration/run_integration.py --modules test_integration_scalar
@@ -180,7 +171,7 @@ python verification/cocotb/integration/run_integration.py --modules test_integra
 
 **Baseline Configuration:**
 - Throughput: ~19,000 ns/s (simulation)
-- **114/114 tests passing** (47 unit + 67 integration)
+- **176/176 tests passing** (48 unit + 128 integration)
 - Signal Count: 195 signals
 - Load Latency: 0-cycle AR drive
 - Load-use hazard stalling: automatic pipeline stall on data dependency from pending loads

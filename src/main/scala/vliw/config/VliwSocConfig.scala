@@ -48,7 +48,7 @@ case class VliwSocConfig(
 
   // ---- Memory engine (non-blocking) ----
   loadQueueDepth:  Int = 16,      // Outstanding load requests
-  storeQueueDepth: Int = 16,      // Outstanding store requests
+  storeQueueDepth: Int = 4,       // Outstanding store requests (default; configurable)
 
   // ---- Debug / trace ----
   enableWawCheck:  Boolean = true,
@@ -214,6 +214,6 @@ object VliwSocConfig {
     mainMemWords = 16384,
     useUltraRam  = false,
     loadQueueDepth  = 8,
-    storeQueueDepth = 8
+    storeQueueDepth = 4
   )
 }

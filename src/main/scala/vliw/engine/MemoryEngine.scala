@@ -12,11 +12,11 @@ import vliw.plugin._
  *
  * Architecture changes from v1:
  *   - 512-bit AXI data bus: all scalar/vector ops are single-beat
- *   - Store buffer (FIFO): stores are fire-and-forget, pipeline never stalls for stores
+ *   - Store buffer (FIFO): stores are decoupled until FIFO is full
  *   - Load queue (FIFO): loads are non-blocking; pipeline stalls only when queue is full
  *   - Overlapped AW+W: store address and data sent in same cycle when possible
  *   - Load results arrive asynchronously and write to scratch directly
- *   - Pipeline stalls only when request FIFOs are full
+ *   - Pipeline stalls when load register is full or store FIFO is full
  *
  * With 512-bit bus (16 × 32-bit words per beat):
  *   - Scalar LOAD/STORE:  1 beat, extract/insert 1 word using byte strobes
@@ -135,6 +135,16 @@ class MemoryEngine(cfg: VliwSocConfig) extends Component with EnginePlugin {
   storeReqFifo.io.push.valid := False
   storeReqFifo.io.push.payload.assignFromBits(B(0, storeReqFifo.io.push.payload.getBitsWidth bits))
 
+  // ===================== Store AXI FSM state =====================
+  object MemState extends SpinalEnum {
+    val IDLE, STORE_AW_W, STORE_B = newElement()
+  }
+
+  val state = RegInit(MemState.IDLE)
+  val capStoreReq = Reg(StoreReqEntry())
+  val awAccepted  = RegInit(False)
+  val wAccepted   = RegInit(False)
+
   // ===================== Simplified Load Request Tracking =====================
   // Instead of loadReqFifo + loadPendingFifo, use single register + valid bit
   val loadReqValid = RegInit(False)
@@ -177,8 +187,15 @@ class MemoryEngine(cfg: VliwSocConfig) extends Component with EnginePlugin {
     io.stall := True
   }
 
-  // Stall if store FIFO is full (unchanged)
-  when(anyStoreOp && !storeReqFifo.io.push.ready) {
+  // If the pipeline issues a store while queue capacity is exhausted, stall and replay bundle.
+  // Note: one store can be held in capStoreReq while STORE_AW_W/STORE_B is active, so we
+  // treat FIFO depth-1 as full in those states to keep total outstanding <= storeQueueDepth.
+  val storeQueueFull = !storeReqFifo.io.push.ready
+  val storeQueueNearFullWithInFlight =
+    (state =/= MemState.IDLE) &&
+    (storeReqFifo.io.occupancy === U(cfg.storeQueueDepth - 1, storeReqFifo.io.occupancy.getWidth bits))
+  val stallOnStoreFull = anyStoreOp && (storeQueueFull || storeQueueNearFullWithInFlight)
+  when(stallOnStoreFull) {
     io.stall := True
   }
 
@@ -283,15 +300,6 @@ class MemoryEngine(cfg: VliwSocConfig) extends Component with EnginePlugin {
   }
 
   // ===================== Simplified AXI FSM =====================
-
-  object MemState extends SpinalEnum {
-    val IDLE, STORE_AW_W, STORE_B = newElement()
-  }
-
-  val state = RegInit(MemState.IDLE)
-  val capStoreReq = Reg(StoreReqEntry())
-  val awAccepted  = RegInit(False)
-  val wAccepted   = RegInit(False)
 
   // Default FIFO pop
   storeReqFifo.io.pop.ready := False

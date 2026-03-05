@@ -772,7 +772,7 @@ Note: VALU bundles block all scalar reads. The scheduler enforces this by checki
 
 ## 11. Verification Runner Modules
 
-> **Status (March 2026):** 114/114 tests pass — 47 unit + 67 integration.
+> **Status (March 2026):** 176/176 tests pass — 48 unit + 128 integration.
 
 Integration tests are split into grouped modules under verification/cocotb/integration.
 

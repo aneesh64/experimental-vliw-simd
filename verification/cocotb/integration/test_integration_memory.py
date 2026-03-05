@@ -436,3 +436,41 @@ async def test_load_use_randomized_axi_latency_robustness(dut):
     assert len(set(harness.axi_mem.read_latencies)) > 1, (
         f"Expected varied read latencies, got {harness.axi_mem.read_latencies}"
     )
+
+
+@cocotb.test()
+async def test_store_fifo_full_stall_under_write_backpressure(dut):
+    """Force AXI write backpressure, fill store FIFO, and verify correct stall/recovery behavior."""
+    harness = VliwCoreHarness(
+        dut,
+        axi_write_aw_delay=120,
+        axi_write_w_delay=120,
+        axi_write_b_delay=120,
+    )
+    await harness.init()
+
+    # Build direct bundles so stores are issued back-to-back (no scheduler spacing).
+    # This intentionally drives store request pressure above FIFO depth (default 4).
+    store_count = 5
+    bundles = [
+        {},
+        {"load": [("const", 10, 1600)]},
+        {"load": [("const", 0, 0x5A)]},
+    ]
+    for _ in range(store_count):
+        bundles.append({"store": [("store", 10, 0)]})
+    bundles.append({"flow": [("halt",)]})
+
+    program = _assemble_direct(bundles)
+    await harness.load_program(program)
+
+    # Large drain to allow delayed write responses to commit after halt.
+    cycles = await harness.run(max_cycles=20000, drain_cycles=1200)
+
+    got = harness.axi_mem.read_word(1600)
+    assert got == 0x5A, f"Expected final stored value 0x5A, got {got:#x}"
+    assert harness.axi_mem.write_txn_count >= 4, (
+        "Expected at least 4 committed store transactions under backpressure "
+        f"(FIFO saturation path), got {harness.axi_mem.write_txn_count}"
+    )
+    assert cycles > 200, f"Expected visible backpressure-induced stalling, got only {cycles} cycles"

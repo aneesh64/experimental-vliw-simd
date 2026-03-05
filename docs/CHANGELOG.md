@@ -6,7 +6,43 @@
 
 **Project:** VLIW SIMD Processor  
 **Timeline:** Phase 0 (Planning) → Phase 5 (Verification)  
-**Current Status:** Phase 5 Complete, 114/114 Tests Passing
+**Current Status:** Phase 5+, 176/176 Tests Passing
+
+---
+
+## Store Backpressure Handling & Full Regression Sweep (March 5, 2026)
+
+### Summary
+Implemented bounded store-queue backpressure handling in `MemoryEngine` for DDR/AXI busy scenarios,
+with default `storeQueueDepth=4`, explicit full-stall behavior, and write-side verification stress tests.
+Extended verification harness/model to inject AXI write backpressure and validated the complete regression:
+176/176 PASS (48 unit + 128 integration).
+
+### RTL / Config Changes
+- **`VliwSocConfig.scala`**
+   - `storeQueueDepth` default changed to `4` (including `Sim` preset)
+- **`MemoryEngine.scala`**
+   - Store stall logic hardened to account for FIFO occupancy plus in-flight captured store
+   - Pipeline now stalls on new store issue when effective outstanding store capacity is exhausted
+   - Preserves bounded outstanding store count while still decoupling store issue from AXI latency
+
+### Verification Infrastructure Changes
+- **`verification/cocotb/integration/axi_mem_model.py`**
+   - Added configurable AW/W/B write delays (fixed and sequence-based)
+   - Added write transaction and delay metrics
+- **`verification/cocotb/integration/harness.py`**
+   - Exposed write-backpressure controls through harness constructor
+
+### New Tests
+- **Unit (`test_mem.py`)**
+   - Added `test_store_fifo_full_stalls_then_recovers`
+- **Integration (`test_integration_memory.py`)**
+   - Added `test_store_fifo_full_stall_under_write_backpressure`
+
+### Validation
+- Unit suite: **48/48 PASS**
+- Integration suite (grouped modules): **128/128 PASS**
+- Full verification sweep: **176/176 PASS**
 
 ---
 

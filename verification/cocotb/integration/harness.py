@@ -47,14 +47,31 @@ class VliwCoreHarness:
     def __init__(self, dut, clock_period_ns: int = 10, mem_words: int = 16384,
                  axi_latency: int = 0, axi_latency_mode: str = "fixed",
                  axi_latency_sequence: list[int] | None = None,
-                 axi_latency_n: int = 20, axi_seed: int | None = None):
+                 axi_latency_n: int = 20, axi_seed: int | None = None,
+                 axi_write_aw_delay: int = 0,
+                 axi_write_w_delay: int = 0,
+                 axi_write_b_delay: int = 0,
+                 axi_write_aw_delay_sequence: list[int] | None = None,
+                 axi_write_w_delay_sequence: list[int] | None = None,
+                 axi_write_b_delay_sequence: list[int] | None = None):
         self.dut = dut
         self.clock_period = clock_period_ns
         self.axi_latency_mode = axi_latency_mode
         self.axi_seed = axi_seed
 
         if axi_latency_mode == "fixed":
-            self.axi_mem = Axi4MemoryModel(dut, "io_dmemAxi", mem_words, axi_latency)
+            self.axi_mem = Axi4MemoryModel(
+                dut,
+                "io_dmemAxi",
+                mem_words,
+                axi_latency,
+                write_aw_delay=axi_write_aw_delay,
+                write_w_delay=axi_write_w_delay,
+                write_b_delay=axi_write_b_delay,
+                write_aw_delay_sequence=axi_write_aw_delay_sequence,
+                write_w_delay_sequence=axi_write_w_delay_sequence,
+                write_b_delay_sequence=axi_write_b_delay_sequence,
+            )
         elif axi_latency_mode == "sequence":
             self.axi_mem = Axi4MemoryModel(
                 dut,
@@ -62,6 +79,12 @@ class VliwCoreHarness:
                 mem_words,
                 latency=0,
                 latency_sequence=axi_latency_sequence,
+                write_aw_delay=axi_write_aw_delay,
+                write_w_delay=axi_write_w_delay,
+                write_b_delay=axi_write_b_delay,
+                write_aw_delay_sequence=axi_write_aw_delay_sequence,
+                write_w_delay_sequence=axi_write_w_delay_sequence,
+                write_b_delay_sequence=axi_write_b_delay_sequence,
             )
         elif axi_latency_mode == "stress":
             latency_fn = Axi4MemoryModel.make_stress_latency_fn(n=axi_latency_n, seed=axi_seed)
@@ -72,6 +95,12 @@ class VliwCoreHarness:
                 mem_words,
                 latency=0,
                 latency_fn=latency_fn,
+                write_aw_delay=axi_write_aw_delay,
+                write_w_delay=axi_write_w_delay,
+                write_b_delay=axi_write_b_delay,
+                write_aw_delay_sequence=axi_write_aw_delay_sequence,
+                write_w_delay_sequence=axi_write_w_delay_sequence,
+                write_b_delay_sequence=axi_write_b_delay_sequence,
             )
         else:
             raise ValueError(f"Unknown axi_latency_mode: {axi_latency_mode}")

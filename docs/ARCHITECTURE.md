@@ -1,7 +1,7 @@
 # VLIW SIMD Architecture - Current Implementation
 
-**Status:** Phase 5 Complete (Load-Use Hazard Detection + Multi-Width Vector ISA)  
-**Version:** Load-Use Hazard Detection + Multi-Width Vector Extension  
+**Status:** Phase 5+ (Load-Use Hazard Detection + Store Backpressure + Multi-Width Vector ISA)  
+**Version:** Load-Use Hazard Detection + Store FIFO Backpressure + Multi-Width Vector Extension  
 **Last Updated:** March 5, 2026
 
 ---
@@ -81,7 +81,9 @@ The pipeline detects data dependencies from pending loads and stalls automatical
 **1× Store Engine**  
 - Operations: SW (store word), VSW (vector store)
 - Addressing: Register + immediate offset
-- Latency: 1 cycle (fire-and-forget, no response tracking)
+- Queueing: FIFO-backed request buffering (default depth = 4, configurable)
+- Backpressure behavior: pipeline stalls when store queue capacity is exhausted
+- AXI completion: AW/W handshake plus B response tracked by store FSM
 
 **1× Flow Engine**
 - Operations: JAL, JALR, BEQ, BNE, BLT, BGE, BLTU, BGEU
@@ -137,9 +139,9 @@ Cycle 1+: Wait for AXI R channel
 ```
 
 **Store Operations:**
-- Fire-and-forget (no response tracking)
-- AW and W channels driven directly
-- No backpressure handling (assumes AXI always ready)
+- Store requests enqueue into a bounded FIFO
+- MemoryEngine drains queue through AW/W then waits for B response
+- Pipeline stalls only when a new store arrives and total in-flight + queued capacity is full
 - **VSTORE Alignment Constraint:** Word address must satisfy `addr % 16 ≤ 8`
   (8 lanes at word offsets 0–7 within a 16-word AXI beat). See Known Issues #4a.
 
@@ -338,7 +340,7 @@ VliwSocConfig(
 ```
 
 ### Tested Configurations
-- **Baseline (test_config.properties):** 1-1-1-1-1 → ✅ 114/114 tests PASS
+- **Baseline (test_config.properties):** 1-1-1-1-1 → ✅ 176/176 tests PASS
 - **Dual-ALU (test_config_alu2.properties):** 2-1-1-1-1 → ⚠️ Writeback issue (see KNOWN_ISSUES.md)
 - **Expanded (test_config_expanded.properties):** 2-2-1-1-1 → ⏳ Not tested
 
@@ -360,7 +362,7 @@ VliwSocConfig(
 | MOD/DIV/CDIV | Variable | EW32 only, ~32 cycles worst case |
 | Load (cache hit) | 2-3 | AXI latency dependent |
 | Load AR drive | 0 | Combinatorial (Phase 3) |
-| Store | 1 | Fire-and-forget |
+| Store | 1 | FIFO-backed, stalls only on full |
 | Branch taken | 3 | 3-cycle delay slot (IF→Decode→EX depth) |
 | Branch not taken | 0 | Falls through |
 
@@ -454,10 +456,10 @@ Cycle 2: Writeback r3 (scalar) and v1 (vector) simultaneously
 **Rationale:** Simplified for baseline, sufficient for compiler scheduling  
 **Workaround:** Compiler schedules loads with sufficient spacing
 
-### 2. No Store Response Tracking
-**Impact:** Stores are fire-and-forget, no confirmation of completion  
-**Rationale:** Simplifies hardware, assumes AXI always ready  
-**Workaround:** Compiler adds sufficient padding after stores before dependent operations
+### 2. Bounded Store Queue Capacity
+**Impact:** Store issue can stall when queue + in-flight store capacity is exhausted under sustained AXI write backpressure  
+**Rationale:** Keeps total outstanding stores bounded (`storeQueueDepth`, default 4) while preserving correctness  
+**Workaround:** Scheduler naturally retries on stall; software can reduce sustained store bursts if needed
 
 ### 3. Multi-ALU Writeback Issue
 **Impact:** Dual-ALU config shows register writeback = 0 instead of computed value  
@@ -496,14 +498,11 @@ instruction re-read during stalls.
 ## Verification Status
 
 **Baseline Configuration:**
-- 114/114 tests PASS ✅
-- **Unit Tests (47):**
-  - Divider: 6, ALU: 6, VALU: 7, Flow: 13, Mem: 4, Scratch: 5, Core: 6
-- **Integration Tests (67):**
-  - test_integration: 31 (scalar + memory + control + vector)
-  - test_algorithms: 28 (DSP/ML kernels + multiwidth)
-  - test_slot_configs: 3
-  - test_driver_integration: 5
+- 176/176 tests PASS ✅
+- **Unit Tests (48):**
+  - Divider: 6, ALU: 6, VALU: 7, Flow: 13, Mem: 5, Scratch: 5, Core: 6
+- **Integration Tests (128):**
+  - Full grouped regression across slot configs, integration domains, algorithms, and driver integration
 - Comprehensive coverage:
   - ALU operations, memory operations, control flow, vector operations
   - Load-use hazard detection (scalar/vector), multi-width packed ops

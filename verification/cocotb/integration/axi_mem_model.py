@@ -36,7 +36,9 @@ class Axi4MemoryModel:
 
     def __init__(self, dut, prefix: str = "io_dmemAxi", mem_words: int = 16384,
                  latency: int = 0, data_width_bits: int = 512,
-                 latency_fn=None, latency_sequence=None):
+                 latency_fn=None, latency_sequence=None,
+                 write_aw_delay: int = 0, write_w_delay: int = 0, write_b_delay: int = 0,
+                 write_aw_delay_sequence=None, write_w_delay_sequence=None, write_b_delay_sequence=None):
         self.dut = dut
         self.prefix = prefix
         self.mem = [0] * mem_words
@@ -45,6 +47,15 @@ class Axi4MemoryModel:
         self.latency_fn = latency_fn
         self.latency_sequence = list(latency_sequence) if latency_sequence else None
         self._latency_seq_idx = 0
+        self.write_aw_delay = max(0, int(write_aw_delay))
+        self.write_w_delay = max(0, int(write_w_delay))
+        self.write_b_delay = max(0, int(write_b_delay))
+        self.write_aw_delay_sequence = list(write_aw_delay_sequence) if write_aw_delay_sequence else None
+        self.write_w_delay_sequence = list(write_w_delay_sequence) if write_w_delay_sequence else None
+        self.write_b_delay_sequence = list(write_b_delay_sequence) if write_b_delay_sequence else None
+        self._write_aw_seq_idx = 0
+        self._write_w_seq_idx = 0
+        self._write_b_seq_idx = 0
         self.data_width_bits = data_width_bits
         self.data_bytes = data_width_bits // 8        # 64 for 512-bit
         self.words_per_beat = data_width_bits // 32   # 16 for 512-bit
@@ -52,6 +63,10 @@ class Axi4MemoryModel:
         self._tasks = []
         self.read_latencies = []
         self.read_txn_count = 0
+        self.write_txn_count = 0
+        self.write_aw_delays = []
+        self.write_w_delays = []
+        self.write_b_delays = []
 
     @staticmethod
     def make_stress_latency_fn(n: int = 20, seed: int | None = None):
@@ -84,6 +99,36 @@ class Axi4MemoryModel:
         self.read_txn_count += 1
         self.read_latencies.append(latency)
         return latency
+
+    def _next_write_aw_delay(self) -> int:
+        if self.write_aw_delay_sequence:
+            delay = int(self.write_aw_delay_sequence[self._write_aw_seq_idx % len(self.write_aw_delay_sequence)])
+            self._write_aw_seq_idx += 1
+        else:
+            delay = int(self.write_aw_delay)
+        delay = max(0, delay)
+        self.write_aw_delays.append(delay)
+        return delay
+
+    def _next_write_w_delay(self) -> int:
+        if self.write_w_delay_sequence:
+            delay = int(self.write_w_delay_sequence[self._write_w_seq_idx % len(self.write_w_delay_sequence)])
+            self._write_w_seq_idx += 1
+        else:
+            delay = int(self.write_w_delay)
+        delay = max(0, delay)
+        self.write_w_delays.append(delay)
+        return delay
+
+    def _next_write_b_delay(self) -> int:
+        if self.write_b_delay_sequence:
+            delay = int(self.write_b_delay_sequence[self._write_b_seq_idx % len(self.write_b_delay_sequence)])
+            self._write_b_seq_idx += 1
+        else:
+            delay = int(self.write_b_delay)
+        delay = max(0, delay)
+        self.write_b_delays.append(delay)
+        return delay
 
     def _sig(self, name: str):
         """Get a DUT signal by name under the AXI prefix."""
@@ -215,10 +260,15 @@ class Axi4MemoryModel:
                     addr = 0
                 burst_len = int(self._sig("aw_payload_len").value)  # should be 0
 
+                aw_delay_cycles = self._next_write_aw_delay()
+                for _ in range(aw_delay_cycles):
+                    await RisingEdge(self.dut.clk)
+
                 # Accept AW
                 self._sig("aw_ready").value = 1
                 await RisingEdge(self.dut.clk)
                 self._sig("aw_ready").value = 0
+                self.write_txn_count += 1
 
                 # Base word address aligned to beat boundary
                 base_word = (addr >> 2) & ~(self.words_per_beat - 1)
@@ -233,6 +283,10 @@ class Axi4MemoryModel:
                                 break
                         except Exception:
                             pass
+
+                    w_delay_cycles = self._next_write_w_delay()
+                    for _ in range(w_delay_cycles):
+                        await RisingEdge(self.dut.clk)
 
                     # Capture data and strobe
                     beat_base = (base_word + beat * self.words_per_beat) % self.mem_words
@@ -255,6 +309,10 @@ class Axi4MemoryModel:
                     self._sig("w_ready").value = 0
 
                 # Send B response
+                b_delay_cycles = self._next_write_b_delay()
+                for _ in range(b_delay_cycles):
+                    await RisingEdge(self.dut.clk)
+
                 self._sig("b_valid").value = 1
                 self._sig("b_payload_resp").value = 0  # OKAY
                 self._sig("b_payload_id").value = 0
