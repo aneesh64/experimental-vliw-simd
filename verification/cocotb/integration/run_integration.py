@@ -19,6 +19,9 @@ Usage:
     python run_integration.py --modules test_integration_memory
     python run_integration.py --modules test_integration_control
     python run_integration.py --modules test_integration_vector
+    python run_integration.py --modules test_dsl_integration
+    python run_integration.py --modules test_dsl_helpers_integration
+    python run_integration.py --modules test_dsl_algorithms_integration
     python run_integration.py --modules test_algorithms_kernels
     python run_integration.py --modules test_algorithms_multiwidth
 """
@@ -59,6 +62,9 @@ USAGE_TEXT = """Usage:
     python run_integration.py --modules test_integration_memory
     python run_integration.py --modules test_integration_control
     python run_integration.py --modules test_integration_vector
+    python run_integration.py --modules test_dsl_integration
+    python run_integration.py --modules test_dsl_helpers_integration
+    python run_integration.py --modules test_dsl_algorithms_integration
     python run_integration.py --modules test_algorithms_kernels
     python run_integration.py --modules test_algorithms_multiwidth
 

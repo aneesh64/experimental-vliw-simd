@@ -1,98 +1,56 @@
-# VLIW SIMD Documentation Index
+# Documentation Index
 
-**Project Status:** Production Ready — 176/176 tests pass (48 unit + 128 integration)  
-**Last Updated:** March 5, 2026
+## Start Here
 
----
+- [../README.md](../README.md) — repository overview and quick start
+- [STATUS.md](STATUS.md) — current project and DSL status snapshot
 
-## Essential Documentation
+## Hardware Documentation
 
-### 📖 Start Here
-- **[README.md](../README.md)** - Project overview, quick start, and status
+- [ARCHITECTURE.md](ARCHITECTURE.md) — architecture reference
+- [TOOLCHAIN.md](TOOLCHAIN.md) — build and verification workflow
+- [DRIVER_API.md](DRIVER_API.md) — C driver API
+- [KNOWN_ISSUES.md](KNOWN_ISSUES.md) — current limitations and workarounds
+- [CHANGELOG.md](CHANGELOG.md) — project history
 
-### 🏗️ Architecture & Design
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete architecture reference
-  - Core pipeline and execution engines
-  - Memory subsystem design
-  - Instruction encoding
-  - Configuration system
+## DSL Documentation
 
-### 🔧 Development
-- **[TOOLCHAIN.md](TOOLCHAIN.md)** - Build, test, and deployment procedures
-- **[DRIVER_API.md](DRIVER_API.md)** - C driver API reference (30 functions)
+### Overview and getting started
+- [DSL.md](DSL.md) — DSL overview and feature map
+- [DSL_QUICKSTART.md](DSL_QUICKSTART.md) — quickstart examples
+- [DSL_PROGRAMMING_GUIDE.md](DSL_PROGRAMMING_GUIDE.md) — practical programming guide with real-world kernel patterns
 
-### 🐛 Issues & History
-- **[KNOWN_ISSUES.md](KNOWN_ISSUES.md)** - Known limitations and workarounds
-- **[CHANGELOG.md](CHANGELOG.md)** - Development history (Phases 0-5 + load-use + store backpressure updates)
+### High-level frontend
+- [DSL_TILEWEAVE_GUIDE.md](DSL_TILEWEAVE_GUIDE.md) — guide to the TileWeave frontend
+- [DSL_HIGH_LEVEL_ROADMAP.md](DSL_HIGH_LEVEL_ROADMAP.md) — roadmap for future frontend growth
 
----
+### Developer-focused material
+- [DSL_DEVELOPER_GUIDE.md](DSL_DEVELOPER_GUIDE.md) — extending the DSL stack
+- [DSL_RTL_VERIFICATION_PLAN.md](DSL_RTL_VERIFICATION_PLAN.md) — DSL verification strategy
 
-## Quick Navigation
+### Tutorials and worked examples
+- [DSL_TUTORIAL_SCALAR.md](DSL_TUTORIAL_SCALAR.md)
+- [DSL_TUTORIAL_TENSOR.md](DSL_TUTORIAL_TENSOR.md)
+- [DSL_SOFTWARE_PIPELINING.md](DSL_SOFTWARE_PIPELINING.md)
+- [DSL_EXAMPLE_CONTROL_FLOW.md](DSL_EXAMPLE_CONTROL_FLOW.md)
+- [DSL_EXAMPLE_BOX_BLUR_3X3.md](DSL_EXAMPLE_BOX_BLUR_3X3.md)
 
-### For New Users
-1. Read [README.md](../README.md) for project overview
-2. Check [TOOLCHAIN.md](TOOLCHAIN.md) for build instructions
-3. Run baseline verification to confirm setup
+## Suggested Reading Paths
 
-### For Developers
-1. Study [ARCHITECTURE.md](ARCHITECTURE.md) for design details
-2. Review [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for limitations
-3. Consult [DRIVER_API.md](DRIVER_API.md) for integration
+### New reader
+1. [../README.md](../README.md)
+2. [STATUS.md](STATUS.md)
+3. [ARCHITECTURE.md](ARCHITECTURE.md)
+4. [DSL.md](DSL.md)
 
-### For Debugging
-1. Check [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for known problems
-2. Review [CHANGELOG.md](CHANGELOG.md) for recent changes
-3. See [ARCHITECTURE.md](ARCHITECTURE.md) for module details
+### DSL user
+1. [DSL_QUICKSTART.md](DSL_QUICKSTART.md)
+2. [DSL_PROGRAMMING_GUIDE.md](DSL_PROGRAMMING_GUIDE.md)
+3. [DSL_TILEWEAVE_GUIDE.md](DSL_TILEWEAVE_GUIDE.md)
+4. [DSL_HIGH_LEVEL_ROADMAP.md](DSL_HIGH_LEVEL_ROADMAP.md)
 
----
-
-## Document Summary
-
-| Document | Lines | Purpose |
-|----------|-------|---------|
-| ARCHITECTURE.md | ~500 | Complete technical reference (incl. load-use hazard detection) |
-| CHANGELOG.md | ~420 | Development history (Phases 0-5 + hazard sweep) |
-| KNOWN_ISSUES.md | ~300 | Issue tracking and workarounds |
-| DRIVER_API.md | ~200 | C API reference |
-| TOOLCHAIN.md | ~810 | Build, test, and toolchain reference |
-
----
-
-## Documentation Standards
-
-### Status Indicators
-- ✅ **Production Ready** - Verified and stable
-- ⚠️ **Known Issue** - Documented limitation
-- ⏳ **Not Tested** - Pending verification
-- 🔧 **In Progress** - Under development
-
-### Version Information
-All documents include:
-- Last updated date
-- Current phase/version
-- Status indicators
-
----
-
-## Maintenance
-
-**Update Frequency:** After each major change or phase completion  
-**Review Cycle:** Monthly for accuracy  
-**Consolidation:** Completed February 21, 2026
-
----
-
-## Additional Resources
-
-### Source Code
-- `src/main/scala/vliw/` - RTL implementation (SpinalHDL)
-- `tools/` - Assembler and scheduler
-- `verification/` - Test infrastructure
-
-### Generated Content
-- `generated_rtl/` - Verilog output from RTL generation
-- `verification/cocotb/integration/sim_build/` - Simulation artifacts
-
----
-
-**For questions or issues, refer to project maintainers.**
+### DSL contributor
+1. [DSL.md](DSL.md)
+2. [DSL_DEVELOPER_GUIDE.md](DSL_DEVELOPER_GUIDE.md)
+3. [DSL_RTL_VERIFICATION_PLAN.md](DSL_RTL_VERIFICATION_PLAN.md)
+4. [TOOLCHAIN.md](TOOLCHAIN.md)
