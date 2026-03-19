@@ -28,17 +28,21 @@ class HardwareCapabilities:
     n_load_slots: int = 1
     n_store_slots: int = 1
     n_flow_slots: int = 1
+    n_matrix_slots: int = 0
     vlen: int = 8
     data_width: int = 32
     scratch_size: int = 1536
     scratch_banks: int = 8
     imem_depth: int = 1024
     bundle_width: int = 256
+    mem_post_gap: int = 2
+    valu_post_gap: int = 2
+    matrix_post_gap: int = 1
     supported_scalar_ops: FrozenSet[str] = field(
-        default_factory=lambda: frozenset({"add", "sub", "mul", "xor", "and", "or", "shl", "shr", "lt", "eq", "div", "mod", "cdiv"})
+        default_factory=lambda: frozenset({"add", "sub", "mul", "xor", "and", "or", "shl", "shr", "lt", "eq", "max", "min", "div", "mod", "cdiv"})
     )
     supported_vector_ops: FrozenSet[str] = field(
-        default_factory=lambda: frozenset({"add", "sub", "mul", "xor", "and", "or", "shl", "shr", "lt", "eq", "vbroadcast", "multiply_add", "vcast"})
+        default_factory=lambda: frozenset({"add", "sub", "mul", "xor", "and", "or", "shl", "shr", "lt", "eq", "max", "min", "vbroadcast", "multiply_add", "vcast"})
     )
     supported_load_ops: FrozenSet[str] = field(
         default_factory=lambda: frozenset({"const", "load", "load_offset", "vload"})
@@ -48,6 +52,9 @@ class HardwareCapabilities:
     )
     supported_flow_ops: FrozenSet[str] = field(
         default_factory=lambda: frozenset({"halt", "jump", "cond_jump", "cond_jump_rel", "jump_indirect", "select", "vselect", "add_imm", "coreid"})
+    )
+    supported_matrix_ops: FrozenSet[str] = field(
+        default_factory=lambda: frozenset({"mcfg", "mmload", "mmstore", "mdmvin", "mdmvout", "mpreload", "mcompute", "mcompute_acc", "mzero"})
     )
     supported_element_widths: FrozenSet[int] = field(
         default_factory=lambda: frozenset({4, 8, 16, 32, 64})
@@ -72,6 +79,7 @@ class HardwareCapabilities:
             n_load_slots=sched.n_load_slots,
             n_store_slots=sched.n_store_slots,
             n_flow_slots=sched.n_flow_slots,
+            n_matrix_slots=sched.n_matrix_slots,
             scratch_size=scratch_size or 1536,
             imem_depth=1024,
         )
@@ -82,12 +90,16 @@ class HardwareCapabilities:
             n_load_slots=asm.n_load_slots,
             n_store_slots=asm.n_store_slots,
             n_flow_slots=asm.n_flow_slots,
+            n_matrix_slots=asm.n_matrix_slots,
             vlen=asm.vlen,
             data_width=data_width or sched.data_width,
             scratch_size=scratch_size or asm.scratch_size,
             scratch_banks=scratch_banks or sched.scratch_banks,
             imem_depth=asm.imem_depth,
             bundle_width=asm.bundle_width,
+            mem_post_gap=sched.mem_post_gap,
+            valu_post_gap=sched.valu_post_gap,
+            matrix_post_gap=sched.matrix_post_gap,
             limitations=KnownHardwareLimitations(
                 single_pending_load=True,
                 vector_axi_alignment_words=16,
@@ -104,8 +116,12 @@ class HardwareCapabilities:
             n_load_slots=self.n_load_slots,
             n_store_slots=self.n_store_slots,
             n_flow_slots=self.n_flow_slots,
+            n_matrix_slots=self.n_matrix_slots,
             scratch_banks=self.scratch_banks,
             data_width=self.data_width,
+            mem_post_gap=self.mem_post_gap,
+            valu_post_gap=self.valu_post_gap,
+            matrix_post_gap=self.matrix_post_gap,
         )
 
     def to_assembler_config(self) -> AssemblerConfig:
@@ -115,6 +131,7 @@ class HardwareCapabilities:
             n_load_slots=self.n_load_slots,
             n_store_slots=self.n_store_slots,
             n_flow_slots=self.n_flow_slots,
+            n_matrix_slots=self.n_matrix_slots,
             vlen=self.vlen,
             scratch_size=self.scratch_size,
             imem_depth=self.imem_depth,
@@ -135,6 +152,12 @@ class HardwareCapabilities:
     def require_element_width(self, width: int) -> None:
         if width not in self.supported_element_widths:
             raise ValueError(f"Element width {width} is not supported by the target capability profile")
+
+    def require_matrix_op(self, op: str) -> None:
+        if self.n_matrix_slots < 1:
+            raise ValueError(f"Target exposes no matrix slots; cannot lower matrix op '{op}'")
+        if op not in self.supported_matrix_ops:
+            raise ValueError(f"Matrix op '{op}' is not supported by the target capability profile")
 
     @property
     def vector_alignment_words(self) -> int:

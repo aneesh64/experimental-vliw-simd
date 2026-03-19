@@ -1,6 +1,6 @@
-# DSL Example: Control-Flow Heavy Threshold Clip
+# DSL Example: Threshold Clip And Vector Loop Control
 
-This example shows a reusable branch-heavy scalar kernel built with the higher-level control-flow helpers.
+This example shows a reusable scalar threshold-clip kernel together with loop-driven vector threshold-mask kernels.
 
 ## Goal
 
@@ -21,7 +21,7 @@ $$
 ## Helpful abstractions used
 
 - `counted_loop()` for structured scalar loops
-- `if_else()` for readable branch emission
+- `select()` for scalar conditional dataflow without extra branch control
 - standard pointer arithmetic and scalar loads/stores
 
 ## Kernel shape
@@ -41,12 +41,8 @@ def body(inner_kb: KernelBuilder) -> None:
     inner_kb.load(value, in_ptr)
     inner_kb.binary("lt", below_threshold, value, threshold)
     inner_kb.add(out_ptr, output_base, index)
-    inner_kb.if_else(
-        below_threshold,
-        prefix=f"clip_{length}",
-        then_body=lambda kb_then: kb_then.store(out_ptr, zero),
-        else_body=lambda kb_else: kb_else.store(out_ptr, value),
-    )
+    inner_kb.select(clipped, below_threshold, zero, value)
+    inner_kb.store(out_ptr, clipped)
 
 kb.counted_loop(index, start=0, stop=length, step=1, body=body, prefix=f"clip_loop_{length}")
 kb.halt()
@@ -71,7 +67,7 @@ Expected output:
 
 This example demonstrates that the DSL can express:
 - structured loops
-- explicit branches
+- scalar conditional dataflow through the flow engine
 - symbolic DMEM bindings
 - scalar kernels with nontrivial control flow
 
@@ -104,6 +100,8 @@ $$
 - `vector_fill()` for one-time threshold broadcast
 - `vload()` / `vstore()` for vector memory traffic
 - `vector_map("lt", ...)` for vector comparison
+
+The RTL suite now also reruns this vector threshold-mask kernel under randomized AXI read latency to catch control-plus-memory timing regressions.
 
 ## Core idea
 

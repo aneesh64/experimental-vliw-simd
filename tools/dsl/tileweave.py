@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 from .builder import KernelBuilder
 from .capabilities import HardwareCapabilities
-from .ir import Buffer, DType, Kernel, U32
+from .ir import Buffer, DType, Kernel, U8, U32
 
 
 @dataclass(frozen=True)
@@ -123,6 +123,34 @@ class TileWeaveKernelBuilder:
     def tensor(self, name: str, *, dtype: Optional[DType] = None, length: Optional[int] = None) -> TensorHandle:
         return TensorHandle(self._kb.arg_dmem_tensor(name, shape=(length or self.length,), dtype=dtype or self.dtype))
 
+    def tensor_2d(self, name: str, *, rows: int, cols: int, dtype: Optional[DType] = None) -> TensorHandle:
+        if rows <= 0 or cols <= 0:
+            raise ValueError("TileWeaveKernelBuilder tensor_2d() requires positive rows and cols")
+        return TensorHandle(self._kb.arg_dmem_tensor(name, shape=(rows, cols), dtype=dtype or self.dtype))
+
+    def dmem_alias(
+        self,
+        name: str,
+        tensor: TensorHandle,
+        *,
+        shape: tuple[int, ...],
+        offset_words: int = 0,
+        dtype: Optional[DType] = None,
+    ) -> TensorHandle:
+        return TensorHandle(
+            self._kb.dmem_alias(name, tensor.buffer, shape=shape, offset_words=offset_words, dtype=dtype)
+        )
+
+    def matmul(
+        self,
+        lhs: TensorHandle,
+        rhs: TensorHandle,
+        out: TensorHandle,
+        *,
+        accumulate: bool = False,
+    ) -> None:
+        self._kb.matmul(lhs.buffer, rhs.buffer, out.buffer, accumulate=accumulate)
+
     def scalar(self, name: str, *, dtype: Optional[DType] = None, default: Optional[int] = None) -> ScalarHandle:
         return ScalarHandle(self._kb.arg_scalar(name, dtype=dtype or self.dtype, default=default))
 
@@ -198,7 +226,7 @@ class TileWeaveKernelBuilder:
             raise ValueError("Stored block value must belong to the same TileWeaveKernelBuilder")
         self._stores.append(StoreSpec(tensor=tensor, value=value, mask=mask, offsets=offsets))
 
-    def build(self) -> Kernel:
+    def build(self, *, postlude: Optional[Callable[[KernelBuilder], None]] = None) -> Kernel:
         if not self._stores:
             raise ValueError("TileWeaveKernelBuilder requires at least one store() before build()")
         if self.hardware_vector_len <= 0:
@@ -460,6 +488,8 @@ class TileWeaveKernelBuilder:
                 body=tail_body,
                 prefix=f"{self._kb.build().name}_tail_programs",
             )
+        if postlude is not None:
+            postlude(self._kb)
         self._kb.halt()
         return self._kb.build()
 

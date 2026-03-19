@@ -39,6 +39,8 @@ class Buffer:
     space: MemorySpace
     alignment_words: int = 1
     scratch_base: Optional[int] = None
+    base_buffer: Optional[str] = None
+    base_offset_words: int = 0
 
     @property
     def elements(self) -> int:
@@ -150,6 +152,14 @@ class AddImmediate(KernelOp):
 
 
 @dataclass(frozen=True)
+class ScalarSelect(KernelOp):
+    dest: str
+    cond: str
+    src_a: str
+    src_b: str
+
+
+@dataclass(frozen=True)
 class AddressOf(KernelOp):
     dest: str
     buffer: str
@@ -175,6 +185,14 @@ class CondJump(KernelOp):
 @dataclass(frozen=True)
 class ReadCoreId(KernelOp):
     dest: str
+
+
+@dataclass(frozen=True)
+class MatrixMultiply(KernelOp):
+    lhs: str
+    rhs: str
+    out: str
+    accumulate: bool = False
 
 
 @dataclass(frozen=True)

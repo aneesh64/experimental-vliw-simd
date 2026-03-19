@@ -8,6 +8,9 @@ Currently verified modules:
 - [verification/cocotb/integration/test_dsl_integration.py](../verification/cocotb/integration/test_dsl_integration.py)
 - [verification/cocotb/integration/test_dsl_helpers_integration.py](../verification/cocotb/integration/test_dsl_helpers_integration.py)
 
+Currently verified alternate-slot execution modes:
+- [verification/cocotb/integration/test_dsl_helpers_integration.py](../verification/cocotb/integration/test_dsl_helpers_integration.py) under `verification/config/test_config_alu2.properties` (`2 ALU`)
+
 Currently verified kernel shapes:
 - scalar symbolic DMEM load/compute/store
 - scalar symbolic DMEM load/compute/store under randomized AXI read latency
@@ -18,12 +21,15 @@ Currently verified kernel shapes:
 - helper-driven `vector_map("add", ...)` using scalar-fed vectors
 - helper-driven packed-8-bit `vector_map("xor", ...)`
 - helper-driven packed-16-bit `vector_map("sub", ...)`
+- helper-driven lane-paired `vector_map("add", ew=64, ...)`
 - helper-driven symbolic DMEM `vload_view -> vector_map -> vstore_view`
 - helper-driven symbolic DMEM `vector_copy()`
 - helper-driven symbolic DMEM `vcast(32->8)`
 - helper-driven symbolic DMEM `vcast(8->16)`
 - helper-driven symbolic DMEM signed `vcast(8->32)`
+- helper-driven symbolic DMEM signed `vcast(16->32)`
 - helper-driven symbolic DMEM `vector_map("mul")`
+- vector threshold-mask loop kernel under randomized AXI read latency
 - fixed-shape 3x3 box blur for one output pixel
 - looped 3x3 row blur over a 3x5 patch
 - small full-image 3x3 blur over a 4x4 patch with nested loops
@@ -95,8 +101,8 @@ Each feature below should eventually have at least one golden RTL kernel.
 | Scalar arithmetic and compares | Partial | scalar ALU matrix |
 | Control flow (`label`, `jump`, `cond_jump`) | Partial | loop + branch edge cases |
 | Scalar arguments / DMEM bindings | Partial | pointer and offset kernels |
-| Vector broadcast / cast / copy | Partial | widen/narrow coverage beyond current `32->8`, `8->16`, `8->32` smoke kernels |
-| `vector_map()` arithmetic | Partial | add/sub/mul/xor kernels across more widths and mixed scheduling shapes |
+| Vector broadcast / cast / copy | Partial | widen/narrow coverage beyond current `32->8`, `8->16`, signed `8->32`, and signed `16->32` smoke kernels |
+| `vector_map()` arithmetic | Partial | add/sub/mul/xor kernels across more widths, including 64-bit lane-paired cases, and mixed scheduling shapes |
 | `vload_view()` / `vstore_view()` | Partial | aligned and offset tiles |
 | Lane alias / `store_lane()` | Partial | lane 0, middle, last |
 | Multiwidth element ops | Partial | broaden beyond current packed `U8` xor, packed `U16` sub, and widening-cast smoke kernels |
@@ -147,6 +153,10 @@ Recommended candidates:
 - one scalar loop kernel
 - one helper vector-map kernel
 - one symbolic `vload_view -> vstore_view` kernel
+
+Current stress-covered DSL kernels:
+- scalar symbolic DMEM load/compute/store
+- vector threshold-mask loop kernel
 
 Exit criteria:
 - at least one DSL smoke module runs under latency stress and one alternate slot configuration in regression
@@ -249,11 +259,10 @@ If a DSL RTL test fails:
 ## Proposed Near-Term Backlog
 
 Highest priority:
-1. alternate-slot rerun of current DSL helper kernels
-2. multiwidth `vector_map()` RTL kernels beyond current `8-bit xor`, `16-bit subtract`, and `32-bit multiply`
-3. widening `vcast()` RTL kernels beyond current `32->8`, `8->16`, and signed `8->32`
-4. mixed control-flow plus vector tile kernel with runtime trip count
-5. stress-latency rerun of additional DSL kernels beyond scalar smoke
+1. additional multiwidth `vector_map()` RTL kernels beyond current `8-bit xor`, `16-bit subtract`, `32-bit multiply`, and `64-bit add`
+2. additional widening `vcast()` RTL kernels beyond current `32->8`, `8->16`, signed `8->32`, and signed `16->32`
+3. mixed control-flow plus vector tile kernel with runtime trip count
+4. stress-latency rerun of additional DSL kernels beyond scalar smoke and vector threshold-mask coverage
 
 ## Definition of Done For DSL Verification
 

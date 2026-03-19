@@ -43,13 +43,13 @@ N_FLOW_SLOTS = CFG.n_flow_slots
 # Create assembler + scheduler matching Sim config
 ASM = Assembler(AssemblerConfig(
     n_alu_slots=N_ALU_SLOTS, n_valu_slots=N_VALU_SLOTS, n_load_slots=N_LOAD_SLOTS,
-    n_store_slots=N_STORE_SLOTS, n_flow_slots=N_FLOW_SLOTS, vlen=CFG.vlen,
+    n_store_slots=N_STORE_SLOTS, n_flow_slots=N_FLOW_SLOTS, n_matrix_slots=CFG.n_matrix_slots, vlen=CFG.vlen,
     scratch_size=CFG.scratch_size, imem_depth=CFG.imem_depth
 ))
 
 S = VliwScheduler(SchedulerConfig(
     n_alu_slots=N_ALU_SLOTS, n_valu_slots=N_VALU_SLOTS, n_load_slots=N_LOAD_SLOTS,
-    n_store_slots=N_STORE_SLOTS, n_flow_slots=N_FLOW_SLOTS,
+    n_store_slots=N_STORE_SLOTS, n_flow_slots=N_FLOW_SLOTS, n_matrix_slots=CFG.n_matrix_slots,
     mem_post_gap=CFG.mem_post_gap
 ))
 
@@ -81,6 +81,10 @@ def _vbin(op: str, a: list[int], b: list[int]) -> list[int]:
             out.append(1 if _u32(av) < _u32(bv) else 0)
         elif op == "eq":
             out.append(1 if _u32(av) == _u32(bv) else 0)
+        elif op == "max":
+            out.append(_u32(av) if _u32(av) >= _u32(bv) else _u32(bv))
+        elif op == "min":
+            out.append(_u32(av) if _u32(av) <= _u32(bv) else _u32(bv))
         else:
             raise ValueError(f"Unknown op {op}")
     return out

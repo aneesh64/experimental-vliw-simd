@@ -3,6 +3,7 @@ package vliw.config
 import spinal.core._
 import spinal.lib.bus.amba4.axi._
 import spinal.lib.bus.amba4.axilite._
+import vliw.bundle.SlotEncodingWidths
 
 /**
  * Master configuration for the VLIW SIMD co-processor.
@@ -21,10 +22,19 @@ case class VliwSocConfig(
   nLoadSlots:      Int = 1,       // 1..2  memory load slots
   nStoreSlots:     Int = 1,       // 1..2  memory store slots
   nFlowSlots:      Int = 1,       // always 1 (architectural limit)
+  nMatrixSlots:    Int = 0,       // 0..1  matrix engine slots (8x8 int8 v1)
 
   // ---- Vector configuration ----
   vlen:            Int = 8,       // lanes per vector operation
   dataWidth:       Int = 32,      // operand width in bits
+
+  // ---- Matrix engine configuration (v1 fixed 8x8 int8 -> int32) ----
+  matrixRows:      Int = 8,
+  matrixCols:      Int = 8,
+  matrixElemBits:  Int = 8,
+  matrixAccumBits: Int = 32,
+  matrixScratchSize: Int = 256,   // words per core reserved for matrix-local scratch
+  matrixAccumSize:   Int = 64,    // accumulator words per core for 8x8 int32 outputs
 
   // ---- Memory sizing ----
   scratchSize:     Int = 1536,    // scratch words per core
@@ -60,6 +70,8 @@ case class VliwSocConfig(
   def scratchAddrWidth: Int = log2Up(scratchSize)       // 11 bits for 1536
   def bankAddrWidth:   Int = log2Up(wordsPerBank)       // 8 bits for 192
   def bankSelWidth:    Int = log2Up(scratchBanks)        // 3 bits for 8
+  def matrixScratchAddrWidth: Int = log2Up(matrixScratchSize)
+  def matrixAccumAddrWidth:   Int = log2Up(matrixAccumSize)
 
   def imemAddrWidth:   Int = log2Up(imemDepth)
 
@@ -77,11 +89,12 @@ case class VliwSocConfig(
   def wordOffsetBits:  Int = log2Up(wordsPerAxiBeat)
 
   // ---- Slot bit-widths (encoding) ----
-  def aluSlotWidth:   Int = 40
-  def valuSlotWidth:  Int = 56
-  def loadSlotWidth:  Int = 48
-  def storeSlotWidth: Int = 28
-  def flowSlotWidth:  Int = 48
+  def aluSlotWidth:   Int = 1 + SlotEncodingWidths.AluOpcodeBits + scratchAddrWidth * 3 + 2
+  def valuSlotWidth:  Int = 1 + SlotEncodingWidths.ValuOpcodeBits + scratchAddrWidth * 4 + 3 + 3 + 1
+  def loadSlotWidth:  Int = 1 + SlotEncodingWidths.LoadOpcodeBits + scratchAddrWidth * 2 + 3 + 19
+  def storeSlotWidth: Int = 1 + SlotEncodingWidths.StoreOpcodeBits + scratchAddrWidth * 2 + 3
+  def flowSlotWidth:  Int = 1 + SlotEncodingWidths.FlowOpcodeBits + scratchAddrWidth * 3 + imemAddrWidth
+  def matrixSlotWidth:Int = 1 + SlotEncodingWidths.MatrixOpcodeBits + scratchAddrWidth * 4 + 4 + 4 + 6 + 1
 
   /** Total instruction bundle width in bits, padded to 64-bit boundary. */
   def bundleWidth: Int = {
@@ -89,6 +102,7 @@ case class VliwSocConfig(
               nValuSlots * valuSlotWidth +
               nLoadSlots * loadSlotWidth +
               nStoreSlots * storeSlotWidth +
+              nMatrixSlots * matrixSlotWidth +
               nFlowSlots * flowSlotWidth
     ((raw + 63) / 64) * 64
   }
@@ -109,7 +123,8 @@ case class VliwSocConfig(
     nLoadSlots * 1 +                   // const results
     nLoadSlots * vlen +                // vload results (VLEN writes per load slot)
     nFlowSlots * 1 +                   // flow scalar results (select)
-    nFlowSlots * vlen                  // flow vector results (vselect)
+    nFlowSlots * vlen +                // flow vector results (vselect)
+    1                                  // scratchpad copy (SCOPY M2V)
     // stores write to memory, not scratch
 
   // ---- AXI configs ----
@@ -139,8 +154,14 @@ case class VliwSocConfig(
     s"scratchSize ($scratchSize) must be divisible by scratchBanks ($scratchBanks)")
   require(isPow2(vlen), s"vlen ($vlen) must be a power of 2")
   require(nFlowSlots == 1, "Only 1 flow slot is architecturally supported")
+  require(nMatrixSlots >= 0 && nMatrixSlots <= 1, "Matrix slot count must be 0 or 1 in v1")
   require(pipelineStages == 3, "3-stage pipeline (IF|EX|WB) is the current architecture")
   require(axiDataWidth >= dataWidth, s"axiDataWidth ($axiDataWidth) must be >= dataWidth ($dataWidth)")
+  require(matrixScratchSize > 0, "matrixScratchSize must be positive")
+  require(matrixAccumSize > 0, "matrixAccumSize must be positive")
+  require(matrixRows == 8 && matrixCols == 8, "v1 matrix engine is fixed at 8x8")
+  require(matrixElemBits == 8, "v1 matrix engine element size is fixed at int8")
+  require(matrixAccumBits == 32, "v1 matrix accumulator width is fixed at int32")
   require(nAluSlots >= 1 && nAluSlots <= 12)
   require(nValuSlots >= 1 && nValuSlots <= 6)
   require(nLoadSlots >= 1 && nLoadSlots <= 2)

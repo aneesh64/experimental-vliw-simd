@@ -28,6 +28,7 @@ ASM = Assembler(AssemblerConfig(
     n_load_slots=CFG.n_load_slots,
     n_store_slots=CFG.n_store_slots,
     n_flow_slots=CFG.n_flow_slots,
+    n_matrix_slots=CFG.n_matrix_slots,
     vlen=CFG.vlen,
     scratch_size=CFG.scratch_size,
     imem_depth=CFG.imem_depth,
@@ -39,6 +40,7 @@ S = VliwScheduler(SchedulerConfig(
     n_load_slots=CFG.n_load_slots,
     n_store_slots=CFG.n_store_slots,
     n_flow_slots=CFG.n_flow_slots,
+    n_matrix_slots=CFG.n_matrix_slots,
     mem_post_gap=CFG.mem_post_gap,
 ))
 

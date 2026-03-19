@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 import os
 from pathlib import Path
@@ -13,6 +14,7 @@ class TestConfig:
     n_load_slots: int
     n_store_slots: int
     n_flow_slots: int
+    n_matrix_slots: int
     mem_post_gap: int
     vlen: int
     scratch_size: int
@@ -33,11 +35,47 @@ def default_config_path(project_root: Path | None = None) -> Path:
     return root / "verification" / "config" / "test_config.properties"
 
 
-def bundle_width_bits(n_alu_slots: int, n_valu_slots: int, n_load_slots: int, n_store_slots: int, n_flow_slots: int) -> int:
+def active_config_pointer_path(project_root: Path | None = None) -> Path:
+    root = _project_root_from(project_root)
+    return root / "verification" / "cocotb" / ".active_test_config"
+
+
+def resolve_active_config_path(project_root: Path | None = None) -> Path | None:
+    pointer = active_config_pointer_path(project_root)
+    if not pointer.exists():
+        return None
+    raw = pointer.read_text(encoding="utf-8").strip()
+    if not raw:
+        return None
+    cfg_path = Path(raw)
+    if not cfg_path.is_absolute():
+        cfg_path = _project_root_from(project_root) / cfg_path
+    return cfg_path.resolve()
+
+
+@contextmanager
+def active_test_config(config_path: Path, project_root: Path | None = None):
+    pointer = active_config_pointer_path(project_root)
+    pointer.parent.mkdir(parents=True, exist_ok=True)
+    previous = pointer.read_text(encoding="utf-8") if pointer.exists() else None
+    pointer.write_text(str(Path(config_path).resolve()), encoding="utf-8")
+    try:
+        yield pointer
+    finally:
+        if previous is None:
+            if pointer.exists():
+                pointer.unlink()
+        else:
+            pointer.write_text(previous, encoding="utf-8")
+
+
+def bundle_width_bits(n_alu_slots: int, n_valu_slots: int, n_load_slots: int,
+             n_store_slots: int, n_flow_slots: int, n_matrix_slots: int = 0) -> int:
     raw = (40 * n_alu_slots +
            56 * n_valu_slots +
            48 * n_load_slots +
            28 * n_store_slots +
+        64 * n_matrix_slots +
            48 * n_flow_slots)
     return ((raw + 63) // 64) * 64
 
@@ -68,13 +106,17 @@ def _get_int(props: dict[str, str], key: str, default: int, min_value: int = 1) 
 
 def load_test_config(config_path: Path | None = None, project_root: Path | None = None) -> TestConfig:
     if config_path is None:
-        env_cfg = os.getenv("VLIW_CONFIG_FILE")
-        if env_cfg:
-            cfg_path = Path(env_cfg)
-            if not cfg_path.is_absolute():
-                cfg_path = _project_root_from(project_root) / cfg_path
+        active_cfg = resolve_active_config_path(project_root)
+        if active_cfg is not None:
+            cfg_path = active_cfg
         else:
-            cfg_path = default_config_path(project_root)
+            env_cfg = os.getenv("VLIW_CONFIG_FILE")
+            if env_cfg:
+                cfg_path = Path(env_cfg)
+                if not cfg_path.is_absolute():
+                    cfg_path = _project_root_from(project_root) / cfg_path
+            else:
+                cfg_path = default_config_path(project_root)
     else:
         cfg_path = config_path
 
@@ -91,6 +133,7 @@ def load_test_config(config_path: Path | None = None, project_root: Path | None 
         n_load_slots=_get_int(props, "slots.load", 1),
         n_store_slots=_get_int(props, "slots.store", 1),
         n_flow_slots=_get_int(props, "slots.flow", 1),
+        n_matrix_slots=_get_int(props, "slots.matrix", 0, min_value=0),
         mem_post_gap=_get_int(props, "scheduler.mem_post_gap", 0, min_value=0),
         vlen=_get_int(props, "arch.vlen", 8),
         scratch_size=_get_int(props, "arch.scratch_size", 1536),
@@ -108,10 +151,12 @@ def slot_env(cfg: TestConfig) -> dict[str, str]:
         "VLIW_N_LOAD_SLOTS": str(cfg.n_load_slots),
         "VLIW_N_STORE_SLOTS": str(cfg.n_store_slots),
         "VLIW_N_FLOW_SLOTS": str(cfg.n_flow_slots),
+        "VLIW_N_MATRIX_SLOTS": str(cfg.n_matrix_slots),
         "N_ALU_SLOTS": str(cfg.n_alu_slots),
         "N_VALU_SLOTS": str(cfg.n_valu_slots),
         "N_LOAD_SLOTS": str(cfg.n_load_slots),
         "N_STORE_SLOTS": str(cfg.n_store_slots),
         "N_FLOW_SLOTS": str(cfg.n_flow_slots),
+        "N_MATRIX_SLOTS": str(cfg.n_matrix_slots),
         "VLIW_MEM_POST_GAP": str(cfg.mem_post_gap),
     }

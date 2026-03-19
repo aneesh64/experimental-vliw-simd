@@ -11,15 +11,20 @@ import vliw.bundle._
  * Each engine plugin declares:
  *   - How many scratch read ports it needs (addresses presented in IF stage)
  *   - How many scratch write ports it produces (results committed in EX+WB stage)
- *   - A decode method: extract read addresses from the decoded slot
- *   - An execute method: given operand data, compute results
  *
- * The VliwCore collects all plugins, sizes the scratch crossbar,
- * and wires addresses/data between plugins and banked scratch memory.
+ * The current trait is intentionally scratch-centric. Engines backed entirely by
+ * dedicated local memories may still implement it, but should report zero
+ * scratch ports and override `usesDedicatedLocalMemory` to make that explicit.
+ *
+ * In the current core, ALU, VALU, FLOW, and MEM fit the pure scratch-backed
+ * model. MatrixEngine is a deliberate special case: it participates in the
+ * engine inventory, but its operand and accumulator traffic use separate
+ * matrix-local memories wired directly in VliwCore.
  *
  * Inspired by VexRiscv's plugin architecture: each engine is self-contained
- * and registers its resource needs. Adding a new instruction type means
- * creating a new plugin or extending an existing one — no changes to core wiring.
+ * and registers its resource needs. Adding a scratch-backed instruction type
+ * means creating a new plugin or extending an existing one. Engines with
+ * private memories may still require explicit core wiring.
  */
 trait EnginePlugin {
 
@@ -39,6 +44,10 @@ trait EnginePlugin {
 
   /** Number of vector scratch write groups (VLEN writes each). */
   def numVectorWriteGroups: Int
+
+  /** True when the engine owns non-scratch local memories and uses this trait
+   *  only for inventory/debug rather than scratch crossbar sizing. */
+  def usesDedicatedLocalMemory: Boolean = false
 }
 
 /**

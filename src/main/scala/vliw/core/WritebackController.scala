@@ -39,8 +39,9 @@ class WritebackController(cfg: VliwSocConfig) extends Component {
   val nVloadWrites = cfg.nLoadSlots * cfg.vlen
   val nFlowScalar  = 1
   val nFlowVector  = cfg.vlen            // vselect
+  val nScopyWrites = 1                   // scratchpad copy (M2V)
   val totalWrites  = nAluWrites + nValuWrites + nLoadWrites + nConstWrites +
-                     nVloadWrites + nFlowScalar + nFlowVector
+                     nVloadWrites + nFlowScalar + nFlowVector + nScopyWrites
 
   val io = new Bundle {
     // ---- Write requests from engines ----
@@ -51,6 +52,7 @@ class WritebackController(cfg: VliwSocConfig) extends Component {
     val vloadWrites = Vec(slave(Flow(ScratchWriteReq(cfg))), nVloadWrites)
     val flowScalarWrite = slave(Flow(ScratchWriteReq(cfg)))
     val flowVectorWrites = Vec(slave(Flow(ScratchWriteReq(cfg))), nFlowVector)
+    val scopyWrite  = slave(Flow(ScratchWriteReq(cfg)))  // scratchpad copy M2V
 
     // ---- Scratch write ports (output to BankedScratchMemory) ----
     val scratchWriteAddr = out Vec(UInt(cfg.scratchAddrWidth bits), totalWrites)
@@ -72,6 +74,7 @@ class WritebackController(cfg: VliwSocConfig) extends Component {
   for (i <- 0 until nVloadWrites) { allWrites(idx) = io.vloadWrites(i); idx += 1 }
   allWrites(idx) = io.flowScalarWrite; idx += 1
   for (i <- 0 until nFlowVector)  { allWrites(idx) = io.flowVectorWrites(i); idx += 1 }
+  allWrites(idx) = io.scopyWrite; idx += 1
 
   // Drive scratch write ports
   for (i <- 0 until totalWrites) {

@@ -106,11 +106,18 @@ The staged examples now also include a dual-output DSP kernel that emits both:
 
 while still producing scalar sideband probes and metadata. This gives a conservative RTL-backed example of one input stream feeding two vector result streams inside the same tiled software pipeline.
 
+For the matrix-enabled path, the repository now also includes a lower-level worked example that uses explicit stage buffers plus pointer-stepped `add_imm` address updates rather than per-tile absolute address materialization:
+- [docs/DSL_EXAMPLE_MULTI_MATRIX_RESIDUAL_AFFINE_PIPELINED.md](DSL_EXAMPLE_MULTI_MATRIX_RESIDUAL_AFFINE_PIPELINED.md)
+
+That example is intentionally below the TileWeave abstraction. It shows where the current generic helper is sufficient and where direct `KernelBuilder` authoring still gives better schedule density for mixed matrix-plus-vector kernels.
+
 ## Verification
 
 This abstraction is covered by:
 - unit comparison against a naive tiled kernel in [tools/tests/test_dsl_examples.py](../tools/tests/test_dsl_examples.py)
 - RTL golden verification in [verification/cocotb/integration/test_dsl_algorithms_integration.py](../verification/cocotb/integration/test_dsl_algorithms_integration.py)
+
+The lower-level matrix-enabled software-pipelined example is separately RTL-verified in [verification/cocotb/integration/test_dsl_matrix_integration.py](../verification/cocotb/integration/test_dsl_matrix_integration.py) as `test_pipelined_multi_matrix_residual_affine_golden`, with the current validated run reporting `42470 ns` of simulated time under the matrix test configuration.
 
 ## Why this is more developer-friendly
 
@@ -131,6 +138,7 @@ The DSL helper owns the repetitive parts:
 - fixed tile count at DSL construction time
 - compile-time unrolling, not a dynamic runtime unroll factor
 - currently specialized to binary tiled load/compute/store pipelines
+- for mixed matrix/vector kernels, direct `KernelBuilder` control can still outperform the generic helper because pointer-stepped staging avoids repeated address-materialization overhead
 
 ## Next extensions
 

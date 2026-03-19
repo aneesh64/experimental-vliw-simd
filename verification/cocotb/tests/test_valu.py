@@ -26,9 +26,9 @@ VLEN = 8
 class Op:
     ADD  = 0;  SUB  = 1;  MUL  = 2;  XOR = 3;  AND = 4;  OR  = 5
     SHL  = 6;  SHR  = 7;  LT   = 8;  EQ  = 9
-    MOD  = 10; DIV  = 11; CDIV = 12
-    VBROADCAST   = 13
-    MULTIPLY_ADD = 14
+    MOD  = 10; DIV  = 11; CDIV = 12; MAX = 13; MIN = 14
+    VBROADCAST   = 15
+    MULTIPLY_ADD = 16
 
 
 def alu_ref(op, a, b, c=0):
@@ -46,8 +46,22 @@ def alu_ref(op, a, b, c=0):
     if op == Op.MOD:  return (a % b) if b else 0
     if op == Op.DIV:  return (a // b) if b else 0
     if op == Op.CDIV: return ((a + b - 1) // b) if b else 0
+    if op == Op.MAX:  return a if a >= b else b
+    if op == Op.MIN:  return a if a <= b else b
     if op == Op.MULTIPLY_ADD: return (a * b + c) & MASK32
     raise ValueError(f"Unknown op {op}")
+
+
+def _s8(value):
+    value &= 0xFF
+    return value - 256 if value & 0x80 else value
+
+
+def _pack_u8(values):
+    packed = 0
+    for lane, value in enumerate(values):
+        packed |= (value & 0xFF) << (lane * 8)
+    return packed
 
 
 async def reset(dut, cycles=5):
@@ -107,7 +121,7 @@ async def fire_valu(dut, opcode, a_vec, b_vec, c_vec=None, dest_base=16):
 @cocotb.test()
 async def test_vector_add(dut):
     """Test lane-wise vector ADD."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     a = [i * 10 for i in range(VLEN)]
@@ -136,7 +150,7 @@ async def test_vector_add(dut):
 @cocotb.test()
 async def test_vector_mul(dut):
     """Test lane-wise vector MUL."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     a = [100 + i for i in range(VLEN)]
@@ -160,9 +174,110 @@ async def test_vector_mul(dut):
 
 
 @cocotb.test()
+async def test_vector_max_min_unsigned_ew32(dut):
+    """Test lane-wise unsigned vector MAX/MIN at EW32."""
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+    await reset(dut)
+
+    a = [3, 40, 7, 99, 123, 2, 0xFFFFFFFE, 15]
+    b = [9, 10, 70, 12, 122, 8, 0xFFFFFFFF, 1]
+
+    for opcode, ref in ((Op.MAX, max), (Op.MIN, min)):
+        dut.io_valid.value = 1
+        dut.io_slots_0_valid.value = 1
+        dut.io_slots_0_opcode.value = opcode
+        dut.io_slots_0_destBase.value = 32
+        dut.io_slots_0_ewidth.value = 0
+        dut.io_slots_0_dwidth.value = 0
+        dut.io_slots_0_isSigned.value = 0
+        set_operands(dut, a, b)
+
+        await RisingEdge(dut.clk)
+        results = get_write_results(dut)
+
+        for lane in range(VLEN):
+            v, addr, data = results[lane]
+            exp = ref(a[lane] & MASK32, b[lane] & MASK32)
+            assert v == 1, f"Lane {lane}: MAX/MIN write not valid"
+            assert addr == 32 + lane, f"Lane {lane}: addr {addr} != {32 + lane}"
+            assert data == exp, f"Lane {lane}: got {data:#x}, expected {exp:#x}"
+
+        dut.io_valid.value = 0
+        dut.io_slots_0_valid.value = 0
+        await RisingEdge(dut.clk)
+
+    dut._log.info("test_vector_max_min_unsigned_ew32: PASS")
+
+
+@cocotb.test()
+async def test_vector_max_min_signed_packed_ew8(dut):
+    """Test packed signed vector MAX/MIN at EW8."""
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+    await reset(dut)
+
+    a_words = [
+        _pack_u8([0xF0, 0x05, 0x7F, 0x80]),
+        _pack_u8([0x01, 0xFE, 0x10, 0xA0]),
+        _pack_u8([0x20, 0x30, 0x40, 0x50]),
+        _pack_u8([0xAA, 0xBB, 0xCC, 0xDD]),
+        _pack_u8([0x12, 0x34, 0x56, 0x78]),
+        _pack_u8([0x87, 0x65, 0x43, 0x21]),
+        _pack_u8([0x00, 0x7E, 0x81, 0xFF]),
+        _pack_u8([0x11, 0x22, 0x33, 0x44]),
+    ]
+    b_words = [
+        _pack_u8([0x08, 0xF9, 0x01, 0x7F]),
+        _pack_u8([0x02, 0x05, 0xF0, 0x90]),
+        _pack_u8([0x10, 0x31, 0x3F, 0x60]),
+        _pack_u8([0xAB, 0xBA, 0xCD, 0xDC]),
+        _pack_u8([0x21, 0x43, 0x65, 0x87]),
+        _pack_u8([0x78, 0x56, 0x34, 0x12]),
+        _pack_u8([0xFF, 0x7F, 0x80, 0x00]),
+        _pack_u8([0x44, 0x33, 0x22, 0x11]),
+    ]
+
+    def signed_lane_ref(word_a, word_b, want_max):
+        lanes = []
+        for lane in range(4):
+            aa = (word_a >> (lane * 8)) & 0xFF
+            bb = (word_b >> (lane * 8)) & 0xFF
+            sa = _s8(aa)
+            sb = _s8(bb)
+            choose_a = sa >= sb if want_max else sa <= sb
+            lanes.append(aa if choose_a else bb)
+        return _pack_u8(lanes)
+
+    for opcode, want_max in ((Op.MAX, True), (Op.MIN, False)):
+        dut.io_valid.value = 1
+        dut.io_slots_0_valid.value = 1
+        dut.io_slots_0_opcode.value = opcode
+        dut.io_slots_0_destBase.value = 64
+        dut.io_slots_0_ewidth.value = 1
+        dut.io_slots_0_dwidth.value = 1
+        dut.io_slots_0_isSigned.value = 1
+        set_operands(dut, a_words, b_words)
+
+        await RisingEdge(dut.clk)
+        results = get_write_results(dut)
+
+        for lane in range(VLEN):
+            v, addr, data = results[lane]
+            exp = signed_lane_ref(a_words[lane], b_words[lane], want_max)
+            assert v == 1, f"Lane {lane}: packed MAX/MIN write not valid"
+            assert addr == 64 + lane, f"Lane {lane}: addr {addr} != {64 + lane}"
+            assert data == exp, f"Lane {lane}: got {data:#010x}, expected {exp:#010x}"
+
+        dut.io_valid.value = 0
+        dut.io_slots_0_valid.value = 0
+        await RisingEdge(dut.clk)
+
+    dut._log.info("test_vector_max_min_signed_packed_ew8: PASS")
+
+
+@cocotb.test()
 async def test_vbroadcast(dut):
     """Test VBROADCAST: all lanes get operandC[0]."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     broadcast_val = 42
@@ -190,7 +305,7 @@ async def test_vbroadcast(dut):
 @cocotb.test()
 async def test_multiply_add(dut):
     """Test MULTIPLY_ADD: result = (a * b + c) mod 2^32 per lane."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     a = [10 + i for i in range(VLEN)]
@@ -217,7 +332,7 @@ async def test_multiply_add(dut):
 @cocotb.test()
 async def test_vector_div(dut):
     """Test lane-wise DIV (multi-cycle, 8 parallel dividers)."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     a = [100 + i * 13 for i in range(VLEN)]
@@ -245,7 +360,7 @@ async def test_vector_div(dut):
 @cocotb.test()
 async def test_vector_mod(dut):
     """Test lane-wise MOD (multi-cycle, 8 parallel dividers)."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     a = [100 + i * 13 for i in range(VLEN)]
@@ -272,11 +387,11 @@ async def test_vector_mod(dut):
 @cocotb.test()
 async def test_all_single_cycle_ops(dut):
     """Sweep all single-cycle opcodes with random data."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     rng = random.Random(99)
-    single_ops = [Op.ADD, Op.SUB, Op.MUL, Op.XOR, Op.AND, Op.OR, Op.SHL, Op.SHR, Op.LT, Op.EQ]
+    single_ops = [Op.ADD, Op.SUB, Op.MUL, Op.XOR, Op.AND, Op.OR, Op.SHL, Op.SHR, Op.LT, Op.EQ, Op.MAX, Op.MIN]
 
     for op in single_ops:
         a = [rng.randint(0, MASK32) for _ in range(VLEN)]

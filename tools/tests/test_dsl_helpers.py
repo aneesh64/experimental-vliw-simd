@@ -7,7 +7,19 @@ TOOLS_DIR = Path(__file__).resolve().parents[1]
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
-from dsl import KernelBuilder, U8, U16, U32, compile_kernel, HardwareCapabilities, tile_1d
+from dsl import (
+    HardwareCapabilities,
+    KernelBuilder,
+    U8,
+    U16,
+    U32,
+    compile_kernel,
+    pack_matrix_matmul_32x32_u32_tiles,
+    pack_matrix_matmul_32x32_u8_tiles,
+    tile_1d,
+    unpack_matrix_matmul_32x32_u32_tiles,
+    unpack_matrix_matmul_32x32_u8_tiles,
+)
 
 
 def test_vector_helper_methods_append_expected_ops():
@@ -170,3 +182,43 @@ def test_vcast_supports_8_to_32_signed_widening():
     assert ops[0].ew == 8
     assert ops[0].dw == 32
     assert ops[0].signed == 1
+
+
+def test_pack_matrix_matmul_32x32_u8_tiles_round_trips_row_major_layout():
+    row_major = [((row * 32) + col) & 0xFF for row in range(32) for col in range(32)]
+
+    packed = pack_matrix_matmul_32x32_u8_tiles(row_major)
+    unpacked = unpack_matrix_matmul_32x32_u8_tiles(packed)
+
+    assert len(packed) == 1024
+    assert packed[:8] == row_major[:8]
+    assert packed[64:72] == row_major[8:16]
+    assert unpacked == row_major
+
+
+def test_pack_matrix_matmul_32x32_u32_tiles_round_trips_row_major_layout():
+    row_major = [((row * 32) + col) * 17 for row in range(32) for col in range(32)]
+
+    packed = pack_matrix_matmul_32x32_u32_tiles(row_major)
+    unpacked = unpack_matrix_matmul_32x32_u32_tiles(packed)
+
+    assert len(packed) == 1024
+    assert packed[:8] == row_major[:8]
+    assert packed[64:72] == row_major[8:16]
+    assert unpacked == row_major
+
+
+def test_pack_matrix_matmul_32x32_helpers_reject_wrong_element_count():
+    try:
+        pack_matrix_matmul_32x32_u8_tiles([0] * 1023)
+    except ValueError as exc:
+        assert "exactly 1024 elements" in str(exc)
+    else:
+        raise AssertionError("Expected U8 tile pack helper to reject non-32x32 input")
+
+    try:
+        unpack_matrix_matmul_32x32_u32_tiles([0] * 1025)
+    except ValueError as exc:
+        assert "exactly 1024 elements" in str(exc)
+    else:
+        raise AssertionError("Expected U32 tile unpack helper to reject non-32x32 input")

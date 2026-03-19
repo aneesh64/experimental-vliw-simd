@@ -133,6 +133,18 @@ class BankedScratchMemory(cfg: VliwSocConfig) extends Component {
 
     // ---- Bank conflict indication (debug — scheduler should prevent) ----
     val conflict = out Bool()
+
+    // ---- Vector Port B / WB write bank conflict ----
+    // True when a WB write and a Port B vector read target the same bank
+    // (different addresses).  The pipeline must inject a 1-cycle bubble so the
+    // WB write completes before the vector read proceeds.
+    val vectorBankConflict = out Bool()
+
+    // ---- Scalar Port B / WB write bank conflict ----
+    // True when a scalar read needs Port B (2nd reader to same bank) but Port B
+    // is busy with a WB write.  The pipeline must inject a 1-cycle bubble so the
+    // WB write completes before the scalar read retries.
+    val scalarBankConflict = out Bool()
   }
 
   // ======================== Bank array ========================
@@ -154,6 +166,7 @@ class BankedScratchMemory(cfg: VliwSocConfig) extends Component {
     banks(b).io.bWrData := 0
   }
   io.conflict := False
+  io.scalarBankConflict := False
 
   // ======================== Write crossbar (Port B, write mode) ========================
   // Route each write to Port B of its target bank.
@@ -241,6 +254,7 @@ class BankedScratchMemory(cfg: VliwSocConfig) extends Component {
       // Conflict cases
       when(isSecond && bankWriteActive(b)) {
         io.conflict := True   // Port B busy with write
+        io.scalarBankConflict := True  // WB write blocks scalar Port B read
       }
       when(isThird) {
         io.conflict := True   // 3+ reads to same bank
@@ -314,6 +328,28 @@ class BankedScratchMemory(cfg: VliwSocConfig) extends Component {
         }
       }
       io.valuReadData(g)(lane) := readData
+    }
+  }
+
+  // ======================== Vector Port B / WB write bank conflict detection ========================
+  // Odd vector read groups (vsrc2 / VSTORE src) use Port B.  When a WB write
+  // targets the same bank, bankWriteActive blocks the read and the lane's data
+  // is lost (BRAM read output is dontCare for a write cycle).  Detect this so
+  // the pipeline can inject a 1-cycle bubble and retry the read after the WB
+  // write completes.
+  io.vectorBankConflict := False
+  for (g <- 0 until cfg.nValuSlots * 2) {
+    if (g % 2 == 1) {  // Port B groups only
+      for (lane <- 0 until cfg.vlen) {
+        when(io.valuReadEn(g)(lane) && io.vectorReadActive) {
+          val bk = bankOf(io.valuReadAddr(g)(lane))
+          for (b <- 0 until cfg.scratchBanks) {
+            when(bk === b && bankWriteActive(b)) {
+              io.vectorBankConflict := True
+            }
+          }
+        }
+      }
     }
   }
 

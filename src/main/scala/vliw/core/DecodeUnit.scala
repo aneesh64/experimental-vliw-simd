@@ -13,7 +13,7 @@ import vliw.bundle._
  * in the EX stage operating on the registered bundle from FetchUnit.
  *
  * Bundle layout (LSB first):
- *   [ ALU_0 | ALU_1 | ... | VALU_0 | ... | LOAD_0 | ... | STORE_0 | ... | FLOW | PAD ]
+ *   [ ALU_0 | ALU_1 | ... | VALU_0 | ... | LOAD_0 | ... | STORE_0 | ... | MATRIX_0 | ... | FLOW | PAD ]
  *
  * Each slot is a fixed-width field; unused slots have valid=0 (NOP).
  */
@@ -26,6 +26,7 @@ class DecodeUnit(cfg: VliwSocConfig) extends Component {
     val valuSlots  = out Vec(ValuSlot(cfg), cfg.nValuSlots)
     val loadSlots  = out Vec(LoadSlot(cfg), cfg.nLoadSlots)
     val storeSlots = out Vec(StoreSlot(cfg), cfg.nStoreSlots)
+    val matrixSlots= out Vec(MatrixSlot(cfg), cfg.nMatrixSlots)
     val flowSlot   = out(FlowSlot(cfg))
   }
 
@@ -36,9 +37,9 @@ class DecodeUnit(cfg: VliwSocConfig) extends Component {
     val raw = io.bundle(bitOffset + cfg.aluSlotWidth - 1 downto bitOffset)
     val slot = io.aluSlots(i)
 
-    // [39] valid | [38:35] opcode | [34:24] dest | [23:13] src1 | [12:2] src2 | [1:0] rsvd
-    slot.valid  := raw(39) && io.valid
-    slot.opcode := raw(38 downto 35).asUInt
+    // [40] valid | [39:35] opcode | [34:24] dest | [23:13] src1 | [12:2] src2 | [1:0] rsvd
+    slot.valid  := raw(40) && io.valid
+    slot.opcode := raw(39 downto 35).asUInt
     slot.dest   := raw(34 downto 24).asUInt.resize(cfg.scratchAddrWidth)
     slot.src1   := raw(23 downto 13).asUInt.resize(cfg.scratchAddrWidth)
     slot.src2   := raw(12 downto 2).asUInt.resize(cfg.scratchAddrWidth)
@@ -51,10 +52,10 @@ class DecodeUnit(cfg: VliwSocConfig) extends Component {
     val raw = io.bundle(bitOffset + cfg.valuSlotWidth - 1 downto bitOffset)
     val slot = io.valuSlots(i)
 
-    // [55] valid | [54:51] opcode | [50:40] destBase | [39:29] src1Base |
+    // [56] valid | [55:51] opcode | [50:40] destBase | [39:29] src1Base |
     // [28:18] src2Base | [17:7] src3Base | [6:4] ewidth | [3:1] dwidth | [0] signed
-    slot.valid    := raw(55) && io.valid
-    slot.opcode   := raw(54 downto 51).asUInt
+    slot.valid    := raw(56) && io.valid
+    slot.opcode   := raw(55 downto 51).asUInt
     slot.destBase := raw(50 downto 40).asUInt.resize(cfg.scratchAddrWidth)
     slot.src1Base := raw(39 downto 29).asUInt.resize(cfg.scratchAddrWidth)
     slot.src2Base := raw(28 downto 18).asUInt.resize(cfg.scratchAddrWidth)
@@ -71,12 +72,12 @@ class DecodeUnit(cfg: VliwSocConfig) extends Component {
     val raw = io.bundle(bitOffset + cfg.loadSlotWidth - 1 downto bitOffset)
     val slot = io.loadSlots(i)
 
-    // [47] valid | [46:44] opcode | [43:33] dest | [32:22] addrReg |
+    // [48] valid | [47:44] opcode | [43:33] dest | [32:22] addrReg |
     // [21:19] offset | [18:0] rsvd
     // For CONST: we need 32-bit immediate. We pack it across addrReg+offset+rsvd
     // fields (bits 32:0 = 33 bits available, enough for 32-bit immediate).
-    slot.valid     := raw(47) && io.valid
-    slot.opcode    := raw(46 downto 44).asUInt
+    slot.valid     := raw(48) && io.valid
+    slot.opcode    := raw(47 downto 44).asUInt
     slot.dest      := raw(43 downto 33).asUInt.resize(cfg.scratchAddrWidth)
     slot.addrReg   := raw(32 downto 22).asUInt.resize(cfg.scratchAddrWidth)
     slot.offset    := raw(21 downto 19).asUInt
@@ -91,13 +92,31 @@ class DecodeUnit(cfg: VliwSocConfig) extends Component {
     val raw = io.bundle(bitOffset + cfg.storeSlotWidth - 1 downto bitOffset)
     val slot = io.storeSlots(i)
 
-    // [27] valid | [26:25] opcode | [24:14] addrReg | [13:3] srcReg | [2:0] rsvd
-    slot.valid   := raw(27) && io.valid
-    slot.opcode  := raw(26 downto 25).asUInt
+    // [28] valid | [27:25] opcode | [24:14] addrReg | [13:3] srcReg | [2:0] rsvd
+    slot.valid   := raw(28) && io.valid
+    slot.opcode  := raw(27 downto 25).asUInt
     slot.addrReg := raw(24 downto 14).asUInt.resize(cfg.scratchAddrWidth)
     slot.srcReg  := raw(13 downto 3).asUInt.resize(cfg.scratchAddrWidth)
 
     bitOffset += cfg.storeSlotWidth
+  }
+
+  // ---- Matrix slots ----
+  for (i <- 0 until cfg.nMatrixSlots) {
+    val raw = io.bundle(bitOffset + cfg.matrixSlotWidth - 1 downto bitOffset)
+    val slot = io.matrixSlots(i)
+
+    slot.valid    := raw(64) && io.valid
+    slot.opcode   := raw(63 downto 59).asUInt
+    slot.dest     := raw(58 downto 48).asUInt.resize(cfg.scratchAddrWidth)
+    slot.srcA     := raw(47 downto 37).asUInt.resize(cfg.scratchAddrWidth)
+    slot.srcB     := raw(36 downto 26).asUInt.resize(cfg.scratchAddrWidth)
+    slot.srcC     := raw(25 downto 15).asUInt.resize(cfg.scratchAddrWidth)
+    slot.tileRows := raw(14 downto 11).asUInt
+    slot.tileCols := raw(10 downto 7).asUInt
+    slot.flags    := raw(6 downto 1).asBits
+
+    bitOffset += cfg.matrixSlotWidth
   }
 
   // ---- Flow slot ----
@@ -105,10 +124,10 @@ class DecodeUnit(cfg: VliwSocConfig) extends Component {
     val raw = io.bundle(bitOffset + cfg.flowSlotWidth - 1 downto bitOffset)
     val slot = io.flowSlot
 
-    // [47] valid | [46:43] opcode | [42:32] dest | [31:21] operandA |
+    // [48] valid | [47:43] opcode | [42:32] dest | [31:21] operandA |
     // [20:10] operandB | [9:0] immediate
-    slot.valid     := raw(47) && io.valid
-    slot.opcode    := raw(46 downto 43).asUInt
+    slot.valid     := raw(48) && io.valid
+    slot.opcode    := raw(47 downto 43).asUInt
     slot.dest      := raw(42 downto 32).asUInt.resize(cfg.scratchAddrWidth)
     slot.operandA  := raw(31 downto 21).asUInt.resize(cfg.scratchAddrWidth)
     slot.operandB  := raw(20 downto 10).asUInt.resize(cfg.scratchAddrWidth)

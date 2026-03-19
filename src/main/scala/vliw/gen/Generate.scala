@@ -39,8 +39,11 @@ object GenerateHelper {
     println(s"  VALU slots:    ${cfg.nValuSlots}")
     println(s"  Load slots:    ${cfg.nLoadSlots}")
     println(s"  Store slots:   ${cfg.nStoreSlots}")
+    println(s"  Matrix slots:  ${cfg.nMatrixSlots}")
     println(s"  VLEN:          ${cfg.vlen}")
+    println(s"  Matrix tile:   ${cfg.matrixRows}x${cfg.matrixCols} int${cfg.matrixElemBits} -> int${cfg.matrixAccumBits}")
     println(s"  Scratch/core:  ${cfg.scratchSize} words (${cfg.scratchBanks} banks × ${cfg.scratchReplicas} replicas)")
+    println(s"  Matrix scratch:${cfg.matrixScratchSize} words, accum ${cfg.matrixAccumSize} words")
     println(s"  IMEM depth:    ${cfg.imemDepth}")
     println(s"  Bundle width:  ${cfg.bundleWidth} bits")
     println(s"  Main memory:   ${cfg.mainMemWords} words")
@@ -78,6 +81,7 @@ object GenerateCustom extends App {
     nValuSlots  = sys.props.getOrElse("nValuSlots", "1").toInt,
     nLoadSlots  = sys.props.getOrElse("nLoadSlots", "1").toInt,
     nStoreSlots = sys.props.getOrElse("nStoreSlots", "1").toInt,
+    nMatrixSlots= sys.props.getOrElse("nMatrixSlots", "0").toInt,
     imemDepth   = sys.props.getOrElse("imemDepth", "1024").toInt,
     mainMemWords= sys.props.getOrElse("mainMemWords", "16384").toInt,
     useUltraRam = sys.props.getOrElse("useUltraRam", "false").toBoolean

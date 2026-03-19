@@ -1,12 +1,150 @@
 # VLIW SIMD Development Changelog
 
-**Project:** VLIW SIMD Processor Simplification  
-**Timeline:** Phase 0 (Planning) → Phase 5 (Verification)  
-**Current Status:** Phase 5 Complete, Load-Use Hazard Detection + Multi-Width Vector ISA
-
 **Project:** VLIW SIMD Processor  
-**Timeline:** Phase 0 (Planning) → Phase 5 (Verification)  
-**Current Status:** Phase 5+, 176/176 Tests Passing
+**Timeline:** Phase 0 (Planning) → Phase 5+ (Production Verification)  
+**Current Status:** Phase 5+, All Tests Passing (baseline 176/176, matrix-enabled 62/62)
+
+---
+
+## HALT Pipeline Flush Fix (March 17, 2026)
+
+### Summary
+
+Fixed a latent delay-slot bug where the instruction at `HALT_PC+1` was executing silently after
+HALT fired. When a shorter program followed a longer one, stale IMEM content at `HALT_PC+1`
+could contain active instructions from the previous program, causing silent data corruption.
+
+### Root Cause
+
+In `FetchUnit`, `io.exValid := exValidReg` was a purely registered output. When HALT fired in
+the EX stage, the instruction at `HALT+1` was already in DECODE with `valid=True`. Its decoded
+slots were captured into `exSlotsReg` with `valid=True` and executed one cycle later — even
+though HALT had signaled core termination.
+
+### Fix
+
+Changed `FetchUnit` output to combinatorially gate validity:
+
+```scala
+io.exValid := exValidReg && !io.halt
+```
+
+This suppresses `exValid` in the same cycle HALT fires (EX stage), preventing the post-HALT
+instruction from entering `exSlotsReg` as valid.
+
+### Impact
+
+- Eliminates implicit "delay slot" behavior at HALT
+- Critical correctness fix for workloads that reload IMEM between runs without zeroing all bundles
+- The same window exists for `JUMP`/`COND_JUMP` but is benign because the scheduler pads taken
+  branches with 3 NOP bundles (`JUMP_BUBBLE=3`)
+
+### Files Modified
+- `src/main/scala/vliw/core/FetchUnit.scala` — `io.exValid := exValidReg && !io.halt`
+
+---
+
+## Matrix Integration: MDMVIN Decoupling, 32×32 Tiled Matmul, DSL select() (March 16–17, 2026)
+
+### Summary
+
+Multiple related changes landing together to complete the matrix integration milestone:
+MDMVIN transfers are now decoupled (non-matrix bundles can retire during in-flight transfer),
+the 32×32 tiled matmul example and host helpers are shipped, DSL `select()` lowering is added,
+and the threshold-clip algorithm test is fixed. Matrix-enabled config now passes the full
+62/62 RTL suite including all algorithm, DSL, and helpers tests.
+
+### RTL Changes
+
+- **MDMVIN decoupling:** `MemoryEngine` now marks `MDMVIN` transfers as bypassable.
+  Non-matrix bundles (ALU, VALU, LOAD, STORE, FLOW) retire normally while an `MDMVIN`
+  transfer is in progress. The first subsequent **matrix-slot** bundle is held in
+  fetch/decode with an EX bubble until the transfer completes. `MDMVOUT` remains globally
+  blocking until the write completes.
+- **SCOPY operations added to ISA:** `MemoryEngine` implements two VLEN-wide scratchpad
+  copy paths and two single-word scalar bridge paths:
+  - `SCOPY_M2V` (opcode 6): matrix-local → vector scratch (VLEN words via micro-sequencer)
+  - `SCOPY_V2M` (opcode 7): vector scratch → matrix-local (VLEN words via micro-sequencer)
+  - `SCOPY_V2S` (opcode 8): vector scratch → scalar scratch (1 word)
+  - `SCOPY_S2V` (opcode 9): scalar scratch → vector scratch (1 word)
+
+### DSL Changes
+
+- **DSL scalar `select()` lowering** added to `KernelBuilder`; used for ternary conditional
+  assignment without a branch — replaces the previous threshold-clip pattern that required
+  an explicit `cond_jump`.
+- **Threshold-clip algorithm test** (`test_dsl_algorithms_integration`) fixed by switching
+  to `select()`-based lowering; all 62 matrix-enabled RTL tests now pass.
+- **`build_matrix_matmul_32x32_tiled_kernel()`** exposed as a public DSL example.
+  Takes tile-packed DMEM inputs (not plain row-major) and emits 64 explicit 8×8 matmul
+  sequences covering the full 4×4 tile grid.
+- **Host tile-packing helpers:**
+  - `pack_matrix_matmul_32x32_u8_tiles()` / `unpack_matrix_matmul_32x32_u8_tiles()`
+  - `pack_matrix_matmul_32x32_u32_tiles()` / `unpack_matrix_matmul_32x32_u32_tiles()`
+- **Standalone demo script** `tools/matrix_matmul_32x32_demo.py` — illustrates host-side
+  row-major input generation, tile packing, kernel compilation, and golden output preparation
+  outside cocotb. Supports `--emit-dir <dir>` to emit driver-facing artifacts (IMEM words,
+  packed input blobs, expected output blobs, metadata JSON).
+- **Driver example** `drivers/example_matrix_matmul_32x32.c` — shows how to load and verify
+  artifacts emitted by the demo script through the C driver API.
+
+### Documentation
+
+- Added `docs/DSL_EXAMPLE_MATRIX_MATMUL_32X32.md`
+- Added `docs/DSL_EXAMPLE_TILEWEAVE_MATRIX_RESIDUAL_AFFINE.md`
+- Added `docs/DSL_EXAMPLE_MULTI_MATRIX_RESIDUAL_AFFINE_PIPELINED.md`
+- Added cocotb regression `test_matrix_transfer_only_stalls_following_matrix_bundle`
+
+### Validation
+
+- Matrix-enabled config: **62/62 PASS** (including `test_dsl_integration`,
+  `test_dsl_helpers_integration`, `test_dsl_algorithms_integration`,
+  `test_algorithms_kernels`, `test_algorithms_multiwidth`)
+- Baseline config: **176/176 PASS** (unchanged)
+
+---
+
+## DSL Lower-Level Software-Pipelined Matrix Example (March 16, 2026)
+
+### Summary
+Added and documented an optimized lower-level `KernelBuilder` example for multi-run matrix residual-affine execution with explicit staged vector buffers and pointer-stepped software pipelining. This path reduces load-side address materialization versus the earlier helper-based form and is validated in the matrix RTL integration suite.
+
+The scheduler and verification configs were then tightened to remove the fixed memory post-gap, allowing independent operations to pack immediately after memory issue while relying on explicit RAW latency tracking plus the RTL load-use stall path for correctness.
+
+### DSL / Example Changes
+- Added source-level documentation for the optimized example in `docs/DSL_EXAMPLE_MULTI_MATRIX_RESIDUAL_AFFINE_PIPELINED.md`
+- Updated `docs/DSL.md` and `docs/DSL_SOFTWARE_PIPELINING.md` to reference the lower-level worked example
+- Refined `build_pipelined_multi_matrix_residual_affine_kernel()` in `tools/dsl/examples/tileweave_kernels.py` to use:
+   - explicit double-buffered vector stages
+   - pointer-stepped `matrix_ptr`, `residual_ptr`, and `affine_ptr`
+   - inline first/last-chunk probe stores
+   - control scalar placement above the staged vector scratch window
+
+### Validation
+- Focused compile-time regression updated in `tools/tests/test_dsl_examples.py` to assert reduced load-slot pressure as well as reduced bundle count
+- Added focused scheduler regression in `tools/tests/test_matrix_toolchain.py` to assert that `mem_post_gap=0` reduces the optimized matrix kernel's bundle count relative to the old conservative gap
+- Current compile metrics for `runs=2`, `chunk_elements=8`:
+   - naive kernel: `659` bundles, `89` load-slot ops
+   - optimized pipelined kernel with `mem_post_gap=2`: `398` bundles, `43` load-slot ops
+   - optimized pipelined kernel with `mem_post_gap=0`: `324` bundles, `43` load-slot ops
+- Focused RTL golden validation in `verification/cocotb/integration/test_dsl_matrix_integration.py`:
+   - `test_pipelined_multi_matrix_residual_affine_golden` PASS
+   - simulated runtime: `42470 ns` (`4247` cycles at `10 ns` clock)
+
+---
+
+## Documentation Refresh and ISA Reference (March 16, 2026)
+
+### Summary
+Added a dedicated ISA reference derived from the current SpinalHDL and assembler sources,
+and updated the main architecture and documentation index files so the documented ISA matches
+the implemented bundle formats, opcode tables, and matrix-slot additions.
+
+### Documentation Changes
+- Added `docs/ISA.md` as the source-derived ISA reference
+- Updated `docs/ARCHITECTURE.md` to point at `ISA.md` for encoding details and corrected
+   stale bundle-width and engine summaries
+- Updated `README.md`, `docs/README.md`, and `docs/STATUS.md` to include the new ISA doc
 
 ---
 

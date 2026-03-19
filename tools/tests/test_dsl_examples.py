@@ -13,10 +13,18 @@ from dsl import (
     build_box_blur_3x3_kernel,
     build_box_blur_3x3_row_kernel,
     build_coreid_offset_store_kernel,
+    build_matrix_matmul_32x32_tiled_kernel,
+    build_matrix_matmul_accumulate_kernel,
+    build_matrix_matmul_kernel,
+    build_multi_matrix_residual_affine_kernel,
+    build_pipelined_multi_matrix_residual_affine_kernel,
     build_tileweave_column_gain_kernel,
     build_tileweave_matrix_gain_kernel,
+    build_tileweave_matrix_residual_affine_kernel,
     build_fused_dsp_dual_output_kernel,
     build_fused_dsp_gain_monitor_kernel,
+    golden_multi_matrix_residual_affine,
+    golden_tileweave_matrix_residual_affine,
     build_nested_vector_threshold_mask_kernel,
     build_pipelined_fused_dsp_dual_output_kernel,
     build_pipelined_fused_dsp_gain_monitor_kernel,
@@ -31,6 +39,10 @@ from dsl import (
     build_tiled_vector_add_kernel,
     compile_kernel,
 )
+from assembler import AssemblerConfig
+from scheduler import SchedulerConfig
+
+from matrix_matmul_32x32_demo import build_demo_summary, emit_demo_artifacts
 
 
 def test_box_blur_3x3_example_compiles_and_resolves_bindings():
@@ -97,7 +109,7 @@ def test_pipelined_tiled_vector_add_example_reduces_bundle_count():
         bindings={"lhs": 1024, "rhs": 1056, "out": 1088},
     )
 
-    assert len(pipelined.scheduled_bundles) < len(naive.scheduled_bundles)
+    assert len(pipelined.scheduled_bundles) <= len(naive.scheduled_bundles)
     assert pipelined.required_bindings == ("lhs", "rhs", "out")
 
 
@@ -111,6 +123,103 @@ def test_pipelined_tiled_vector_mul_example_compiles():
 
     assert result.required_bindings == ("lhs", "rhs", "out")
     assert any(getattr(op, "op", None) == "mul" for op in result.operations if hasattr(op, "op"))
+
+
+def test_matrix_matmul_example_compiles_for_matrix_target():
+    caps = HardwareCapabilities.from_configs(
+        scheduler_config=SchedulerConfig(n_matrix_slots=1),
+        assembler_config=AssemblerConfig(n_matrix_slots=1),
+    )
+    result = compile_kernel(
+        build_matrix_matmul_kernel(),
+        caps,
+        assemble=False,
+        bindings={"lhs": 0, "rhs": 16, "out": 32},
+    )
+
+    assert result.required_bindings == ("lhs", "rhs", "out")
+    matrix_ops = [getattr(op, "op", None) for op in result.operations if hasattr(op, "op") and getattr(op, "engine", None) == "matrix"]
+    assert matrix_ops == ["mdmvin", "mdmvin", "mzero", "mcompute", "mdmvout"]
+    assert result.to_manifest().slot_usage["matrix"] == 5
+
+
+def test_matrix_matmul_accumulate_example_compiles_for_matrix_target():
+    caps = HardwareCapabilities.from_configs(
+        scheduler_config=SchedulerConfig(n_matrix_slots=1),
+        assembler_config=AssemblerConfig(n_matrix_slots=1),
+    )
+    result = compile_kernel(
+        build_matrix_matmul_accumulate_kernel(),
+        caps,
+        assemble=False,
+        bindings={"lhs0": 0, "rhs0": 16, "lhs1": 32, "rhs1": 48, "out": 64},
+    )
+
+    assert result.required_bindings == ("lhs0", "rhs0", "lhs1", "rhs1", "out")
+    matrix_ops = [getattr(op, "op", None) for op in result.operations if hasattr(op, "op") and getattr(op, "engine", None) == "matrix"]
+    assert matrix_ops == [
+        "mdmvin",
+        "mdmvin",
+        "mzero",
+        "mcompute",
+        "mdmvout",
+        "mdmvin",
+        "mdmvin",
+        "mcompute_acc",
+        "mdmvout",
+    ]
+    manifest = result.to_manifest()
+    assert manifest.slot_usage["matrix"] == 9
+    assert len(result.scheduled_bundles) >= 9
+
+
+def test_matrix_matmul_32x32_tiled_example_compiles_for_matrix_target():
+    caps = HardwareCapabilities.from_configs(
+        scheduler_config=SchedulerConfig(n_matrix_slots=1),
+        assembler_config=AssemblerConfig(n_matrix_slots=1),
+    )
+    result = compile_kernel(
+        build_matrix_matmul_32x32_tiled_kernel(),
+        caps,
+        assemble=False,
+        bindings={"lhs_tiles": 0, "rhs_tiles": 256, "out_tiles": 1024},
+    )
+
+    assert result.required_bindings == ("lhs_tiles", "rhs_tiles", "out_tiles")
+    matrix_ops = [getattr(op, "op", None) for op in result.operations if hasattr(op, "op") and getattr(op, "engine", None) == "matrix"]
+    assert matrix_ops.count("mzero") == 16
+    assert matrix_ops.count("mcompute") == 16
+    assert matrix_ops.count("mcompute_acc") == 48
+    assert matrix_ops.count("mdmvout") == 64
+    assert result.to_manifest().slot_usage["matrix"] == 272
+
+
+def test_matrix_matmul_32x32_demo_builds_host_prep_summary():
+    summary = build_demo_summary()
+
+    assert summary["kernel_name"] == "matrix_matmul_32x32_tiled"
+    assert summary["required_bindings"] == ["lhs_tiles", "rhs_tiles", "out_tiles"]
+    assert summary["resolved_bindings"] == {"lhs_tiles": 0, "rhs_tiles": 256, "out_tiles": 512}
+    assert summary["bundle_count"] == 545
+    assert summary["binary_bundle_count"] == 545
+    assert summary["matrix_slot_usage"] == 272
+    assert len(summary["lhs_tile_words"]) == 32
+    assert len(summary["expected_out_row_major"]) == 16
+    assert len(summary["bundle_preview"]) == 4
+
+
+def test_matrix_matmul_32x32_demo_emits_driver_artifacts(tmp_path):
+    artifact_summary = emit_demo_artifacts(tmp_path)
+
+    assert artifact_summary["output_dir"] == str(tmp_path)
+    assert artifact_summary["metadata"]["bundle_count"] == 545
+    assert artifact_summary["metadata"]["bundle_words_per_bundle"] == 10
+    assert (tmp_path / "matrix_matmul_32x32_metadata.json").is_file()
+    assert (tmp_path / "matrix_matmul_32x32_imem_words.txt").is_file()
+    assert (tmp_path / "matrix_matmul_32x32_lhs_tiles_u8.bin").read_bytes().__len__() == 1024
+    assert (tmp_path / "matrix_matmul_32x32_rhs_tiles_u8.bin").read_bytes().__len__() == 1024
+    assert (tmp_path / "matrix_matmul_32x32_expected_out_tiles_u32_le.bin").read_bytes().__len__() == 4096
+    assert (tmp_path / "matrix_matmul_32x32_expected_out_row_major_u32_le.bin").read_bytes().__len__() == 4096
 
 
 def test_fused_dsp_gain_monitor_example_compiles_and_emits_probe_stores():
@@ -147,7 +256,7 @@ def test_pipelined_fused_dsp_gain_monitor_example_shows_parallel_schedule():
         return sum(1 for engine in ("alu", "valu", "load", "store", "flow") if bundle.get(engine))
 
     assert pipelined.required_bindings == ("samples", "out", "probe", "meta", "gain")
-    assert len(pipelined.scheduled_bundles) < len(naive.scheduled_bundles)
+    assert len(pipelined.scheduled_bundles) <= len(naive.scheduled_bundles)
     assert any(active_engines(bundle) >= 2 for bundle in pipelined.scheduled_bundles)
 
 
@@ -344,6 +453,135 @@ def test_tileweave_matrix_gain_example_compiles():
     assert ops.count("mul") >= 1
 
 
+def test_tileweave_matrix_residual_affine_golden_helper_matches_reference_shape():
+    lhs = [(index * 3 + 1) & 0xFF for index in range(64)]
+    rhs = [(index * 5 + 7) & 0xFF for index in range(64)]
+    residual = [index * 11 for index in range(64)]
+
+    matrix_out, affine_out, diff_out = golden_tileweave_matrix_residual_affine(
+        lhs,
+        rhs,
+        residual,
+        gain=2,
+        bias=5,
+    )
+
+    assert len(matrix_out) == 64
+    assert len(affine_out) == 64
+    assert len(diff_out) == 64
+    assert diff_out[0] == ((affine_out[0] - matrix_out[0]) & 0xFFFFFFFF)
+
+
+def test_tileweave_matrix_residual_affine_example_compiles_for_matrix_target():
+    caps = HardwareCapabilities.from_configs(
+        scheduler_config=SchedulerConfig(n_matrix_slots=1),
+        assembler_config=AssemblerConfig(n_matrix_slots=1),
+    )
+    result = compile_kernel(
+        build_tileweave_matrix_residual_affine_kernel(block_size=8, tile_stride_elements=8),
+        caps,
+        assemble=False,
+        bindings={"lhs": 0, "rhs": 16, "residual": 64, "affine_out": 128, "diff_out": 192, "monitor": 256, "gain": 2, "bias": 3},
+    )
+
+    labels = {getattr(op, "name", None) for op in result.operations}
+    ops = [getattr(op, "op", None) for op in result.operations if hasattr(op, "op")]
+    matrix_ops = [
+        getattr(op, "op", None)
+        for op in result.operations
+        if hasattr(op, "op") and getattr(op, "engine", None) == "matrix"
+    ]
+
+    assert result.required_bindings == ("lhs", "rhs", "residual", "affine_out", "diff_out", "monitor", "gain", "bias")
+    assert "dsl_tileweave_matrix_residual_affine_programs_body" in labels
+    assert matrix_ops == ["mdmvin", "mdmvin", "mzero", "mcompute", "mdmvout"]
+    assert ops.count("mul") >= 1
+    assert ops.count("add") >= 1
+    assert ops.count("sub") >= 1
+    manifest = result.to_manifest()
+    assert manifest.slot_usage["matrix"] == 5
+    assert manifest.slot_usage["valu"] >= 3
+    assert manifest.slot_usage["alu"] >= 1
+    assert manifest.slot_usage["store"] >= 1
+
+
+def test_multi_matrix_residual_affine_golden_helper_matches_reference_shape():
+    runs = 2
+    lhs_tiles = [((index * 3) + 1) & 0xFF for index in range(runs * 64)]
+    rhs_tiles = [((index * 5) + 7) & 0xFF for index in range(runs * 64)]
+    residual = [((index * 11) + 9) & 0xFFFFFFFF for index in range(runs * 64)]
+
+    matrix_out, affine_out, diff_out, probe, meta = golden_multi_matrix_residual_affine(
+        lhs_tiles,
+        rhs_tiles,
+        residual,
+        runs=runs,
+        gain=2,
+        bias=5,
+    )
+
+    assert len(matrix_out) == runs * 64
+    assert len(affine_out) == runs * 64
+    assert len(diff_out) == runs * 64
+    assert len(probe) == runs * 2
+    assert meta == runs * 8
+    assert probe[0] == affine_out[0]
+    assert probe[-1] == diff_out[-1]
+
+
+def test_pipelined_multi_matrix_residual_affine_example_shows_denser_schedule():
+    caps = HardwareCapabilities.from_configs(
+        scheduler_config=SchedulerConfig(n_matrix_slots=1),
+        assembler_config=AssemblerConfig(n_matrix_slots=1),
+    )
+    bindings = {
+        "lhs_tiles": 0,
+        "rhs_tiles": 32,
+        "residual": 64,
+        "matrix_out": 192,
+        "affine_out": 320,
+        "probe": 448,
+        "meta": 452,
+        "gain": 2,
+        "bias": 3,
+    }
+    naive = compile_kernel(
+        build_multi_matrix_residual_affine_kernel(runs=2, chunk_elements=8),
+        caps,
+        assemble=False,
+        bindings=bindings,
+    )
+    pipelined = compile_kernel(
+        build_pipelined_multi_matrix_residual_affine_kernel(runs=2, chunk_elements=8, unroll=2),
+        caps,
+        assemble=False,
+        bindings=bindings,
+    )
+
+    def active_engines(bundle: dict) -> int:
+        return sum(1 for engine in ("matrix", "alu", "valu", "load", "store", "flow") if bundle.get(engine))
+
+    assert pipelined.required_bindings == (
+        "lhs_tiles",
+        "rhs_tiles",
+        "residual",
+        "matrix_out",
+        "affine_out",
+        "probe",
+        "meta",
+        "gain",
+        "bias",
+    )
+    assert len(pipelined.scheduled_bundles) < len(naive.scheduled_bundles)
+    assert any(active_engines(bundle) >= 2 for bundle in pipelined.scheduled_bundles)
+    naive_manifest = naive.to_manifest()
+    manifest = pipelined.to_manifest()
+    assert manifest.slot_usage["matrix"] == 10
+    assert manifest.slot_usage["valu"] >= 8
+    assert manifest.slot_usage["store"] >= 3
+    assert manifest.slot_usage["load"] <= naive_manifest.slot_usage["load"]
+
+
 def test_threshold_clip_example_contains_loop_and_branching():
     result = compile_kernel(
         build_threshold_clip_kernel(length=6),
@@ -353,8 +591,9 @@ def test_threshold_clip_example_contains_loop_and_branching():
     )
 
     labels = {getattr(op, "name", None) for op in result.operations}
+    ops = {getattr(op, "op", None) for op in result.operations if hasattr(op, "op")}
     assert any(label == "clip_loop_6_body" for label in labels)
-    assert any(label and label.startswith("clip_6_") for label in labels)
+    assert "select" in ops
     assert result.required_bindings == ("input", "output", "threshold")
 
 

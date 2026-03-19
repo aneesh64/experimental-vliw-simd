@@ -24,6 +24,9 @@ import scala.util.Try
  *   sbt "runMain vliw.gen.GenerateDecode"
  *   sbt "runMain vliw.gen.GenerateWriteback"
  *   sbt "runMain vliw.gen.GenerateScratch"
+ *   sbt "runMain vliw.gen.GenerateMatrixScratch"
+ *   sbt "runMain vliw.gen.GenerateMatrixAccum"
+ *   sbt "runMain vliw.gen.GenerateMatrix"
  *   sbt "runMain vliw.gen.GenerateCore"
  *   sbt "runMain vliw.gen.GenerateAllModules"
  */
@@ -56,7 +59,8 @@ object ModuleGenHelper {
     nValuSlots  = propInt("slots.valu", VliwSocConfig.Sim.nValuSlots),
     nLoadSlots  = propInt("slots.load", VliwSocConfig.Sim.nLoadSlots),
     nStoreSlots = propInt("slots.store", VliwSocConfig.Sim.nStoreSlots),
-    nFlowSlots  = propInt("slots.flow", VliwSocConfig.Sim.nFlowSlots)
+    nFlowSlots  = propInt("slots.flow", VliwSocConfig.Sim.nFlowSlots),
+    nMatrixSlots = propInt("slots.matrix", VliwSocConfig.Sim.nMatrixSlots)
   )
   val outDir = "generated_rtl/modules"
 
@@ -126,6 +130,24 @@ object GenerateScratch extends App {
   println(s"[GenerateScratch] Generated BankedScratchMemory in $outDir/")
 }
 
+object GenerateMatrixScratch extends App {
+  import ModuleGenHelper._
+  spinalConfig.generate(new MatrixScratchpad(cfg))
+  println(s"[GenerateMatrixScratch] Generated MatrixScratchpad in $outDir/")
+}
+
+object GenerateMatrixAccum extends App {
+  import ModuleGenHelper._
+  spinalConfig.generate(new MatrixAccumulatorMemory(cfg))
+  println(s"[GenerateMatrixAccum] Generated MatrixAccumulatorMemory in $outDir/")
+}
+
+object GenerateMatrix extends App {
+  import ModuleGenHelper._
+  spinalConfig.generate(new MatrixEngine(cfg.copy(nMatrixSlots = 1)))
+  println(s"[GenerateMatrix] Generated MatrixEngine in $outDir/")
+}
+
 object GenerateCore extends App {
   import ModuleGenHelper._
   spinalConfig.generate(new VliwCore(cfg, coreId = 0))
@@ -144,6 +166,9 @@ object GenerateAllModules extends App {
   spinalConfig.generate(new DecodeUnit(cfg))
   spinalConfig.generate(new WritebackController(cfg))
   spinalConfig.generate(new BankedScratchMemory(cfg))
+  spinalConfig.generate(new MatrixScratchpad(cfg))
+  spinalConfig.generate(new MatrixAccumulatorMemory(cfg))
+  spinalConfig.generate(new MatrixEngine(cfg.copy(nMatrixSlots = 1)))
   spinalConfig.generate(new VliwCore(cfg, coreId = 0))
   println(s"[GenerateAllModules] All modules generated in $outDir/")
 }

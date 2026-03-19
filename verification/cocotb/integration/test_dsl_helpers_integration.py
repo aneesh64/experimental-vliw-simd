@@ -1,5 +1,5 @@
 from test_integration_common import *
-from tools.dsl import HardwareCapabilities, KernelBuilder, U8, U16, U32, compile_kernel
+from tools.dsl import HardwareCapabilities, I16, KernelBuilder, U8, U16, U32, U64, compile_kernel
 from tools.dsl.layout import tile_1d
 
 
@@ -59,6 +59,48 @@ async def test_dsl_scalar_symbolic_load_compute_store_golden(dut):
     got = harness.axi_mem.read_word(160)
     assert got == golden, f"expected {golden}, got {got}"
     dut._log.info(f"test_dsl_scalar_symbolic_load_compute_store_golden: cycles={cycles}, out={got}")
+
+
+@cocotb.test()  # pyright: ignore[reportAttributeAccessIssue]
+async def test_dsl_helper_scalar_max_min_golden(dut):
+    """KernelBuilder scalar max/min helpers compile and execute correctly through RTL."""
+    harness = VliwCoreHarness(dut)
+    await harness.init()
+
+    lhs_value = 37
+    rhs_value = 91
+
+    kb = KernelBuilder("dsl_helper_scalar_max_min")
+    lhs = kb.arg_scalar("lhs", default=lhs_value)
+    rhs = kb.arg_scalar("rhs", default=rhs_value)
+    max_out = kb.scalar("max_out")
+    min_out = kb.scalar("min_out")
+    out_buf = kb.arg_dmem_tensor("out", shape=(2,), dtype=U32)
+    out_ptr = kb.scalar("out_ptr")
+
+    kb.max(max_out, lhs, rhs)
+    kb.min(min_out, lhs, rhs)
+    kb.address_of(out_ptr, out_buf)
+    kb.store(out_ptr, max_out)
+    kb.add_imm(out_ptr, out_ptr, 1)
+    kb.store(out_ptr, min_out)
+    kb.halt()
+
+    caps = HardwareCapabilities.from_configs(scheduler_config=S.cfg, assembler_config=ASM.cfg)
+    result = compile_kernel(
+        kb.build(),
+        caps,
+        bindings={"lhs": lhs_value, "rhs": rhs_value, "out": 176},
+        assemble=True,
+    )
+    assert result.binary_bundles is not None
+
+    await harness.load_program(result.binary_bundles)
+    cycles = await harness.run(max_cycles=10000)
+
+    assert harness.axi_mem.read_word(176) == max(lhs_value, rhs_value)
+    assert harness.axi_mem.read_word(177) == min(lhs_value, rhs_value)
+    dut._log.info(f"test_dsl_helper_scalar_max_min_golden: cycles={cycles}")
 
 
 @cocotb.test()  # pyright: ignore[reportAttributeAccessIssue]
@@ -307,6 +349,63 @@ async def test_dsl_helper_vector_map_mul_golden(dut):
 
 
 @cocotb.test()  # pyright: ignore[reportAttributeAccessIssue]
+async def test_dsl_helper_vector_map_add_u64_golden(dut):
+    """DSL helper vector_map supports 64-bit lane-paired add kernels through RTL."""
+    harness = VliwCoreHarness(dut)
+
+    a_lo = [0xFFFFFFFF, 0x00000000, 0x00000001, 0x00000001]
+    a_hi = [0x00000001, 0x00000000, 0x80000000, 0x00000000]
+    b_lo = [0x00000001, 0x00000002, 0xFFFFFFFF, 0xFFFFFFFE]
+    b_hi = [0x00000000, 0x00000000, 0x00000000, 0xFFFFFFFF]
+
+    lhs = []
+    rhs = []
+    golden_pairs = []
+    for pair in range(4):
+        lhs.extend([a_lo[pair], a_hi[pair]])
+        rhs.extend([b_lo[pair], b_hi[pair]])
+        result = ((a_lo[pair] | (a_hi[pair] << 32)) + (b_lo[pair] | (b_hi[pair] << 32))) & 0xFFFFFFFFFFFFFFFF
+        golden_pairs.append((result & 0xFFFFFFFF, (result >> 32) & 0xFFFFFFFF))
+
+    harness.axi_mem.preload(272, lhs)
+    harness.axi_mem.preload(280, rhs)
+    await harness.init()
+
+    kb = KernelBuilder("dsl_helper_vload_vstore_add_u64")
+    lhs_buf = kb.arg_dmem_tensor("lhs", shape=(8,), dtype=U64)
+    rhs_buf = kb.arg_dmem_tensor("rhs", shape=(8,), dtype=U64)
+    out_buf = kb.arg_dmem_tensor("out", shape=(8,), dtype=U64)
+    lhs_vec = kb.vector("lhs_vec", dtype=U64, scratch_base=320)
+    rhs_vec = kb.vector("rhs_vec", dtype=U64, scratch_base=328)
+    out_vec = kb.vector("out_vec", dtype=U64, scratch_base=336)
+
+    kb.vload_view(lhs_vec, tile_1d(lhs_buf, length=8), addr_name="lhs_ptr")
+    kb.vload_view(rhs_vec, tile_1d(rhs_buf, length=8), addr_name="rhs_ptr")
+    kb.vector_map("add", out_vec, lhs_vec, rhs_vec, ew=64)
+    kb.vstore_view(tile_1d(out_buf, length=8), out_vec, addr_name="out_ptr")
+    kb.halt()
+
+    caps = HardwareCapabilities.from_configs(scheduler_config=S.cfg, assembler_config=ASM.cfg)
+    result = compile_kernel(
+        kb.build(),
+        caps,
+        bindings={"lhs": 272, "rhs": 280, "out": 288},
+        assemble=True,
+    )
+    assert result.binary_bundles is not None
+
+    await harness.load_program(result.binary_bundles)
+    cycles = await harness.run(max_cycles=12000)
+
+    for pair, (exp_lo, exp_hi) in enumerate(golden_pairs):
+        got_lo = harness.axi_mem.read_word(288 + pair * 2)
+        got_hi = harness.axi_mem.read_word(288 + pair * 2 + 1)
+        assert got_lo == exp_lo, f"pair={pair} lo: expected 0x{exp_lo:08X}, got 0x{got_lo:08X}"
+        assert got_hi == exp_hi, f"pair={pair} hi: expected 0x{exp_hi:08X}, got 0x{got_hi:08X}"
+    dut._log.info(f"test_dsl_helper_vector_map_add_u64_golden: cycles={cycles}")
+
+
+@cocotb.test()  # pyright: ignore[reportAttributeAccessIssue]
 async def test_dsl_helper_vector_map_sub_u16_golden(dut):
     """DSL helper vector_map supports packed 16-bit subtract kernels through RTL."""
     harness = VliwCoreHarness(dut)
@@ -488,6 +587,45 @@ async def test_dsl_helper_vcast_8to32_signed_golden(dut):
         got = harness.axi_mem.read_word(432 + lane)
         assert got == golden, f"lane={lane}: expected 0x{golden:08X}, got 0x{got:08X}"
     dut._log.info(f"test_dsl_helper_vcast_8to32_signed_golden: cycles={cycles}")
+
+
+@cocotb.test()  # pyright: ignore[reportAttributeAccessIssue]
+async def test_dsl_helper_vcast_16to32_signed_golden(dut):
+    """DSL helper vcast kernel sign-extends packed 16-bit symbolic DMEM vector contents to 32-bit through RTL."""
+    harness = VliwCoreHarness(dut)
+
+    src = [_pack_subs([0xFFF0, 0x007F], 16)] * 8
+    golden = 0xFFFFFFF0
+    harness.axi_mem.preload(448, src)
+    await harness.init()
+
+    kb = KernelBuilder("dsl_helper_vcast_16to32_signed")
+    src_buf = kb.arg_dmem_tensor("src", shape=(8,), dtype=I16)
+    out_buf = kb.arg_dmem_tensor("out", shape=(8,), dtype=U32)
+    src_vec = kb.vector("src_vec", dtype=I16, scratch_base=320)
+    cast_vec = kb.vector("cast_vec", dtype=U32, scratch_base=328)
+
+    kb.vload_view(src_vec, tile_1d(src_buf, length=8), addr_name="src_ptr")
+    kb.vcast(cast_vec, src_vec, ew=16, dw=32, signed=1, upper=0)
+    kb.vstore_view(tile_1d(out_buf, length=8), cast_vec, addr_name="out_ptr")
+    kb.halt()
+
+    caps = HardwareCapabilities.from_configs(scheduler_config=S.cfg, assembler_config=ASM.cfg)
+    result = compile_kernel(
+        kb.build(),
+        caps,
+        bindings={"src": 448, "out": 464},
+        assemble=True,
+    )
+    assert result.binary_bundles is not None
+
+    await harness.load_program(result.binary_bundles)
+    cycles = await harness.run(max_cycles=12000)
+
+    for lane in range(8):
+        got = harness.axi_mem.read_word(464 + lane)
+        assert got == golden, f"lane={lane}: expected 0x{golden:08X}, got 0x{got:08X}"
+    dut._log.info(f"test_dsl_helper_vcast_16to32_signed_golden: cycles={cycles}")
 
 
 @cocotb.test()  # pyright: ignore[reportAttributeAccessIssue]

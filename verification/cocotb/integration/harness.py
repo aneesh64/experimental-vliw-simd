@@ -107,7 +107,7 @@ class VliwCoreHarness:
 
     async def init(self, reset_cycles: int = 5):
         """Initialize clock, reset, and tie off control signals."""
-        cocotb.start_soon(Clock(self.dut.clk, self.clock_period, units="ns").start())
+        cocotb.start_soon(Clock(self.dut.clk, self.clock_period, unit="ns").start())
 
         # Drive all inputs to safe defaults
         self.dut.reset.value = 1

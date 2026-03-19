@@ -4,25 +4,36 @@ import spinal.core._
 import spinal.lib._
 import vliw.config.VliwSocConfig
 
+object SlotEncodingWidths {
+  val AluOpcodeBits = 5
+  val ValuOpcodeBits = 5
+  val LoadOpcodeBits = 4
+  val StoreOpcodeBits = 3
+  val FlowOpcodeBits = 5
+  val MatrixOpcodeBits = 5
+}
+
 // ============================================================================
 //  ALU Opcode Enumeration
 // ============================================================================
 
 object AluOpcode {
-  def ADD  : UInt = U(0, 4 bits)
-  def SUB  : UInt = U(1, 4 bits)
-  def MUL  : UInt = U(2, 4 bits)
-  def XOR  : UInt = U(3, 4 bits)
-  def AND  : UInt = U(4, 4 bits)
-  def OR   : UInt = U(5, 4 bits)
-  def SHL  : UInt = U(6, 4 bits)
-  def SHR  : UInt = U(7, 4 bits)
-  def LT   : UInt = U(8, 4 bits)
-  def EQ   : UInt = U(9, 4 bits)
-  def MOD  : UInt = U(10, 4 bits)
-  def DIV  : UInt = U(11, 4 bits)
-  def CDIV : UInt = U(12, 4 bits)
-  def COUNT: Int  = 13  // number of base ALU ops
+  def ADD  : UInt = U(0, SlotEncodingWidths.AluOpcodeBits bits)
+  def SUB  : UInt = U(1, SlotEncodingWidths.AluOpcodeBits bits)
+  def MUL  : UInt = U(2, SlotEncodingWidths.AluOpcodeBits bits)
+  def XOR  : UInt = U(3, SlotEncodingWidths.AluOpcodeBits bits)
+  def AND  : UInt = U(4, SlotEncodingWidths.AluOpcodeBits bits)
+  def OR   : UInt = U(5, SlotEncodingWidths.AluOpcodeBits bits)
+  def SHL  : UInt = U(6, SlotEncodingWidths.AluOpcodeBits bits)
+  def SHR  : UInt = U(7, SlotEncodingWidths.AluOpcodeBits bits)
+  def LT   : UInt = U(8, SlotEncodingWidths.AluOpcodeBits bits)
+  def EQ   : UInt = U(9, SlotEncodingWidths.AluOpcodeBits bits)
+  def MOD  : UInt = U(10, SlotEncodingWidths.AluOpcodeBits bits)
+  def DIV  : UInt = U(11, SlotEncodingWidths.AluOpcodeBits bits)
+  def CDIV : UInt = U(12, SlotEncodingWidths.AluOpcodeBits bits)
+  def MAX  : UInt = U(13, SlotEncodingWidths.AluOpcodeBits bits)
+  def MIN  : UInt = U(14, SlotEncodingWidths.AluOpcodeBits bits)
+  def COUNT: Int  = 15  // number of base ALU ops
 }
 
 // ============================================================================
@@ -30,9 +41,9 @@ object AluOpcode {
 // ============================================================================
 
 object ValuOpcode {
-  def VBROADCAST  : UInt = U(13, 4 bits)
-  def MULTIPLY_ADD: UInt = U(14, 4 bits)
-  def VCAST       : UInt = U(15, 4 bits)
+  def VBROADCAST  : UInt = U(15, SlotEncodingWidths.ValuOpcodeBits bits)
+  def MULTIPLY_ADD: UInt = U(16, SlotEncodingWidths.ValuOpcodeBits bits)
+  def VCAST       : UInt = U(17, SlotEncodingWidths.ValuOpcodeBits bits)
 }
 
 // ============================================================================
@@ -72,11 +83,16 @@ object ElemWidth {
 // ============================================================================
 
 object LoadOpcode {
-  def NOP         : UInt = U(0, 3 bits)
-  def LOAD        : UInt = U(1, 3 bits)
-  def LOAD_OFFSET : UInt = U(2, 3 bits)
-  def VLOAD       : UInt = U(3, 3 bits)
-  def CONST       : UInt = U(4, 3 bits)
+  def NOP           : UInt = U(0, SlotEncodingWidths.LoadOpcodeBits bits)
+  def LOAD          : UInt = U(1, SlotEncodingWidths.LoadOpcodeBits bits)
+  def LOAD_OFFSET   : UInt = U(2, SlotEncodingWidths.LoadOpcodeBits bits)
+  def VLOAD         : UInt = U(3, SlotEncodingWidths.LoadOpcodeBits bits)
+  def CONST         : UInt = U(4, SlotEncodingWidths.LoadOpcodeBits bits)
+  def WAIT_FOR_LOAD : UInt = U(5, SlotEncodingWidths.LoadOpcodeBits bits)
+  def SCOPY_M2V     : UInt = U(6, SlotEncodingWidths.LoadOpcodeBits bits)  // matrix scratch → vector scratch (VLEN words)
+  def SCOPY_V2M     : UInt = U(7, SlotEncodingWidths.LoadOpcodeBits bits)  // vector scratch → matrix scratch (VLEN words)
+  def SCOPY_V2S     : UInt = U(8, SlotEncodingWidths.LoadOpcodeBits bits)  // vector scratch → scalar scratch (1 word)
+  def SCOPY_S2V     : UInt = U(9, SlotEncodingWidths.LoadOpcodeBits bits)  // scalar scratch → vector scratch (1 word)
 }
 
 // ============================================================================
@@ -84,9 +100,9 @@ object LoadOpcode {
 // ============================================================================
 
 object StoreOpcode {
-  def NOP    : UInt = U(0, 2 bits)
-  def STORE  : UInt = U(1, 2 bits)
-  def VSTORE : UInt = U(2, 2 bits)
+  def NOP    : UInt = U(0, SlotEncodingWidths.StoreOpcodeBits bits)
+  def STORE  : UInt = U(1, SlotEncodingWidths.StoreOpcodeBits bits)
+  def VSTORE : UInt = U(2, SlotEncodingWidths.StoreOpcodeBits bits)
 }
 
 // ============================================================================
@@ -94,35 +110,52 @@ object StoreOpcode {
 // ============================================================================
 
 object FlowOpcode {
-  def NOP            : UInt = U(0, 4 bits)
-  def SELECT         : UInt = U(1, 4 bits)
-  def VSELECT        : UInt = U(2, 4 bits)
-  def ADD_IMM        : UInt = U(3, 4 bits)
-  def HALT           : UInt = U(4, 4 bits)
-  def COND_JUMP      : UInt = U(5, 4 bits)
-  def COND_JUMP_REL  : UInt = U(6, 4 bits)
-  def JUMP           : UInt = U(7, 4 bits)
-  def JUMP_INDIRECT  : UInt = U(8, 4 bits)
-  def COREID         : UInt = U(9, 4 bits)
+  def NOP            : UInt = U(0, SlotEncodingWidths.FlowOpcodeBits bits)
+  def SELECT         : UInt = U(1, SlotEncodingWidths.FlowOpcodeBits bits)
+  def VSELECT        : UInt = U(2, SlotEncodingWidths.FlowOpcodeBits bits)
+  def ADD_IMM        : UInt = U(3, SlotEncodingWidths.FlowOpcodeBits bits)
+  def HALT           : UInt = U(4, SlotEncodingWidths.FlowOpcodeBits bits)
+  def COND_JUMP      : UInt = U(5, SlotEncodingWidths.FlowOpcodeBits bits)
+  def COND_JUMP_REL  : UInt = U(6, SlotEncodingWidths.FlowOpcodeBits bits)
+  def JUMP           : UInt = U(7, SlotEncodingWidths.FlowOpcodeBits bits)
+  def JUMP_INDIRECT  : UInt = U(8, SlotEncodingWidths.FlowOpcodeBits bits)
+  def COREID         : UInt = U(9, SlotEncodingWidths.FlowOpcodeBits bits)
+}
+
+// ============================================================================
+//  Matrix Opcode (v1 fixed 8x8 int8 systolic engine)
+// ============================================================================
+
+object MatrixOpcode {
+  def NOP         : UInt = U(0, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MCFG        : UInt = U(1, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MMLOAD      : UInt = U(2, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MMSTORE     : UInt = U(3, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MDMVIN      : UInt = U(4, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MDMVOUT     : UInt = U(5, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MPRELOAD    : UInt = U(6, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MCOMPUTE    : UInt = U(7, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MCOMPUTE_ACC: UInt = U(8, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MZERO       : UInt = U(9, SlotEncodingWidths.MatrixOpcodeBits bits)
 }
 
 // ============================================================================
 //  Decoded Slot Bundles — one per engine type
 // ============================================================================
 
-/** Scalar ALU slot — 40 bits encoded.
- *  [39] valid | [38:35] opcode | [34:24] dest | [23:13] src1 | [12:2] src2 | [1:0] rsvd
+/** Scalar ALU slot — 41 bits encoded.
+ *  [40] valid | [39:35] opcode | [34:24] dest | [23:13] src1 | [12:2] src2 | [1:0] rsvd
  */
 case class AluSlot(cfg: VliwSocConfig) extends Bundle {
   val valid  = Bool()
-  val opcode = UInt(4 bits)
+  val opcode = UInt(SlotEncodingWidths.AluOpcodeBits bits)
   val dest   = UInt(cfg.scratchAddrWidth bits)
   val src1   = UInt(cfg.scratchAddrWidth bits)
   val src2   = UInt(cfg.scratchAddrWidth bits)
 }
 
-/** Vector ALU slot — 56 bits encoded.
- *  [55] valid | [54:51] opcode | [50:40] destBase | [39:29] src1Base |
+/** Vector ALU slot — 57 bits encoded.
+ *  [56] valid | [55:51] opcode | [50:40] destBase | [39:29] src1Base |
  *  [28:18] src2Base | [17:7] src3Base | [6:4] ewidth | [3:1] dwidth | [0] signed
  *
  *  ewidth/dwidth encoding: 000=32b, 001=8b, 010=16b, 011=4b, 100=64b
@@ -130,7 +163,7 @@ case class AluSlot(cfg: VliwSocConfig) extends Bundle {
  */
 case class ValuSlot(cfg: VliwSocConfig) extends Bundle {
   val valid    = Bool()
-  val opcode   = UInt(4 bits)
+  val opcode   = UInt(SlotEncodingWidths.ValuOpcodeBits bits)
   val destBase = UInt(cfg.scratchAddrWidth bits)
   val src1Base = UInt(cfg.scratchAddrWidth bits)
   val src2Base = UInt(cfg.scratchAddrWidth bits)
@@ -140,33 +173,63 @@ case class ValuSlot(cfg: VliwSocConfig) extends Bundle {
   val isSigned = Bool()                           // signed operations flag
 }
 
-/** Load slot — 48 bits encoded.
- *  [47] valid | [46:44] opcode | [43:33] dest | [32:22] addrReg |
+/** Load slot — 49 bits encoded.
+ *  [48] valid | [47:44] opcode | [43:33] dest | [32:22] addrReg |
  *  [21:19] offset | [18:0] rsvd
  *  For CONST: dest is scratch addr, immediate is a separate 32-bit field
  *  which we encode in the upper bits.
  */
 case class LoadSlot(cfg: VliwSocConfig) extends Bundle {
   val valid     = Bool()
-  val opcode    = UInt(3 bits)
+  val opcode    = UInt(SlotEncodingWidths.LoadOpcodeBits bits)
   val dest      = UInt(cfg.scratchAddrWidth bits)
   val addrReg   = UInt(cfg.scratchAddrWidth bits)
   val offset    = UInt(3 bits)       // for load_offset (0..7)
   val immediate = UInt(32 bits)      // for CONST instruction
 }
 
-/** Store slot — 28 bits encoded.
- *  [27] valid | [26:25] opcode | [24:14] addrReg | [13:3] srcReg | [2:0] rsvd
+/** Store slot — 29 bits encoded.
+ *  [28] valid | [27:25] opcode | [24:14] addrReg | [13:3] srcReg | [2:0] rsvd
  */
 case class StoreSlot(cfg: VliwSocConfig) extends Bundle {
   val valid   = Bool()
-  val opcode  = UInt(2 bits)
+  val opcode  = UInt(SlotEncodingWidths.StoreOpcodeBits bits)
   val addrReg = UInt(cfg.scratchAddrWidth bits)
   val srcReg  = UInt(cfg.scratchAddrWidth bits)
 }
 
-/** Flow slot — 48 bits encoded.
- *  [47] valid | [46:43] opcode | [42:32] dest | [31:21] operandA |
+/** Matrix slot — 65 bits encoded.
+ *  v1 keeps the 8x8 int8 systolic engine fixed and routes control through
+ *  scratch-address-sized operands plus small tile/flag fields.
+ *
+ *  Direct DRAM move convention in v1:
+ *    MDMVIN : dest=matrix-local base, srcA=DRAM base word address
+ *    MDMVOUT: dest=DRAM base word address, srcA=matrix-local base
+ *    flags[0]=1 selects accumulator memory, 0 selects int8 operand scratch
+ *    flags[1]=1 selects operand-B scratch when flags[0]=0; otherwise operand-A
+ *
+ *  Compute convention in v1:
+ *    MCOMPUTE/MCOMPUTE_ACC use srcA as operand-A base, srcB as operand-B base,
+ *    and dest as accumulator base.
+ *
+ *  [64] valid | [63:59] opcode | [58:48] dest | [47:37] srcA |
+ *  [36:26] srcB | [25:15] srcC | [14:11] tileRows | [10:7] tileCols |
+ *  [6:1] flags | [0] reserved
+ */
+case class MatrixSlot(cfg: VliwSocConfig) extends Bundle {
+  val valid    = Bool()
+  val opcode   = UInt(SlotEncodingWidths.MatrixOpcodeBits bits)
+  val dest     = UInt(cfg.scratchAddrWidth bits)
+  val srcA     = UInt(cfg.scratchAddrWidth bits)
+  val srcB     = UInt(cfg.scratchAddrWidth bits)
+  val srcC     = UInt(cfg.scratchAddrWidth bits)
+  val tileRows = UInt(4 bits)
+  val tileCols = UInt(4 bits)
+  val flags    = Bits(6 bits)
+}
+
+/** Flow slot — 49 bits encoded.
+ *  [48] valid | [47:43] opcode | [42:32] dest | [31:21] operandA |
  *  [20:10] operandB | [9:0] immediate
  *
  *  Field usage by opcode:
@@ -182,7 +245,7 @@ case class StoreSlot(cfg: VliwSocConfig) extends Bundle {
  */
 case class FlowSlot(cfg: VliwSocConfig) extends Bundle {
   val valid    = Bool()
-  val opcode   = UInt(4 bits)
+  val opcode   = UInt(SlotEncodingWidths.FlowOpcodeBits bits)
   val dest     = UInt(cfg.scratchAddrWidth bits)
   val operandA = UInt(cfg.scratchAddrWidth bits)
   val operandB = UInt(cfg.scratchAddrWidth bits)

@@ -20,6 +20,7 @@ def build_threshold_clip_kernel(name: str = "dsl_threshold_clip", *, length: int
     value = kb.scalar("value")
     zero = kb.scalar("zero")
     below_threshold = kb.scalar("below_threshold")
+    clipped = kb.scalar("clipped")
 
     kb.address_of(input_base, input_buf)
     kb.address_of(output_base, output_buf)
@@ -30,12 +31,8 @@ def build_threshold_clip_kernel(name: str = "dsl_threshold_clip", *, length: int
         inner_kb.load(value, in_ptr)
         inner_kb.binary("lt", below_threshold, value, threshold)
         inner_kb.add(out_ptr, output_base, index)
-        inner_kb.if_else(
-            below_threshold,
-            prefix=f"clip_{length}",
-            then_body=lambda kb_then: kb_then.store(out_ptr, zero),
-            else_body=lambda kb_else: kb_else.store(out_ptr, value),
-        )
+        inner_kb.select(clipped, below_threshold, zero, value)
+        inner_kb.store(out_ptr, clipped)
 
     kb.counted_loop(index, start=0, stop=length, step=1, body=body, prefix=f"clip_loop_{length}")
     kb.halt()

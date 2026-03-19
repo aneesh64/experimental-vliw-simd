@@ -18,10 +18,12 @@ from .ir import (
     Kernel,
     Label,
     LoadImmediate,
+    MatrixMultiply,
     MemorySpace,
     ReadCoreId,
     ScalarBinary,
     ScalarLoad,
+    ScalarSelect,
     ScalarStore,
     VectorBinary,
     VectorBroadcast,
@@ -45,7 +47,7 @@ class LoweringResult:
     def to_manifest(self) -> KernelManifest:
         slot_usage = {
             engine: sum(len(bundle.get(engine, [])) for bundle in self.scheduled_bundles)
-            for engine in ("alu", "valu", "load", "store", "flow")
+            for engine in ("alu", "valu", "load", "store", "matrix", "flow")
         }
         return KernelManifest(
             kernel_name=self.kernel.name,
@@ -124,7 +126,8 @@ class DslLowerer:
         resolved_bindings = self._resolve_bindings(kernel, bindings)
         operations: List[Op | SchedulerLabel] = []
         operations.extend(self._emit_argument_prologue(kernel, scratch_map, resolved_bindings))
-        operations.extend(self._lower_op(op, kernel, scratch_map, resolved_bindings) for op in kernel.ops)
+        for op in kernel.ops:
+            operations.extend(self._lower_op(op, kernel, scratch_map, resolved_bindings))
         scheduled = self.scheduler.schedule(operations)
         binary = self.assembler.assemble_program(scheduled) if assemble else None
         return LoweringResult(
@@ -169,40 +172,40 @@ class DslLowerer:
         kernel: Kernel,
         scratch_map: Dict[str, int],
         bindings: Dict[str, int],
-    ) -> Op | SchedulerLabel:
+    ) -> List[Op | SchedulerLabel]:
         if isinstance(op, LoadImmediate):
             dest = self._addr(op.dest, scratch_map)
-            return self.scheduler.const(dest, op.value)
+            return [self.scheduler.const(dest, op.value)]
 
         if isinstance(op, AddressOf):
             dest = self._addr(op.dest, scratch_map)
             base = self._resolve_buffer_address(op.buffer, kernel, scratch_map, bindings)
-            return self.scheduler.const(dest, base + op.offset_words)
+            return [self.scheduler.const(dest, base + op.offset_words)]
 
         if isinstance(op, ScalarLoad):
             self._require_scalar_buffer(op.dest, kernel)
             dest = self._addr(op.dest, scratch_map)
             addr = self._addr(op.addr, scratch_map)
-            return self.scheduler.load(dest, addr, memory_domain=cast(MemoryDomain, op.memory_domain))
+            return [self.scheduler.load(dest, addr, memory_domain=cast(MemoryDomain, op.memory_domain))]
 
         if isinstance(op, ScalarStore):
             addr = self._addr(op.addr, scratch_map)
             src = self._addr(op.src, scratch_map)
-            return self.scheduler.store(addr, src, memory_domain=cast(MemoryDomain, op.memory_domain))
+            return [self.scheduler.store(addr, src, memory_domain=cast(MemoryDomain, op.memory_domain))]
 
         if isinstance(op, VectorLoad):
             dest_buf = self._buffer(op.dest, kernel)
             self._require_full_target_vector(dest_buf)
             dest = self._addr(op.dest, scratch_map)
             addr = self._addr(op.addr, scratch_map)
-            return self.scheduler.vload(dest, addr, vlen=dest_buf.elements)
+            return [self.scheduler.vload(dest, addr, vlen=dest_buf.elements)]
 
         if isinstance(op, VectorStore):
             src_buf = self._buffer(op.src, kernel)
             self._require_full_target_vector(src_buf)
             addr = self._addr(op.addr, scratch_map)
             src = self._addr(op.src, scratch_map)
-            return self.scheduler.vstore(addr, src, vlen=src_buf.elements)
+            return [self.scheduler.vstore(addr, src, vlen=src_buf.elements)]
 
         if isinstance(op, ScalarBinary):
             self.capabilities.require_scalar_op(op.op)
@@ -210,7 +213,15 @@ class DslLowerer:
             lhs = self._addr(op.lhs, scratch_map)
             rhs = self._addr(op.rhs, scratch_map)
             constructor = getattr(self.scheduler, op.op)
-            return constructor(dest, lhs, rhs)
+            return [constructor(dest, lhs, rhs)]
+
+        if isinstance(op, ScalarSelect):
+            return [self.scheduler.select(
+                self._addr(op.dest, scratch_map),
+                self._addr(op.cond, scratch_map),
+                self._addr(op.src_a, scratch_map),
+                self._addr(op.src_b, scratch_map),
+            )]
 
         if isinstance(op, VectorBinary):
             self.capabilities.require_vector_op(op.op)
@@ -221,7 +232,7 @@ class DslLowerer:
             lhs_buf = self._buffer(op.lhs, kernel)
             rhs_buf = self._buffer(op.rhs, kernel)
             self._require_matching_vector_shapes(dest_buf, lhs_buf, rhs_buf)
-            return self.scheduler.valu_op(
+            return [self.scheduler.valu_op(
                 op.op,
                 self._addr(op.dest, scratch_map),
                 self._addr(op.lhs, scratch_map),
@@ -230,19 +241,19 @@ class DslLowerer:
                 ew=op.ew,
                 dw=dw,
                 signed=op.signed,
-            )
+            )]
 
         if isinstance(op, VectorBroadcast):
             self.capabilities.require_vector_op("vbroadcast")
             self.capabilities.require_element_width(op.ew)
             dest_buf = self._buffer(op.dest, kernel)
             self._require_full_target_vector(dest_buf)
-            return self.scheduler.vbroadcast(
+            return [self.scheduler.vbroadcast(
                 self._addr(op.dest, scratch_map),
                 self._addr(op.src, scratch_map),
                 vlen=dest_buf.elements,
                 ew=op.ew,
-            )
+            )]
 
         if isinstance(op, VectorCast):
             self.capabilities.require_vector_op("vcast")
@@ -251,7 +262,7 @@ class DslLowerer:
             dest_buf = self._buffer(op.dest, kernel)
             src_buf = self._buffer(op.src, kernel)
             self._require_matching_vector_shapes(dest_buf, src_buf)
-            return self.scheduler.vcast(
+            return [self.scheduler.vcast(
                 self._addr(op.dest, scratch_map),
                 self._addr(op.src, scratch_map),
                 ew=op.ew,
@@ -259,31 +270,69 @@ class DslLowerer:
                 signed=op.signed,
                 upper=op.upper,
                 vlen=dest_buf.elements,
-            )
+            )]
 
         if isinstance(op, AddImmediate):
-            return self.scheduler.add_imm(
+            return [self.scheduler.add_imm(
                 self._addr(op.dest, scratch_map),
                 self._addr(op.src, scratch_map),
                 op.imm,
-            )
+            )]
+
+        if isinstance(op, MatrixMultiply):
+            return self._lower_matrix_multiply(op, kernel, scratch_map, bindings)
 
         if isinstance(op, Label):
-            return self.scheduler.label(op.name)
+            return [self.scheduler.label(op.name)]
 
         if isinstance(op, Jump):
-            return self.scheduler.jump(op.target)
+            return [self.scheduler.jump(op.target)]
 
         if isinstance(op, CondJump):
-            return self.scheduler.cond_jump(self._addr(op.cond, scratch_map), op.target)
+            return [self.scheduler.cond_jump(self._addr(op.cond, scratch_map), op.target)]
 
         if isinstance(op, ReadCoreId):
-            return self.scheduler.coreid(self._addr(op.dest, scratch_map))
+            return [self.scheduler.coreid(self._addr(op.dest, scratch_map))]
 
         if isinstance(op, Halt):
-            return self.scheduler.halt()
+            return [self.scheduler.halt()]
 
         raise TypeError(f"Unsupported DSL op for lowering: {type(op).__name__}")
+
+    def _lower_matrix_multiply(
+        self,
+        op: MatrixMultiply,
+        kernel: Kernel,
+        scratch_map: Dict[str, int],
+        bindings: Dict[str, int],
+    ) -> List[Op]:
+        for matrix_op in ("mdmvin", "mdmvout", "mcompute_acc" if op.accumulate else "mcompute"):
+            self.capabilities.require_matrix_op(matrix_op)
+        if not op.accumulate:
+            self.capabilities.require_matrix_op("mzero")
+
+        lhs_buf = self._buffer(op.lhs, kernel)
+        rhs_buf = self._buffer(op.rhs, kernel)
+        out_buf = self._buffer(op.out, kernel)
+        self._require_matrix_input_buffer(lhs_buf, role="lhs")
+        self._require_matrix_input_buffer(rhs_buf, role="rhs")
+        self._require_matrix_output_buffer(out_buf, role="out")
+
+        lhs_addr = self._resolve_buffer_address(op.lhs, kernel, scratch_map, bindings)
+        rhs_addr = self._resolve_buffer_address(op.rhs, kernel, scratch_map, bindings)
+        out_addr = self._resolve_buffer_address(op.out, kernel, scratch_map, bindings)
+
+        lowered = [
+            self.scheduler.mdmvin(dest=0, src_a=lhs_addr, flags=0),
+            self.scheduler.mdmvin(dest=0, src_a=rhs_addr, flags=0b10),
+        ]
+        if not op.accumulate:
+            lowered.append(self.scheduler.mzero(dest=0))
+            lowered.append(self.scheduler.mcompute(dest=0, src_a=0, src_b=0, src_c=0))
+        else:
+            lowered.append(self.scheduler.mcompute_acc(dest=0, src_a=0, src_b=0, src_c=0))
+        lowered.append(self.scheduler.mdmvout(dest=out_addr, src_a=0, flags=0b1))
+        return lowered
 
     def _buffer(self, name: str, kernel: Kernel) -> Buffer:
         if name not in kernel.buffers:
@@ -298,6 +347,8 @@ class DslLowerer:
         bindings: Dict[str, int],
     ) -> int:
         buffer = self._buffer(name, kernel)
+        if buffer.base_buffer is not None:
+            return self._resolve_buffer_address(buffer.base_buffer, kernel, scratch_map, bindings) + buffer.base_offset_words
         if buffer.space == MemorySpace.DMEM:
             if name not in bindings:
                 raise ValueError(f"Kernel '{kernel.name}' requires DMEM binding for buffer '{name}'")
@@ -329,6 +380,24 @@ class DslLowerer:
         lengths = {buffer.elements for buffer in buffers}
         if len(lengths) != 1:
             raise ValueError("All vector operands must have the same logical length")
+
+    @staticmethod
+    def _require_matrix_input_buffer(buffer: Buffer, *, role: str) -> None:
+        if buffer.space != MemorySpace.DMEM:
+            raise ValueError(f"Matrix {role} buffer '{buffer.name}' must be DMEM-backed")
+        if buffer.shape != (8, 8):
+            raise ValueError(f"Matrix {role} buffer '{buffer.name}' must have shape (8, 8)")
+        if buffer.dtype.bits != 8:
+            raise ValueError(f"Matrix {role} buffer '{buffer.name}' must use 8-bit elements")
+
+    @staticmethod
+    def _require_matrix_output_buffer(buffer: Buffer, *, role: str) -> None:
+        if buffer.space != MemorySpace.DMEM:
+            raise ValueError(f"Matrix {role} buffer '{buffer.name}' must be DMEM-backed")
+        if buffer.shape != (8, 8):
+            raise ValueError(f"Matrix {role} buffer '{buffer.name}' must have shape (8, 8)")
+        if buffer.dtype.bits != 32:
+            raise ValueError(f"Matrix {role} buffer '{buffer.name}' must use 32-bit elements")
 
 
 def compile_kernel(

@@ -239,6 +239,74 @@ For full working patterns, see:
 - [DSL_EXAMPLE_CONTROL_FLOW.md](DSL_EXAMPLE_CONTROL_FLOW.md)
 - [tools/dsl/examples/control_flow_kernels.py](../tools/dsl/examples/control_flow_kernels.py)
 
+## Example 8: Fixed-size matrix multiply
+
+Real-world use: one `8x8` tile multiply on the matrix engine without manually authoring matrix transfer and compute ops.
+
+```python
+from dsl import KernelBuilder, U8, U32
+
+
+kb = KernelBuilder("matrix_matmul_8x8")
+lhs = kb.arg_dmem_tensor("lhs", shape=(8, 8), dtype=U8)
+rhs = kb.arg_dmem_tensor("rhs", shape=(8, 8), dtype=U8)
+out = kb.arg_dmem_tensor("out", shape=(8, 8), dtype=U32)
+
+kb.matmul(lhs, rhs, out)
+kb.halt()
+```
+
+Why this layer works:
+- expresses one logical matrix op instead of raw matrix-engine micro-ops
+- lowering inserts the required `MDMVIN`, `MZERO` or `MCOMPUTE_ACC`, `MCOMPUTE`, and `MDMVOUT` sequence
+- capability checks fail early on targets without matrix support
+
+Current limits:
+- only fixed `8x8` `U8 x U8 -> U32` tiles are supported
+- tensors must be DMEM-backed
+- larger matrix tiling is not yet automatic
+
+For the full worked example and the accumulate variant, see:
+- [DSL_EXAMPLE_MATRIX_MATMUL.md](DSL_EXAMPLE_MATRIX_MATMUL.md)
+- [tools/dsl/examples/matrix_kernels.py](../tools/dsl/examples/matrix_kernels.py)
+
+## Example 9: Tiled 32x32 matrix multiply on the 8x8 engine
+
+Real-world use: larger GEMM-style workloads mapped onto the current fixed-size matrix engine.
+
+```python
+from dsl import KernelBuilder, U8, U32
+
+
+kb = KernelBuilder("matrix_matmul_32x32_tiled")
+lhs_tiles = kb.arg_dmem_tensor("lhs_tiles", shape=(4, 4, 8, 8), dtype=U8)
+rhs_tiles = kb.arg_dmem_tensor("rhs_tiles", shape=(4, 4, 8, 8), dtype=U8)
+out_tiles = kb.arg_dmem_tensor("out_tiles", shape=(4, 4, 8, 8), dtype=U32)
+
+for tile_row in range(4):
+    for tile_col in range(4):
+        for tile_k in range(4):
+            ...
+            kb.matmul(lhs_tile, rhs_tile, out_tile, accumulate=tile_k > 0)
+
+kb.halt()
+```
+
+Why this layer works:
+- shows how to scale beyond one `8x8` tile without dropping into raw scheduler ops
+- keeps the implementation inside the supported `KernelBuilder.matmul()` path
+- is RTL-verified against a Python golden `32x32` matrix multiply
+
+Important constraint:
+- the current matrix transfer path expects each `8x8` tile to be contiguous in DMEM, so the example uses tile-packed buffers rather than plain row-major `32x32` storage
+
+For host-side integration, use the row-major conversion helpers exposed by the DSL package:
+- `pack_matrix_matmul_32x32_u8_tiles()` for input matrices
+- `unpack_matrix_matmul_32x32_u32_tiles()` for output matrices
+
+For the full walkthrough, see:
+- [DSL_EXAMPLE_MATRIX_MATMUL_32X32.md](DSL_EXAMPLE_MATRIX_MATMUL_32X32.md)
+
 ## Compilation Pattern
 
 ```python

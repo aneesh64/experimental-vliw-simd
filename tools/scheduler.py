@@ -55,22 +55,28 @@ DIV_BUSY_CYCLES = 33
 # Jump: 1 dead slot after branch (fetch invalidates in-flight instruction).
 JUMP_BUBBLE = 3
 
-# Async memory read completion to scratch (queue + AXI handshake + writeback).
-# Conservative value to keep dependent consumers from reading too early.
-LOAD_RESULT_LATENCY = 20
+# Async loads complete via AXI and write scratch through the FIFO-based
+# MemoryEngine. With software-managed hazard avoidance (WAIT_FOR_LOAD barrier),
+# the scheduler tracks pending load destinations and inserts WAIT_FOR_LOAD
+# barriers before any consumer, eliminating the need for large latency padding.
+# After WAIT_FOR_LOAD stalls the pipeline until all loads complete, the result
+# is guaranteed available in scratch for the very next bundle.
+LOAD_RESULT_LATENCY = NORMAL_LATENCY
 
 CONST_RESULT_LATENCY = NORMAL_LATENCY
 
-# Memory operations are non-blocking (FIFO-based). The pipeline pushes
-# to load/store FIFOs and continues without stalling. The scheduler
-# should place enough independent work between load issue and result use.
-# Conservative default keeps FIFO memory ops from being consumed too tightly.
-DEFAULT_MEM_POST_GAP = 2
+# Memory operations are non-blocking (FIFO-based). The pipeline pushes to
+# load/store FIFOs and continues unless the RTL hazard paths need to stall for
+# a true dependency or memory backpressure. The scheduler therefore only uses
+# mem_post_gap for optional packing policy, not for fixed load-result latency.
+DEFAULT_MEM_POST_GAP = 0
 
 # With single-TDP scratch banks, Port B is shared by VALU src2 reads and WB writes.
 # A 1-bundle post-gap avoids back-to-back VALU bundles that would otherwise
 # overlap src2 reads with prior bundle writes.
 DEFAULT_VALU_POST_GAP = 2
+DEFAULT_MATRIX_POST_GAP = 1
+MATRIX_COMPUTE_LATENCY = 1216
 
 MemoryDomain = Literal["scalar", "vector"]
 
@@ -145,11 +151,13 @@ class SchedulerConfig:
     n_load_slots: int = 1
     n_store_slots: int = 1
     n_flow_slots: int = 1
+    n_matrix_slots: int = 0
     scratch_banks: int = 8         # for bank-conflict detection
     data_width: int = 32
     div_latency: int = DIV_BUSY_CYCLES  # dataWidth + 1
     mem_post_gap: int = DEFAULT_MEM_POST_GAP
     valu_post_gap: int = DEFAULT_VALU_POST_GAP
+    matrix_post_gap: int = DEFAULT_MATRIX_POST_GAP
 
     @property
     def slot_limits(self) -> Dict[str, int]:
@@ -159,6 +167,7 @@ class SchedulerConfig:
             "load": self.n_load_slots,
             "store": self.n_store_slots,
             "flow": self.n_flow_slots,
+            "matrix": self.n_matrix_slots,
         }
 
     @property
@@ -199,8 +208,9 @@ def _compute_read_ports(op: Op, cfg: SchedulerConfig) -> List[Tuple[int, int]]:
             ports.append((alu_base + 1, op.srcs[1]))
 
     elif op.engine == "load":
-        # CONST doesn't read addrReg
-        if op.op != "const" and op.srcs:
+        # CONST, WAIT_FOR_LOAD, and SCOPY don't use normal addrReg read ports
+        if op.op not in ("const", "wait_for_load", "scopy_m2v", "scopy_v2m",
+                          "scopy_v2s", "scopy_s2v") and op.srcs:
             ports.append((load_base, op.srcs[0]))
 
     elif op.engine == "store":
@@ -339,6 +349,43 @@ class VliwScheduler:
         """Scalar STORE to vector memory bank (serialized vs vector ops)."""
         return self.store(addr_reg, src_reg, memory_domain="vector")
 
+    def wait_for_load(self, dest_addr: int) -> Op:
+        """WAIT_FOR_LOAD — barrier that stalls until load to specific scratch address completes."""
+        return Op(engine="load", op="wait_for_load", dests=[], srcs=[],
+                  params={"dest": dest_addr}, latency=0)
+
+    def scopy_m2v(self, dest_base: int, src_base: int,
+                  use_accum: bool = False, use_scratch_b: bool = False,
+                  vlen: int = 8) -> Op:
+        """SCOPY_M2V — copy VLEN words from matrix scratchpad to vector scratch."""
+        offset = (1 if use_accum else 0) | (2 if use_scratch_b else 0)
+        dests = list(range(dest_base, dest_base + vlen))
+        return Op(engine="load", op="scopy_m2v", dests=dests, srcs=[],
+                  params={"dest": dest_base, "addr_reg": src_base, "offset": offset},
+                  latency=NORMAL_LATENCY)
+
+    def scopy_v2m(self, dest_base: int, src_base: int,
+                  use_accum: bool = False, use_scratch_b: bool = False,
+                  vlen: int = 8) -> Op:
+        """SCOPY_V2M — copy VLEN words from vector scratch to matrix scratchpad."""
+        offset = (1 if use_accum else 0) | (2 if use_scratch_b else 0)
+        srcs = list(range(src_base, src_base + vlen))
+        return Op(engine="load", op="scopy_v2m", dests=[], srcs=srcs,
+                  params={"dest": dest_base, "addr_reg": src_base, "offset": offset},
+                  latency=NORMAL_LATENCY)
+
+    def scopy_v2s(self, dest: int, src: int) -> Op:
+        """SCOPY_V2S — copy from vector scratch to scalar scratch (within same memory)."""
+        return Op(engine="load", op="scopy_v2s", dests=[dest], srcs=[src],
+                  params={"dest": dest, "addr_reg": src, "offset": 0},
+                  latency=NORMAL_LATENCY)
+
+    def scopy_s2v(self, dest: int, src: int) -> Op:
+        """SCOPY_S2V — copy from scalar scratch to vector scratch (within same memory)."""
+        return Op(engine="load", op="scopy_s2v", dests=[dest], srcs=[src],
+                  params={"dest": dest, "addr_reg": src, "offset": 0},
+                  latency=NORMAL_LATENCY)
+
     # ---- ALU operations ----
 
     def _alu_op(self, op: str, dest: int, src1: int, src2: int,
@@ -376,6 +423,12 @@ class VliwScheduler:
 
     def eq(self, dest: int, src1: int, src2: int) -> Op:
         return self._alu_op("eq", dest, src1, src2)
+
+    def max(self, dest: int, src1: int, src2: int) -> Op:
+        return self._alu_op("max", dest, src1, src2)
+
+    def min(self, dest: int, src1: int, src2: int) -> Op:
+        return self._alu_op("min", dest, src1, src2)
 
     def div(self, dest: int, src1: int, src2: int) -> Op:
         return self._alu_op("div", dest, src1, src2,
@@ -526,6 +579,50 @@ class VliwScheduler:
         return Op(engine="flow", op="coreid", dests=[dest], srcs=[],
                   params={"dest": dest}, latency=NORMAL_LATENCY)
 
+    # ---- Matrix operations ----
+
+    def matrix_op(self, op: str, dest: int = 0, src_a: int = 0,
+                  src_b: int = 0, src_c: int = 0,
+                  tile_rows: int = 8, tile_cols: int = 8,
+                  flags: int = 0, latency: int = NORMAL_LATENCY) -> Op:
+        if self.cfg.n_matrix_slots < 1:
+            raise ValueError("Target exposes no matrix slots; cannot lower matrix op")
+        srcs = [reg for reg in (src_a, src_b, src_c) if reg != 0]
+        return Op(engine="matrix", op=op, dests=[], srcs=srcs,
+                  params={"dest": dest, "src_a": src_a, "src_b": src_b,
+                          "src_c": src_c, "tile_rows": tile_rows,
+                          "tile_cols": tile_cols, "flags": flags},
+                  latency=latency)
+
+    def mcfg(self, flags: int = 0) -> Op:
+        return self.matrix_op("mcfg", flags=flags)
+
+    def mmload(self, dest: int, src_a: int = 0, flags: int = 0) -> Op:
+        return self.matrix_op("mmload", dest=dest, src_a=src_a, flags=flags)
+
+    def mmstore(self, dest: int, src_a: int = 0, flags: int = 0) -> Op:
+        return self.matrix_op("mmstore", dest=dest, src_a=src_a, flags=flags)
+
+    def mdmvin(self, dest: int, src_a: int = 0, flags: int = 0) -> Op:
+        return self.matrix_op("mdmvin", dest=dest, src_a=src_a, flags=flags)
+
+    def mdmvout(self, dest: int, src_a: int = 0, flags: int = 0) -> Op:
+        return self.matrix_op("mdmvout", dest=dest, src_a=src_a, flags=flags)
+
+    def mpreload(self, dest: int = 0, src_a: int = 0, src_b: int = 0, flags: int = 0) -> Op:
+        return self.matrix_op("mpreload", dest=dest, src_a=src_a, src_b=src_b, flags=flags)
+
+    def mcompute(self, dest: int = 0, src_a: int = 0, src_b: int = 0, src_c: int = 0) -> Op:
+        return self.matrix_op("mcompute", dest=dest, src_a=src_a, src_b=src_b,
+                              src_c=src_c, latency=MATRIX_COMPUTE_LATENCY)
+
+    def mcompute_acc(self, dest: int = 0, src_a: int = 0, src_b: int = 0, src_c: int = 0) -> Op:
+        return self.matrix_op("mcompute_acc", dest=dest, src_a=src_a, src_b=src_b,
+                              src_c=src_c, latency=MATRIX_COMPUTE_LATENCY)
+
+    def mzero(self, dest: int = 0) -> Op:
+        return self.matrix_op("mzero", dest=dest)
+
     @staticmethod
     def label(name: str) -> Label:
         """Create a label pseudo-op for jump targets."""
@@ -629,6 +726,16 @@ class VliwScheduler:
             return False
         return cls._memory_domain(op) == "vector"
 
+    @staticmethod
+    def _is_matrix_memory_transfer(op: Op) -> bool:
+        return op.engine == "matrix" and op.op in ("mdmvin", "mdmvout")
+
+    @staticmethod
+    def _is_real_memory_op(op: Op) -> bool:
+        return (op.engine in ("load", "store") and
+                op.op not in ("const", "wait_for_load", "scopy_m2v", "scopy_v2m",
+                              "scopy_v2s", "scopy_s2v"))
+
     @classmethod
     def _has_vector_bank_contention(cls, existing_ops: List[Op], new_op: Op) -> bool:
         """
@@ -651,6 +758,30 @@ class VliwScheduler:
 
         return (new_is_scalar_vecmem and existing_has_vector_instr) or \
                (new_is_vector_instr and existing_has_scalar_vecmem)
+
+    @classmethod
+    def _has_matrix_memory_conflict(cls, existing_ops: List[Op], new_op: Op) -> bool:
+        """
+        Prevent direct matrix transfers from co-issuing with normal memory ops.
+
+        MemoryEngine stalls replay forever on bundles that combine
+        MDMVIN/MDMVOUT with LOAD/VLOAD/STORE/VSTORE, so the scheduler must
+        keep them separate.
+        """
+        if not existing_ops:
+            return False
+
+        new_is_matrix_transfer = cls._is_matrix_memory_transfer(new_op)
+        new_is_real_mem = cls._is_real_memory_op(new_op)
+
+        if not (new_is_matrix_transfer or new_is_real_mem):
+            return False
+
+        existing_has_matrix_transfer = any(cls._is_matrix_memory_transfer(op) for op in existing_ops)
+        existing_has_real_mem = any(cls._is_real_memory_op(op) for op in existing_ops)
+
+        return (new_is_matrix_transfer and existing_has_real_mem) or \
+               (new_is_real_mem and existing_has_matrix_transfer)
 
     def _schedule_block(
         self,
@@ -684,6 +815,13 @@ class VliwScheduler:
         # Deferred labels: placed at the first real op's cycle
         pending_labels: List[Label] = []
 
+        # Software-managed load hazard avoidance: track registers with pending
+        # (not yet barrier'd) AXI load results.  Before any consumer reads
+        # from a pending load destination, a WAIT_FOR_LOAD barrier is inserted.
+        # Maps each dest register to the load's base dest address (for vloads,
+        # all lanes map to the same base so one WAIT_FOR_LOAD suffices).
+        pending_load_map: dict = {}  # reg_addr -> load_dest_base
+
         for item in block:
             if isinstance(item, Label):
                 # Defer label placement until the first real op in this block
@@ -692,6 +830,51 @@ class VliwScheduler:
 
             op = item
             assert isinstance(op, Op)
+
+            # ---- Auto-insert WAIT_FOR_LOAD barrier(s) if this op consumes pending loads ----
+            if pending_load_map and op.srcs:
+                needed_addrs = set()
+                for s in op.srcs:
+                    if s in pending_load_map:
+                        needed_addrs.add(pending_load_map[s])
+                if needed_addrs:
+                    barrier_cycle = current_cycle
+                    for wait_addr in sorted(needed_addrs):
+                        # Find a cycle with a free load slot for the barrier
+                        while True:
+                            bu = slot_usage.get(barrier_cycle, {})
+                            if bu.get("load", 0) < self.cfg.slot_limits["load"]:
+                                break
+                            barrier_cycle += 1
+
+                        # Place the WAIT_FOR_LOAD barrier for this specific address
+                        if barrier_cycle not in slot_usage:
+                            slot_usage[barrier_cycle] = {}
+                        if barrier_cycle not in cycle_bundles:
+                            cycle_bundles[barrier_cycle] = {}
+                        slot_usage[barrier_cycle]["load"] = \
+                            slot_usage[barrier_cycle].get("load", 0) + 1
+                        if "load" not in cycle_bundles[barrier_cycle]:
+                            cycle_bundles[barrier_cycle]["load"] = []
+
+                        barrier_op = Op(engine="load", op="wait_for_load",
+                                        dests=[], srcs=[],
+                                        params={"dest": wait_addr}, latency=0)
+                        barrier_op._scheduled_cycle = barrier_cycle
+                        cycle_bundles[barrier_cycle]["load"].append(barrier_op)
+
+                        if verbose:
+                            print(f"  Auto-inserted WAIT_FOR_LOAD(s{wait_addr}) at cycle {barrier_cycle}")
+
+                        barrier_cycle += 1
+
+                    # Consumer must be at least 1 cycle after the last barrier
+                    current_cycle = barrier_cycle
+                    # Remove only the resolved entries from the map
+                    resolved_regs = [r for r, base in pending_load_map.items()
+                                     if base in needed_addrs]
+                    for r in resolved_regs:
+                        del pending_load_map[r]
 
             # Compute earliest cycle this op can be scheduled
             earliest = current_cycle
@@ -746,6 +929,9 @@ class VliwScheduler:
                             for placed in ops_list
                         ]
                         if self._has_vector_bank_contention(existing_ops, op):
+                            cycle += 1
+                            continue
+                        if self._has_matrix_memory_conflict(existing_ops, op):
                             cycle += 1
                             continue
 
@@ -886,6 +1072,12 @@ class VliwScheduler:
             for dest in op.dests:
                 reg_ready[dest] = cycle + op.latency
 
+            # Track pending load registers for WAIT_FOR_LOAD auto-insertion
+            if op.op in ("load", "load_offset", "vload") and op.dests:
+                load_base = op.dests[0]  # base dest address for this load
+                for d in op.dests:
+                    pending_load_map[d] = load_base
+
             # Track division busy state
             if op.is_div and op.engine == "alu":
                 slot_idx = slot_usage[cycle].get("alu", 1) - 1
@@ -898,6 +1090,8 @@ class VliwScheduler:
                 current_cycle = cycle + 1 + self.cfg.mem_post_gap
             elif op.engine == "valu":
                 current_cycle = cycle + 1 + self.cfg.valu_post_gap
+            elif op.engine == "matrix":
+                current_cycle = cycle + 1 + self.cfg.matrix_post_gap
             else:
                 # Don't force advancing — the next op may pack into the same cycle
                 # unless we need to for program order
@@ -1097,6 +1291,10 @@ class VliwScheduler:
                 return ("load_offset", p["dest"], p["addr_reg"], p["offset"])
             elif op.op == "vload":
                 return ("vload", p["dest"], p["addr_reg"])
+            elif op.op == "wait_for_load":
+                return ("wait_for_load", p["dest"])
+            elif op.op in ("scopy_m2v", "scopy_v2m", "scopy_v2s", "scopy_s2v"):
+                return (op.op, p["dest"], p["addr_reg"], p.get("offset", 0))
 
         elif op.engine == "store":
             if op.op == "store":
@@ -1130,6 +1328,12 @@ class VliwScheduler:
                 return ("add_imm", p["dest"], p["src"], p["imm"])
             elif op.op == "coreid":
                 return ("coreid", p["dest"])
+
+        elif op.engine == "matrix":
+            return (op.op, p.get("dest", 0), p.get("src_a", 0),
+                    p.get("src_b", 0), p.get("src_c", 0),
+                    p.get("tile_rows", 8), p.get("tile_cols", 8),
+                    p.get("flags", 0))
 
         return None
 
@@ -1171,7 +1375,7 @@ class VliwScheduler:
         print(f"  Slot usage:      {used_slots}/{total_slots} ({100*used_slots/max(total_slots,1):.1f}%)")
 
         # Per-engine utilization
-        for eng in ["alu", "valu", "load", "store", "flow"]:
+        for eng in ["alu", "valu", "load", "store", "matrix", "flow"]:
             limit = self.cfg.slot_limits[eng]
             used = sum(len(b.get(eng, [])) for b in bundles)
             avail = limit * n_bundles

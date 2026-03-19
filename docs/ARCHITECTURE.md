@@ -1,8 +1,8 @@
 # VLIW SIMD Architecture - Current Implementation
 
-**Status:** Phase 5+ (Load-Use Hazard Detection + Store Backpressure + Multi-Width Vector ISA)  
-**Version:** Load-Use Hazard Detection + Store FIFO Backpressure + Multi-Width Vector Extension  
-**Last Updated:** March 5, 2026
+**Status:** Phase 5+ (Load-Use Hazard Detection + Store Backpressure + Multi-Width Vector ISA + Matrix Integration + HALT Flush Fix)  
+**Version:** Load-Use Hazard Detection + Store FIFO Backpressure + Multi-Width Vector Extension + HALT Pipeline Flush Fix  
+**Last Updated:** March 19, 2026
 
 ---
 
@@ -16,6 +16,7 @@ A compiler-trusted VLIW processor with SIMD capabilities, optimized for simplici
 - **Minimal Hardware Complexity:** Removed FIFOs, multi-cycle trackers, and defensive logic (except load-use detection)
 - **Combinatorial Memory Paths:** 0-cycle AR drive for load requests
 - **Single Pending Operations:** One in-flight load, simple register-based tracking
+- **Dedicated Matrix Local Memories:** MatrixEngine is not routed through the normal scratch crossbar; it owns separate operand-A, operand-B, and accumulator memories per core
 
 ### Pipeline Overview
 ```
@@ -46,10 +47,10 @@ The pipeline detects data dependencies from pending loads and stalls automatical
 ### Execution Engines (Baseline Configuration)
 
 **1× ALU Engine**
-- Operations: ADD, SUB, MUL, SLL, SRL, SRA, SLT, SLTU, DIV, DIVU
-- Latency: 1 cycle (except DIV: multi-cycle with unsigned divider)
-- Input: rs1, rs2 (registers or immediates)
-- Output: rd (destination register)
+- Operations: ADD, SUB, MUL, XOR, AND, OR, SHL, SHR, LT, EQ, MOD, DIV, CDIV, MAX, MIN
+- Latency: 1 cycle for single-cycle ops; DIV/MOD/CDIV use the divider path
+- Input: scratch-word source addresses `src1`, `src2`
+- Output: scratch-word destination address `dest`
 
 **1× VALU Engine (Vector ALU) — Multi-Width**
 - **Element Widths:** 4, 8, 16, 32 (default), 64-bit
@@ -68,43 +69,52 @@ The pipeline detects data dependencies from pending loads and stalls automatical
 - **64-bit:** Carry/borrow chains between lane pairs; no MUL/DIV
 - **Signed Mode:** Affects LT→SLT, SHR→SAR, MUL→SMUL, VCAST→sign-extension
 - Latency: 1 cycle (except DIV/MOD/CDIV: multi-cycle, EW32 only)
-- Input: Vector registers (src1, src2, src3 for MULTIPLY_ADD)
-- Output: Vector destination register
+- Input: vector scratch base addresses (src1, src2, src3 for MULTIPLY_ADD)
+- Output: vector scratch base destination
 
 **1× Load Engine**
-- Operations: LW (load word)
-- Addressing: Register + immediate offset
+- Operations: LOAD, LOAD_OFFSET, VLOAD, CONST
+- Addressing: scratch-resident word address plus encoded offset where applicable
 - **Simplified Design:** Single pending load tracked in register
 - **0-Cycle AR Drive:** Combinatorial assignment to AXI AR channel
 - Latency: Variable (depends on AXI response, typically 2-3 cycles)
 
 **1× Store Engine**  
-- Operations: SW (store word), VSW (vector store)
-- Addressing: Register + immediate offset
+- Operations: STORE, VSTORE
+- Addressing: scratch-resident word address
 - Queueing: FIFO-backed request buffering (default depth = 4, configurable)
 - Backpressure behavior: pipeline stalls when store queue capacity is exhausted
 - AXI completion: AW/W handshake plus B response tracked by store FSM
 
 **1× Flow Engine**
-- Operations: JAL, JALR, BEQ, BNE, BLT, BGE, BLTU, BGEU
-- Target: PC-relative or register-based
+- Operations: SELECT, VSELECT, ADD_IMM, HALT, COND_JUMP, COND_JUMP_REL, JUMP, JUMP_INDIRECT, COREID
+- Target: immediate, relative, or scratch-indirect depending on opcode
 - Latency: 3-cycle branch delay slot (IF→Decode→EX pipeline depth)
 - Scheduler inserts 3 NOP bundles after taken branches (`JUMP_BUBBLE=3`)
 
-### Register File
-- **Scalar Registers:** 32 × 32-bit general-purpose registers (r0-r31)
-  - r0 hardwired to 0
-  - r1 typically used as link register
-- **Vector Registers:** 8 × 16-lane × 32-bit vector registers (v0-v7)
+**1× Matrix Engine (Per Core, Dedicated Local Memory Path)**
+- Fixed v1 shape: 8x8 int8 inputs with int32 accumulation
+- Operand storage: separate operand-A and operand-B matrix scratchpads per core
+- Result storage: separate accumulator memory per core
+- ISA model: dedicated matrix slot with MDMVIN, MDMVOUT, MZERO, MCOMPUTE, and MCOMPUTE_ACC
+- **MDMVIN decoupling:** non-matrix bundles may retire while an `MDMVIN` transfer is in progress; only the first subsequent matrix-slot bundle is held in fetch/decode until the transfer completes (EX bubble injected). `MDMVOUT` remains globally blocking until the write drains.
+- **SCOPY operations:** `MemoryEngine` implements `SCOPY_M2V`/`SCOPY_V2M` (multi-cycle, VLEN words, managed by micro-sequencer) and `SCOPY_V2S`/`SCOPY_S2V` (single-word copies) for moving data between the normal scratch crossbar and matrix-local memory without a DRAM round-trip.
+- Plugin note: MatrixEngine implements `EnginePlugin` for engine inventory/debug only, but reports zero scratch ports because it does not participate in the normal BankedScratchMemory crossbar
+
+### Architectural Operand State
+- Scalar operations address 32-bit words in per-core scratch memory
+- Vector operations address `VLEN` consecutive 32-bit scratch words starting at a base address
+- The default verified configuration uses `scratchSize = 1536` words and `VLEN = 8`
+- Matrix operations use dedicated matrix-local operand-A, operand-B, and accumulator memories rather than the normal scratch crossbar
 
 ### Instruction Format
-- **Bundle Width:** 128 bits (4 × 32-bit words)
-- **Encoding:** One operation per engine per bundle
-  - [31:0] - ALU operation
-  - [63:32] - VALU operation  
-  - [95:64] - Memory operation (Load/Store)
-  - [127:96] - Flow operation
-- **NOP Encoding:** All zeros for unused engine slots
+- **Bundle Width:** configurable; computed from slot counts and padded to a 64-bit boundary
+- **Bundle Order (LSB first):** ALU slots, VALU slots, LOAD slots, STORE slots, MATRIX slots, FLOW slot, then padding
+- **Typical Widths:**
+  - baseline `1/1/1/1/0/1`: `256` bits
+  - matrix-enabled `1/1/1/1/1/1`: `320` bits
+- **NOP Encoding:** `valid = 0` for the slot; unused padding bits are zero
+- See [ISA.md](ISA.md) for exact slot field layouts and opcode tables.
 
 ---
 
@@ -148,10 +158,10 @@ Cycle 1+: Wait for AXI R channel
 ### Banked Scratch Memory (BankedScratchMemory.scala - 403 LOC)
 
 **Configuration:**
-- **4 banks** × 4KB = 16KB total per core
+- **8 banks** × `192` words = `1536` words total per core in the default verified configuration
 - **Word-interleaved addressing:**
-  - addr[1:0] → bank select
-  - addr[N:2] → address within bank
+  - low bank-select bits choose the bank
+  - upper bits choose the row within the bank
 - **True Dual-Port:** Simultaneous read and write
 
 **Write Forwarding:**
@@ -171,9 +181,9 @@ Cycle 1+: Wait for AXI R channel
 | Region | Base Address | Size | Purpose |
 |--------|-------------|------|---------|
 | CSR Registers | 0x00000000 | 256 bytes | Control and status registers |
-| Instruction Memory | 0x00010000 | 16KB | VLIW bundles (max 4K bundles) |
+| Instruction Memory | 0x00010000 | Configurable | VLIW bundles (`imemDepth` entries; baseline sim preset: 1024 bundles) |
 | Data Memory (AXI) | 0x10000000 | Unlimited | Main memory via AXI4 |
-| Scratch Memory | Core-local | 16KB | Fast per-core scratch |
+| Scratch Memory | Core-local | Configurable | Fast per-core scratch (`1536` words in the baseline verified preset) |
 
 ### Host Interface (HostInterface.scala - ~150 LOC)
 
@@ -200,149 +210,54 @@ Cycle 1+: Wait for AXI R channel
 
 ---
 
-## Instruction Encoding
+## ISA Reference
 
-### ALU Instructions (32-bit)
-```
-[31:27] opcode (5 bits)
-[26:22] rd (5 bits) - destination register
-[21:17] rs1 (5 bits) - source register 1
-[16:12] rs2 (5 bits) - source register 2
-[11:0]  imm (12 bits) - immediate value (sign-extended)
-```
+The implementation-level ISA is documented in [ISA.md](ISA.md).
 
-**Opcodes:**
-- 0x00: ADD
-- 0x01: SUB
-- 0x02: MUL
-- 0x03: SLL (shift left logical)
-- 0x04: SRL (shift right logical)
-- 0x05: SRA (shift right arithmetic)
-- 0x06: SLT (set less than)
-- 0x07: SLTU (set less than unsigned)
-- 0x08: DIV
-- 0x09: DIVU
+That file is derived directly from:
+- `SlotBundles.scala`
+- `VliwSocConfig.scala`
+- `DecodeUnit.scala`
+- `FlowEngine.scala`
+- `MemoryEngine.scala`
+- `MatrixEngine.scala`
+- `tools/assembler.py`
 
-### VALU Instructions (56-bit)
-```
-[55]    valid (1 bit)        — 1 = active slot
-[54:51] opcode (4 bits)      — ALU/VALU operation
-[50:40] destBase (11 bits)   — destination scratch base address
-[39:29] src1Base (11 bits)   — source 1 scratch base address
-[28:18] src2Base (11 bits)   — source 2 scratch base address
-[17:7]  src3Base (11 bits)   — source 3 scratch base (MULTIPLY_ADD accumulator)
-[6:4]   ewidth (3 bits)      — element width code
-[3:1]   dwidth (3 bits)      — destination element width code (widening/VCAST)
-[0]     signed (1 bit)       — 0=unsigned, 1=signed
-```
-
-**Element Width Encoding (ewidth/dwidth):**
-
-| Code | Width | Elements/Lane | Total Elements |
-|------|-------|---------------|----------------|
-| 000  | 32-bit (default) | 1 | 8 |
-| 001  | 8-bit | 4 | 32 |
-| 010  | 16-bit | 2 | 16 |
-| 011  | 4-bit | 8 | 64 |
-| 100  | 64-bit (lane pair) | — | 4 |
-
-**VALU Opcodes:**
-
-| Code | Mnemonic | Description |
-|------|----------|-------------|
-| 0 | ADD | Packed addition |
-| 1 | SUB | Packed subtraction |
-| 2 | MUL | Packed multiply (or widening when dw≠ew) |
-| 3 | XOR | Bitwise XOR |
-| 4 | AND | Bitwise AND |
-| 5 | OR | Bitwise OR |
-| 6 | SHL | Packed shift left |
-| 7 | SHR | Packed shift right (arithmetic if signed) |
-| 8 | LT | Packed less-than (signed if signed flag set) |
-| 9 | EQ | Packed equal |
-| 10 | MOD | Modulo (EW32 only, multi-cycle) |
-| 11 | DIV | Division (EW32 only, multi-cycle) |
-| 12 | CDIV | Ceiling division (EW32 only, multi-cycle) |
-| 13 | VBROADCAST | Broadcast scalar to all lanes/sub-elements |
-| 14 | MULTIPLY_ADD | Fused multiply-add a*b+c (widening when dw≠ew) |
-| 15 | VCAST | Type cast between element widths |
-
-**VCAST Details:**
-- Widening (ew < dw): Zero-extend (unsigned) or sign-extend (signed)
-- Narrowing (ew > dw): Truncate to lower dw bits
-- src2Base[0] selects lower half (0) or upper half (1) of source sub-elements
-
-**64-bit Lane Pairing:**
-```
-Lane 0 (lo) + Lane 1 (hi) → 64-bit element 0
-Lane 2 (lo) + Lane 3 (hi) → 64-bit element 1
-Lane 4 (lo) + Lane 5 (hi) → 64-bit element 2
-Lane 6 (lo) + Lane 7 (hi) → 64-bit element 3
-```
-- ADD/SUB: Carry/borrow chain from even lane to odd lane
-- LT/EQ: Combined comparison across both halves
-- XOR/AND/OR: Independent per-lane (width-agnostic)
-- SHL/SHR: Cross-lane shift with 6-bit shift amount from lo lane
-- No 64-bit MUL, DIV, MOD, CDIV
-
-### Memory Instructions (32-bit)
-```
-[31:27] opcode (5 bits)
-[26:22] rd/rs (5 bits) - destination (load) or source (store)
-[21:17] base (5 bits) - base address register
-[16:0]  offset (17 bits) - address offset (sign-extended)
-```
-
-**Opcodes:**
-- 0x20: LW (load word)
-- 0x21: SW (store word)
-- 0x22: VLW (vector load - loads to vector register)
-- 0x23: VSW (vector store - stores from vector register)
-
-### Flow Instructions (32-bit)
-```
-[31:27] opcode (5 bits)
-[26:22] rd/rs (5 bits) - link register or comparison source
-[21:17] rs1 (5 bits) - comparison source (for branches)
-[16:0]  target (17 bits) - PC-relative offset or absolute address
-```
-
-**Opcodes:**
-- 0x30: JAL (jump and link)
-- 0x31: JALR (jump and link register)
-- 0x32: BEQ (branch if equal)
-- 0x33: BNE (branch if not equal)
-- 0x34: BLT (branch if less than)
-- 0x35: BGE (branch if greater or equal)
-- 0x36: BLTU (branch if less than unsigned)
-- 0x37: BGEU (branch if greater or equal unsigned)
+Use [ISA.md](ISA.md) for:
+- opcode tables
+- slot bit layouts
+- bundle packing order
+- assembler tuple forms
+- current matrix-slot conventions
 
 ---
 
 ## Configuration System
 
-### Default Configuration (Baseline)
+### Default Configuration (Sim Preset)
 ```scala
-VliwSocConfig(
-  numCores = 1,
-  aluSlots = 1,
-  valuSlots = 1,
-  loadSlots = 1,
-  storeSlots = 1,
-  flowSlots = 1,
-  numScalarRegs = 32,
-  numVectorRegs = 8,
-  vlen = 16,
-  imemDepth = 4096,
-  scratchBanks = 4,
-  scratchDepthPerBank = 1024
-)
+VliwSocConfig.Sim  // used in simulation and cocotb verification
+// nCores=1, nAluSlots=1, nValuSlots=1, nLoadSlots=1, nStoreSlots=1
+// nFlowSlots=1, nMatrixSlots=0
+// vlen=8, scratchSize=1536, scratchBanks=8
+// imemDepth=1024, mainMemWords=16384
+// storeQueueDepth=4, loadQueueDepth=8
 ```
 
-### Tested Configurations
-- **Baseline (test_config.properties):** 1-1-1-1-1 → ✅ 176/176 tests PASS
-- **Dual-ALU (test_config_alu2.properties):** 2-1-1-1-1 → ⚠️ Writeback issue (see KNOWN_ISSUES.md)
-- **Expanded (test_config_expanded.properties):** 2-2-1-1-1 → ⏳ Not tested
+### Production Default Configuration
+```scala
+VliwSocConfig()  // production default
+// imemDepth=4096, mainMemWords=65536
+// storeQueueDepth=4, loadQueueDepth=16
+// (all other fields identical to Sim preset)
+```
+
+### Matrix-Enabled Configuration (test_config_matrix.properties)
+```scala
+VliwSocConfig.Sim.copy(nMatrixSlots = 1)
+// bundle width: 320 bits (10 words)
+// passes 62/62 RTL tests including full algorithm and DSL suites
+```
 
 ---
 
@@ -368,7 +283,23 @@ VliwSocConfig(
 
 ---
 
-## Key Simplifications (Phase 0-3) and Extensions (Phase 4)
+## Key Simplifications (Phase 0-3), Extensions (Phase 4-5), and Pipeline Fixes
+
+### HALT Pipeline Flush Fix (March 17, 2026)
+
+The `FetchUnit` now combinatorially suppresses `io.exValid` when `HALT` fires in the EX stage:
+
+```scala
+io.exValid := exValidReg && !io.halt
+```
+
+**Problem:** Without this fix, the instruction immediately after HALT (at `HALT_PC+1`) was fetched into the decode pipeline and its slots were captured in `exSlotsReg` with `valid=True`. Since `exValidReg := False` is a registered assignment taking effect one cycle later, the post-HALT instruction executed as an implicit delay slot.  
+
+This caused silent data corruption when a shorter program followed a longer one: stale IMEM content at `HALT_PC+1` (left over from the previous program) could contain active STORE instructions that silently overwrote correct results.  
+
+**Fix:** Combinatorial `!io.halt` gate on `io.exValid` ensures the post-HALT instruction's decoded slots see `valid=False` in the same cycle HALT fires — preventing it from entering `exSlotsReg` as valid.
+
+**Note:** The same delay-slot window exists for `JUMP`/`COND_JUMP`, but is currently benign because the scheduler pads taken branches with 3 NOP bundles (`JUMP_BUBBLE=3`).
 
 ### Phase 2: Hazard Detection Removal (-116 LOC, partially restored)
 - Removed WAW, RAW, WAR hazard checks
@@ -392,12 +323,13 @@ VliwSocConfig(
 **Added multi-width packed sub-element processing to the VALU engine:**
 
 - **Packed Operations (EW4/8/16):** Each 32-bit lane processes multiple narrower elements
-  in parallel. All ALU opcodes (ADD, SUB, MUL, XOR, AND, OR, SHL, SHR, LT, EQ) plus
-  VBROADCAST and MULTIPLY_ADD support packed mode.
+  in parallel. All ALU opcodes (ADD, SUB, MUL, XOR, AND, OR, SHL, SHR, LT, EQ,
+  MAX, MIN) plus VBROADCAST and MULTIPLY_ADD support packed mode.
 
 - **64-bit Operations (EW64):** Lane pairing — even lanes hold the low 32 bits, odd lanes
   hold the high 32 bits. Combinational carry/borrow chains propagate between paired lanes.
-  Supports ADD, SUB, XOR, AND, OR, SHL, SHR, LT, EQ, VBROADCAST. No 64-bit MUL/DIV.
+  Supports ADD, SUB, XOR, AND, OR, SHL, SHR, LT, EQ, MAX, MIN, VBROADCAST.
+  No 64-bit MUL/DIV.
 
 - **Widening MUL/FMA:** Source operands at element width (ew), destination at wider
   destination width (dw). Element-wise: processes 32/dw elements per lane.

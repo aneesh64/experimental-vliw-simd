@@ -31,6 +31,7 @@ VALID_MODULES = (
     "test_integration_memory",
     "test_integration_control",
     "test_integration_vector",
+    "test_dsl_matrix_integration",
     "test_algorithms_kernels",
     "test_algorithms_multiwidth",
 )

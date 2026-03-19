@@ -1,0 +1,108 @@
+digraph VliwCorePipelineControl {
+  graph [
+    rankdir=LR,
+    splines=ortho,
+    newrank=true,
+    compound=true,
+    nodesep=0.55,
+    ranksep=0.95,
+    pad=0.28,
+    bgcolor="transparent",
+    fontname="Trebuchet MS"
+  ];
+
+  node [
+    shape=box,
+    style="filled",
+    fontname="Trebuchet MS",
+    fontsize=12,
+    margin="0.20,0.14",
+    color="#5f5543",
+    fillcolor="#f7f1e3",
+    fontcolor="#1d1b17",
+    penwidth=1.8
+  ];
+
+  edge [
+    color="#645846",
+    penwidth=1.6,
+    arrowsize=0.85,
+    fontname="Trebuchet MS",
+    fontsize=10,
+    fontcolor="#3b352c"
+  ];
+
+  subgraph cluster_core {
+    label="VliwCore Pipeline and Control";
+    labelloc=t;
+    labeljust=l;
+    color="#84745b";
+    penwidth=1.5;
+    style="filled";
+    fillcolor="#fcfbf7";
+
+    subgraph cluster_frontend {
+      label="Fetch and decode";
+      labelloc=t;
+      labeljust=l;
+      color="#b4a691";
+      penwidth=1.2;
+      style="filled";
+      fillcolor="#f7f1e3";
+
+      IMEM   [label="InstructionMemory", fillcolor="#f3ead6", color="#6a5a44"];
+      FETCH  [label="FetchUnit", fillcolor="#f3ead6", color="#6a5a44"];
+      DECODE [label="DecodeUnit", fillcolor="#f3ead6", color="#6a5a44"];
+
+      { rank=same; IMEM; FETCH; DECODE; }
+    }
+
+    ISSUE [label="Issue and EX pipeline registers", fillcolor="#f8f0dc", color="#8c7550", width=2.7, height=0.84];
+
+    subgraph cluster_engines {
+      label="Execution bank";
+      labelloc=t;
+      labeljust=l;
+      color="#8aa5bc";
+      penwidth=1.2;
+      style="filled";
+      fillcolor="#eef5fb";
+
+      ALU    [label="AluEngine", fillcolor="#e7f0fb", color="#355c7d"];
+      VALU   [label="ValuEngine", fillcolor="#e7f0fb", color="#355c7d"];
+      FLOW   [label="FlowEngine", fillcolor="#e7f0fb", color="#355c7d"];
+      MEM    [label="MemoryEngine", fillcolor="#e7f0fb", color="#355c7d"];
+      MATRIX [label="MatrixEngine", fillcolor="#e7f0fb", color="#355c7d"];
+
+      { rank=same; ALU; VALU; FLOW; MEM; MATRIX; }
+    }
+
+    WB [label="WritebackController", fillcolor="#f3ead6", color="#6a5a44", width=2.75, height=0.84];
+    FETCHCTRL [label="Fetch replay and control return", fillcolor="#f5dfdf", color="#7a3f3f", width=2.7, height=0.8];
+  }
+
+  IMEM:e -> FETCH:w;
+  FETCH:e -> DECODE:w;
+  DECODE:e -> ISSUE:w;
+
+  ISSUE:n  -> ALU:w;
+  ISSUE:ne -> VALU:w;
+  ISSUE:e  -> FLOW:w;
+  ISSUE:se -> MEM:w;
+  ISSUE:s  -> MATRIX:w;
+
+  ALU:e  -> WB:nw;
+  VALU:e -> WB:w;
+  FLOW:e -> WB:sw;
+  MEM:e  -> WB:s;
+
+  FLOW:e   -> FETCHCTRL:nw [xlabel="jump target and halt", style=dashed, color="#7a3f3f", fontcolor="#7a3f3f", constraint=false, minlen=2];
+  MEM:e    -> FETCHCTRL:n  [xlabel="stall and load-use", style=dashed, color="#7a3f3f", fontcolor="#7a3f3f", constraint=false, minlen=2];
+  MATRIX:e -> FETCHCTRL:ne [xlabel="matrix busy and transfer stall", style=dashed, color="#7a3f3f", fontcolor="#7a3f3f", constraint=false, minlen=2];
+  FETCHCTRL:w -> FETCH:s [style=dashed, color="#7a3f3f", constraint=false, minlen=2];
+
+  ALU -> VALU [style=invis, weight=10];
+  VALU -> FLOW [style=invis, weight=10];
+  FLOW -> MEM [style=invis, weight=10];
+  MEM -> MATRIX [style=invis, weight=10];
+}

@@ -1,0 +1,151 @@
+digraph VliwCoreBlock {
+  graph [
+    rankdir=LR,
+    splines=ortho,
+    newrank=true,
+    compound=true,
+    nodesep=0.55,
+    ranksep=0.9,
+    pad=0.28,
+    bgcolor="transparent",
+    fontname="Trebuchet MS"
+  ];
+
+  node [
+    shape=box,
+    style="filled",
+    fontname="Trebuchet MS",
+    fontsize=12,
+    margin="0.20,0.14",
+    color="#5f5543",
+    fillcolor="#efe7d2",
+    fontcolor="#1d1b17",
+    penwidth=1.8
+  ];
+
+  edge [
+    color="#645846",
+    penwidth=1.5,
+    arrowsize=0.8,
+    fontname="Trebuchet MS",
+    fontsize=10,
+    fontcolor="#3b352c"
+  ];
+
+  subgraph cluster_core {
+    label="VliwCore";
+    labelloc=t;
+    labeljust=l;
+    color="#84745b";
+    penwidth=1.5;
+    style="filled";
+    fillcolor="#fcfbf7";
+
+    subgraph cluster_frontend {
+      label="Front-end";
+      labelloc=t;
+      labeljust=l;
+      color="#b4a691";
+      penwidth=1.2;
+      style="filled";
+      fillcolor="#f7f1e3";
+
+      IMEM   [label="InstructionMemory", fillcolor="#efe7d2", color="#6a5a44"];
+      FETCH  [label="FetchUnit", fillcolor="#efe7d2", color="#6a5a44"];
+      DECODE [label="DecodeUnit", fillcolor="#efe7d2", color="#6a5a44"];
+
+      { rank=same; IMEM; FETCH; DECODE; }
+    }
+
+    SCRATCH [
+      label="BankedScratchMemory",
+      fillcolor="#dfe8d7",
+      color="#42633b",
+      width=3.5,
+      height=0.7
+    ];
+
+    subgraph cluster_engines {
+      label="Execution engines";
+      labelloc=t;
+      labeljust=l;
+      color="#8aa5bc";
+      penwidth=1.2;
+      style="filled";
+      fillcolor="#eef5fb";
+
+      ALU    [label="AluEngine", fillcolor="#d7e7f5", color="#355c7d"];
+      VALU   [label="ValuEngine", fillcolor="#d7e7f5", color="#355c7d"];
+      FLOW   [label="FlowEngine", fillcolor="#d7e7f5", color="#355c7d"];
+      MEM    [label="MemoryEngine", fillcolor="#d7e7f5", color="#355c7d"];
+      MATRIX [label="MatrixEngine", fillcolor="#d7e7f5", color="#355c7d"];
+
+      { rank=same; ALU; VALU; FLOW; MEM; MATRIX; }
+    }
+
+    WB [label="WritebackController", fillcolor="#f3ead6", color="#6a5a44", width=2.8, height=0.72];
+
+    subgraph cluster_matlocal {
+      label="Matrix-local memories";
+      labelloc=t;
+      labeljust=l;
+      color="#91ab89";
+      penwidth=1.2;
+      style="filled";
+      fillcolor="#eef6ea";
+
+      MATA   [label="MatrixScratchpad A", fillcolor="#dfe8d7", color="#42633b"];
+      MATB   [label="MatrixScratchpad B", fillcolor="#dfe8d7", color="#42633b"];
+      MATACC [label="MatrixAccumulatorMemory", fillcolor="#dfe8d7", color="#42633b"];
+    }
+
+    CTRLBUS [shape=point, width=0.06, label="", color="#7a3f3f", fillcolor="#7a3f3f"];
+
+    { rank=same; SCRATCH; MATA; MATB; MATACC; }
+    { rank=same; ALU; VALU; FLOW; MEM; MATRIX; }
+  }
+
+  AXI [label="External DMEM AXI", fillcolor="#fff8ec", color="#5f5543", width=2.4, height=0.72];
+
+  IMEM:e -> FETCH:w;
+  FETCH:e -> DECODE:w;
+
+  DECODE:n  -> ALU:w;
+  DECODE:ne -> VALU:w;
+  DECODE:e  -> FLOW:w;
+  DECODE:se -> MEM:w;
+  DECODE:s  -> MATRIX:w;
+
+  SCRATCH:n  -> ALU:e  [xlabel="scalar operands"];
+  SCRATCH:ne -> VALU:e [xlabel="vector lanes"];
+  SCRATCH:e  -> FLOW:e [xlabel="branch operands"];
+  SCRATCH:se -> MEM:e  [xlabel="address and store data"];
+
+  ALU:e  -> WB:nw;
+  VALU:e -> WB:w;
+  FLOW:e -> WB:sw;
+  MEM:e  -> WB:s;
+  WB:w -> SCRATCH:w [xlabel="scratch writes"];
+
+  FLOW:e   -> CTRLBUS [style=dashed, color="#7a3f3f", fontcolor="#7a3f3f", xlabel="jump/halt", constraint=false, minlen=2];
+  MEM:e    -> CTRLBUS [style=dashed, color="#7a3f3f", fontcolor="#7a3f3f", xlabel="stall/load-use", constraint=false, minlen=2];
+  MATRIX:e -> CTRLBUS [style=dashed, color="#7a3f3f", fontcolor="#7a3f3f", xlabel="matrix stall", constraint=false, minlen=2];
+  CTRLBUS -> FETCH:s [style=dashed, color="#7a3f3f", arrowhead=normal, constraint=false, minlen=2];
+
+  MEM:s -> AXI:w [xlabel="AXI bursts"];
+
+  MEM:ne -> MATA:w   [xlabel="system DMA", minlen=2];
+  MEM:e  -> MATB:w   [xlabel="system DMA", minlen=2];
+  MEM:se -> MATACC:w [xlabel="system DMA", minlen=2];
+
+  MATRIX:ne -> MATA:s   [xlabel="matrix port", minlen=2];
+  MATRIX:e  -> MATB:s   [xlabel="matrix port", minlen=2];
+  MATRIX:se -> MATACC:s [xlabel="accumulator port", minlen=2];
+
+  MATA -> MATB [style=invis, weight=10];
+  MATB -> MATACC [style=invis, weight=10];
+  ALU -> VALU [style=invis, weight=10];
+  VALU -> FLOW [style=invis, weight=10];
+  FLOW -> MEM [style=invis, weight=10];
+  MEM -> MATRIX [style=invis, weight=10];
+}

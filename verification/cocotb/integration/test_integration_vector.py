@@ -54,6 +54,53 @@ async def test_valu_short_opcode_coverage_golden(dut):
         assert got == exp, f"addr={addr}: expected {exp}, got {got}"
 
 
+@cocotb.test()
+async def test_valu_max_min_golden(dut):
+    """EW32 vector MAX/MIN match the Python golden model through the full core path."""
+    harness = VliwCoreHarness(dut)
+    await harness.init()
+
+    lhs = [5, 100, 9, 77, 0, 400, 13, 13]
+    rhs = [8, 7, 9, 12, 1, 3, 99, 2]
+    expected_max = _vbin("max", lhs, rhs)
+    expected_min = _vbin("min", lhs, rhs)
+
+    init_ops = []
+    for idx, value in enumerate(lhs):
+        init_ops.append(S.const(96 + idx, value))
+    for idx, value in enumerate(rhs):
+        init_ops.append(S.const(104 + idx, value))
+
+    store_ops = [S.const(10, 900)]
+    for lane in range(8):
+        if lane != 0:
+            store_ops.append(S.add_imm(10, 10, 1))
+        store_ops.append(S.store(10, 200 + lane))
+    store_ops.append(S.add_imm(10, 10, 1))
+    for lane in range(8):
+        if lane != 0:
+            store_ops.append(S.add_imm(10, 10, 1))
+        store_ops.append(S.store(10, 208 + lane))
+
+    program = build_program([
+        *init_ops,
+        S.valu_op("max", 200, 96, 104),
+        S.valu_op("min", 208, 96, 104),
+        *store_ops,
+        S.halt(),
+    ])
+
+    await harness.load_program(program)
+    await harness.run(max_cycles=5000)
+
+    for lane, exp in enumerate(expected_max):
+        got = harness.axi_mem.read_word(900 + lane)
+        assert got == exp, f"max lane={lane}: expected {exp}, got {got}"
+    for lane, exp in enumerate(expected_min):
+        got = harness.axi_mem.read_word(908 + lane)
+        assert got == exp, f"min lane={lane}: expected {exp}, got {got}"
+
+
 # ============================================================================
 #  Test 21: VALU iterative workload (long, golden model)
 # ============================================================================
@@ -167,6 +214,7 @@ async def test_scalar_vector_bank_isolation_schedule(dut):
         n_load_slots=N_LOAD_SLOTS,
         n_store_slots=N_STORE_SLOTS,
         n_flow_slots=N_FLOW_SLOTS,
+        n_matrix_slots=CFG.n_matrix_slots,
         mem_post_gap=-1,
         valu_post_gap=-1,
     ))

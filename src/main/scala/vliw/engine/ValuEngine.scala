@@ -156,6 +156,14 @@ class ValuEngine(cfg: VliwSocConfig) extends Component with EnginePlugin with Va
       if (isEvenLane) {
         val sum33  = a.resize(33) +^ b.resize(33)
         val diff33 = a.resize(33) -^ b.resize(33)
+        val hiA = io.operandA(s)(lane + 1)
+        val hiB = io.operandB(s)(lane + 1)
+        val hiGt = Mux(sgn, hiA.asSInt > hiB.asSInt, hiA > hiB)
+        val hiEq = hiA === hiB
+        val loGe = Mux(sgn, a.asSInt >= b.asSInt, a >= b)
+        val loLe = Mux(sgn, a.asSInt <= b.asSInt, a <= b)
+        val fullAGeB = hiGt || (hiEq && loGe)
+        val fullALeB = (!hiGt && !hiEq) || (hiEq && loLe)
         carry64(s)(pairIdx)  := sum33(32)
         borrow64(s)(pairIdx) := diff33(32)
         ltLo64(s)(pairIdx)   := a < b
@@ -183,11 +191,21 @@ class ValuEngine(cfg: VliwSocConfig) extends Component with EnginePlugin with Va
           }
           is(AluOpcode.LT)  { result64 := 0 }
           is(AluOpcode.EQ)  { result64 := 0 }
+          is(AluOpcode.MAX) { result64 := Mux(fullAGeB, a, b) }
+          is(AluOpcode.MIN) { result64 := Mux(fullALeB, a, b) }
           is(ValuOpcode.VBROADCAST) { result64 := c }
         }
       } else {
         val cIn = carry64(s)(pairIdx).asUInt.resize(32)
         val bIn = borrow64(s)(pairIdx).asUInt.resize(32)
+        val loA = io.operandA(s)(lane - 1)
+        val loB = io.operandB(s)(lane - 1)
+        val hiGt = Mux(sgn, a.asSInt > b.asSInt, a > b)
+        val hiEq = a === b
+        val loGe = Mux(sgn, loA.asSInt >= loB.asSInt, loA >= loB)
+        val loLe = Mux(sgn, loA.asSInt <= loB.asSInt, loA <= loB)
+        val fullAGeB = hiGt || (hiEq && loGe)
+        val fullALeB = (!hiGt && !hiEq) || (hiEq && loLe)
 
         switch(slot.opcode) {
           is(AluOpcode.ADD) { result64 := (a + b + cIn).resize(32) }
@@ -222,6 +240,8 @@ class ValuEngine(cfg: VliwSocConfig) extends Component with EnginePlugin with Va
           is(AluOpcode.EQ) {
             result64 := (eqLo64(s)(pairIdx) && (a === b)).asUInt.resize(32)
           }
+          is(AluOpcode.MAX) { result64 := Mux(fullAGeB, a, b) }
+          is(AluOpcode.MIN) { result64 := Mux(fullALeB, a, b) }
           is(ValuOpcode.VBROADCAST) { result64 := c }
         }
       }

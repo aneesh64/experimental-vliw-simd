@@ -1,45 +1,29 @@
 # Known Issues and Limitations
 
-**Last Updated:** March 5, 2026  
-**Current Version:** Load-Use Hazard Detection + Multi-Width Vector Extensions
+**Last Updated:** March 19, 2026  
+**Current Version:** Load-Use Hazard Detection + Multi-Width Vector Extensions + Matrix Integration + HALT Flush Fix
 
 ---
 
 ## Critical Issues
 
-### 1. Dual-ALU Register Writeback Failure ⚠️
+### ~~1. Dual-ALU Register Writeback Failure~~ ✅ RESOLVED
 
-**Priority:** HIGH  
-**Impact:** Blocks multi-core scaling with multiple ALU engines  
-**Severity:** Functional failure in non-baseline configurations
+**Status:** RESOLVED (March 15, 2026)  
+**Resolution:** Focused architectural regressions now pass in both validated non-baseline configs, and the default unit regression includes them.
 
-**Description:**  
-When using the dual-ALU configuration (2 ALU slots), register writebacks show 0x00000000 instead of computed  values.
+**Current Validation:**
+- Baseline (1 ALU): ✅ Passes
+- Dual-ALU (2 ALU): ✅ `core_alu2` passes targeted writeback checks
+- Expanded (2 ALU, 2 VALU): ✅ `core_a2_v2` passes the same targeted writeback checks
 
-**Affected Tests:**
-- `test_large_values`: Expected 0x80000000, got 0x00000000
-- `test_add_imm_sequence`: Expected 60, got 0x00000000
+**Verification Added:**
+- `verification/cocotb/tests/test_core_alu2.py`
+- `core_alu2` module in the default `run_tests.py` unit sweep
+- `core_a2_v2` module in the default `run_tests.py` unit sweep
 
-**Configuration:**
-- Baseline (1 ALU): ✅ Works correctly
-- Dual-ALU (2 ALU): ❌ Fails with zero writebacks
-- Expanded (2 ALU, 2 VALU): ⏳ Not tested (likely same issue)
-
-**Root Cause Analysis:**
-Suspected scheduler bug in multi-slot register allocation. The hardware RTL correctly computes results in both ALU engines, but the writeback path coordination appears incorrect when multiple ALUs target the same register file.
-
-**Investigation Plan:**
-1. Check `tools/scheduler.py` multi-slot bundle generation
-2. Verify writeback arbitration in `VliwCore.scala`
-3. Trace register writeback signals in dual-ALU simulation
-4. Identify where register gets cleared/overwritten with zero
-
-**Time Estimate:** 4-6 hours investigation + fix
-
-**Workaround:**  
-Use baseline single-ALU configuration for production deployment.
-
-**Status:** Documented, investigation pending
+**Notes:**
+The previous issue entry was based on older failing observations and insufficient architectural coverage in the baseline core tests. Current focused regressions verify that two ALU-slot results survive writeback and remain usable by later instructions in both the `2 ALU` and `2 ALU / 2 VALU` configurations.
 
 ---
 
@@ -213,6 +197,34 @@ Future tuning can increase `storeQueueDepth` for burst-heavy workloads.
 
 ---
 
+### ~~6. HALT Delay-Slot Execution~~ ✅ RESOLVED
+
+**Status:** RESOLVED (March 17, 2026)  
+**Resolution:** `FetchUnit` now combinatorially suppresses `io.exValid` via `exValidReg && !io.halt`.
+
+**Root Cause:**  
+`io.exValid := exValidReg` was a registered output. When HALT fired in EX, the instruction at
+`HALT+1` was already in DECODE with `valid=True`. Its decoded slots landed in `exSlotsReg` with
+`valid=True` and executed one cycle later — acting as an implicit delay slot.
+
+This caused silent data corruption when a shorter program followed a longer one: stale IMEM
+at `HALT_PC+1` could contain active instructions (e.g., STORE) from the previous program.
+
+**Fix Applied:**
+
+```scala
+// FetchUnit.scala
+io.exValid := exValidReg && !io.halt
+```
+
+Combinatorial gate ensures the post-HALT instruction's decoded slots see `valid=False` in the
+same cycle HALT fires, preventing entry into `exSlotsReg` as valid.
+
+**Note:** The same delay-slot window exists for `JUMP`/`COND_JUMP`, but is currently benign
+because the scheduler pads taken branches with 3 NOP bundles (`JUMP_BUBBLE=3`).
+
+---
+
 ## Tool Integration Issues
 
 ### ~~5. Driver Assembler API Mismatch~~ ✅ RESOLVED
@@ -245,8 +257,10 @@ control flow (counting loop), and vector operations.
 
 ### ~~8. FetchUnit Instruction Skip on Stall~~ ✅ RESOLVED
 
-**Status:** RESOLVED (March 5, 2026)  
-**Resolution:** `io.imemAddr := Mux(io.stall, (pc - 1).resized, pc)` in FetchUnit.scala
+**Status:** RESOLVED (March 16, 2026)  
+**Resolution:**
+- `io.imemAddr := Mux(io.stall, (pc - 1).resized, pc)` in FetchUnit.scala
+- EX-held bundles now snapshot aligned scratch operands on stall entry in VliwCore.scala
 
 **Root Cause:**  
 When the pipeline stall signal was asserted (from load-use hazard detection), FetchUnit
@@ -259,11 +273,18 @@ been lost — causing it to be skipped entirely.
 During stalls, drive `imemAddr = pc - 1` so the IMEM keeps outputting the instruction that
 was in-flight when the stall began. This ensures correct instruction re-read on stall release.
 
+**Follow-up Fix:**
+Later regression coverage exposed a second issue: when a bundle was held in EX across scalar
+store backpressure or EX-side load-use waits, the slot metadata stayed in EX but its scratch
+operands kept following decode-stage addresses. The fix snapshots aligned scalar/vector read
+data on the first hold cycle and reuses that snapshot when the held EX bundle resumes.
+
 **Verification:**  
 All 10 load-use hazard integration tests pass, including:
 - `test_scalar_load_use_immediate_dependency_stalls`
 - `test_vector_vload_use_immediate_dependency_stalls`
 - `test_load_use_independent_before_dependent_progress`
+- `test_load_use_replays_first_dependent_bundle_after_stall_release`
 - `test_load_use_randomized_axi_latency_robustness`
 
 ---

@@ -15,10 +15,12 @@ from .ir import (
     KernelArgument,
     Label,
     LoadImmediate,
+    MatrixMultiply,
     MemorySpace,
     ReadCoreId,
     ScalarBinary,
     ScalarLoad,
+    ScalarSelect,
     ScalarStore,
     VectorBinary,
     VectorBroadcast,
@@ -105,6 +107,30 @@ class KernelBuilder:
         self._register_argument(KernelArgument(name=name, kind="buffer", dtype=dtype, shape=shape))
         return buf
 
+    def dmem_alias(
+        self,
+        name: str,
+        buffer: Buffer | str,
+        *,
+        shape: tuple[int, ...],
+        offset_words: int = 0,
+        dtype: Optional[DType] = None,
+    ) -> Buffer:
+        source = self._buffer(buffer)
+        if source.space != MemorySpace.DMEM:
+            raise ValueError("dmem_alias() requires a DMEM-backed source buffer")
+        if offset_words < 0:
+            raise ValueError("dmem_alias() requires a non-negative offset_words")
+        alias = Buffer(
+            name=name,
+            shape=shape,
+            dtype=dtype or source.dtype,
+            space=MemorySpace.DMEM,
+            base_buffer=source.name,
+            base_offset_words=offset_words,
+        )
+        return self._register(alias)
+
     def const(self, dest: Buffer | str, value: int) -> "KernelBuilder":
         self._kernel.ops.append(LoadImmediate(self._name(dest), value))
         return self
@@ -185,6 +211,24 @@ class KernelBuilder:
     def sub(self, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
         return self.binary("sub", dest, lhs, rhs)
 
+    def max(self, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
+        return self.binary("max", dest, lhs, rhs)
+
+    def min(self, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
+        return self.binary("min", dest, lhs, rhs)
+
+    def select(
+        self,
+        dest: Buffer | str,
+        cond: Buffer | str,
+        src_a: Buffer | str,
+        src_b: Buffer | str,
+    ) -> "KernelBuilder":
+        self._kernel.ops.append(
+            ScalarSelect(self._name(dest), self._name(cond), self._name(src_a), self._name(src_b))
+        )
+        return self
+
     def vector_binary(
         self,
         op: str,
@@ -213,6 +257,28 @@ class KernelBuilder:
         signed: int = 0,
     ) -> "KernelBuilder":
         return self.vector_binary(op, dest, lhs, rhs, ew=ew, dw=dw, signed=signed)
+
+    def vector_max(
+        self,
+        dest: Buffer | str,
+        lhs: Buffer | str,
+        rhs: Buffer | str,
+        *,
+        ew: int,
+        signed: int = 0,
+    ) -> "KernelBuilder":
+        return self.vector_binary("max", dest, lhs, rhs, ew=ew, signed=signed)
+
+    def vector_min(
+        self,
+        dest: Buffer | str,
+        lhs: Buffer | str,
+        rhs: Buffer | str,
+        *,
+        ew: int,
+        signed: int = 0,
+    ) -> "KernelBuilder":
+        return self.vector_binary("min", dest, lhs, rhs, ew=ew, signed=signed)
 
     def software_pipeline_binary(
         self,
@@ -316,14 +382,13 @@ class KernelBuilder:
 
         next_tile = len(current_batch)
         while next_tile < tiles:
+            for offset, tile_index in enumerate(current_batch):
+                emit_compute_store(tile_index, current_group, offset)
+
             next_group = 1 - current_group
             next_batch = list(range(next_tile, min(next_tile + unroll, tiles)))
-            steps = max(len(current_batch), len(next_batch))
-            for offset in range(steps):
-                if offset < len(next_batch):
-                    emit_load(next_batch[offset], next_group, offset)
-                if offset < len(current_batch):
-                    emit_compute_store(current_batch[offset], current_group, offset)
+            for offset, tile_index in enumerate(next_batch):
+                emit_load(tile_index, next_group, offset)
             current_batch = next_batch
             current_group = next_group
             next_tile += len(next_batch)
@@ -413,6 +478,24 @@ class KernelBuilder:
 
     def address_of_view(self, dest: Buffer | str, view: TensorView) -> "KernelBuilder":
         self._kernel.ops.append(AddressOf(self._name(dest), view.buffer.name, offset_words=view.base_offset_words))
+        return self
+
+    def matmul(
+        self,
+        lhs: Buffer | str,
+        rhs: Buffer | str,
+        out: Buffer | str,
+        *,
+        accumulate: bool = False,
+    ) -> "KernelBuilder":
+        self._kernel.ops.append(
+            MatrixMultiply(
+                self._name(lhs),
+                self._name(rhs),
+                self._name(out),
+                accumulate=accumulate,
+            )
+        )
         return self
 
     def lane(self, vector: Buffer | str, lane: int, *, name: Optional[str] = None) -> Buffer:

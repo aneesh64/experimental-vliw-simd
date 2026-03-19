@@ -691,6 +691,39 @@ async def test_dsl_vector_threshold_mask_golden(dut):
 
 
 @cocotb.test()  # pyright: ignore[reportAttributeAccessIssue]
+async def test_dsl_vector_threshold_mask_stress_golden(dut):
+    """DSL vector loop kernel stays correct under randomized AXI read latency."""
+    harness = VliwCoreHarness(dut, axi_latency_mode="stress", axi_latency_n=12, axi_seed=321)
+
+    values = [3, 10, 12, 7, 21, 9, 15, 30, 5, 18, 22, 1, 14, 11, 27, 6]
+    threshold = 16
+    golden = [1 if value < threshold else 0 for value in values]
+
+    harness.axi_mem.preload(1184, values)
+    await harness.init()
+
+    kernel = build_vector_threshold_mask_kernel(length=16, tile_elements=8)
+    caps = HardwareCapabilities.from_configs(scheduler_config=S.cfg, assembler_config=ASM.cfg)
+    result = compile_kernel(
+        kernel,
+        caps,
+        bindings={"input": 1184, "out": 1248, "threshold": threshold},
+        assemble=True,
+    )
+    assert result.binary_bundles is not None
+
+    await harness.load_program(result.binary_bundles)
+    cycles = await harness.run(max_cycles=50000)
+
+    for idx, exp in enumerate(golden):
+        got = harness.axi_mem.read_word(1248 + idx)
+        assert got == exp, f"idx={idx}: expected {exp}, got {got}"
+    dut._log.info(
+        f"test_dsl_vector_threshold_mask_stress_golden: cycles={cycles}, seed={harness.axi_seed}, out={golden}"
+    )
+
+
+@cocotb.test()  # pyright: ignore[reportAttributeAccessIssue]
 async def test_dsl_nested_vector_threshold_mask_golden(dut):
     """DSL nested vector loop kernel runs through RTL and matches golden output."""
     harness = VliwCoreHarness(dut)

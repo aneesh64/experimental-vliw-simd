@@ -55,6 +55,10 @@ The DSL is hardware-parameterized. It is intended to adapt to:
 
 - [docs/DSL_EXAMPLE_BOX_BLUR_3X3.md](DSL_EXAMPLE_BOX_BLUR_3X3.md)
 - [docs/DSL_EXAMPLE_CONTROL_FLOW.md](DSL_EXAMPLE_CONTROL_FLOW.md)
+- [docs/DSL_EXAMPLE_MATRIX_MATMUL.md](DSL_EXAMPLE_MATRIX_MATMUL.md)
+- [docs/DSL_EXAMPLE_MATRIX_MATMUL_32X32.md](DSL_EXAMPLE_MATRIX_MATMUL_32X32.md)
+- [docs/DSL_EXAMPLE_MULTI_MATRIX_RESIDUAL_AFFINE_PIPELINED.md](DSL_EXAMPLE_MULTI_MATRIX_RESIDUAL_AFFINE_PIPELINED.md)
+- [docs/DSL_EXAMPLE_TILEWEAVE_MATRIX_RESIDUAL_AFFINE.md](DSL_EXAMPLE_TILEWEAVE_MATRIX_RESIDUAL_AFFINE.md)
 
 ## Verification planning
 
@@ -98,11 +102,14 @@ This lets the DSL remain portable across target variants.
 - `vbroadcast`, `vcast`
 - helper shorthands: `vector_fill`, `vector_map`, `vector_copy`
 - scalar/vector bridge helper: `accumulate_lanes()` for explicit lane-wise scalar accumulation
+- fixed-size matrix multiply via `matmul(lhs, rhs, out, accumulate=False)` on matrix-enabled targets
+- DMEM sub-buffer aliasing via `dmem_alias()` for explicit tiled layouts
 - software-pipelined tiled vector maps via `pipelined_vector_map()`
 - reusable tiled iteration via `for_each_tile_1d()`
 - vector lane aliases via `lane()` and `store_lane()` for explicit per-lane stores
 - TensorView memory helpers: `load_view()`, `store_view()`, `vload_view()`, and `vstore_view()`
 - structured control-flow helpers: `if_else()` and `counted_loop()`
+- scalar conditional dataflow via `select()`
 - control flow: `label`, `jump`, `cond_jump`
 - pointer math via `add_imm`
 - `coreid`
@@ -128,6 +135,8 @@ Current supported subset:
 Current examples:
 - `build_tileweave_gain_kernel()`
 - `build_tileweave_dual_output_kernel()`
+- `build_tileweave_matrix_residual_affine_kernel()`
+- `build_pipelined_multi_matrix_residual_affine_kernel()`
 
 Both the conservative gain-only path and the dual-output path now have RTL-backed validation. The gain-only kernel remains the simplest recommended starting point for new high-level authoring.
 
@@ -193,10 +202,16 @@ RTL-verified examples currently include:
 - TileWeave masked-load and masked-store kernels with golden RTL target coverage
 - TileWeave row-major strided column kernel with golden RTL target coverage
 - TileWeave affine multi-program matrix gain kernel with golden RTL target coverage
+- TileWeave fused matrix residual-affine kernel with matrix-engine compute plus golden RTL target coverage
+- software-pipelined multi-run matrix residual-affine kernel with overlapped vector prefetch/compute/store and golden RTL target coverage
+- matrix DSL matmul kernel with golden RTL target coverage
+- matrix DSL accumulate matmul kernel with golden RTL target coverage
+- tiled `32x32` matrix DSL matmul kernel with golden RTL target coverage
 - software-pipelined tiled vector add kernel with golden RTL output
 - software-pipelined tiled vector mul kernel with golden RTL output
 - structured-control-flow threshold clip kernel with golden RTL output
 - vector threshold-mask loop kernel with vector instructions plus golden RTL output
+- vector threshold-mask loop kernel under randomized AXI read latency with golden RTL output
 - nested vector threshold-mask kernel with nested loops plus golden RTL output
 
 See [verification/cocotb/integration/test_dsl_integration.py](../verification/cocotb/integration/test_dsl_integration.py), [verification/cocotb/integration/test_dsl_helpers_integration.py](../verification/cocotb/integration/test_dsl_helpers_integration.py), and [verification/cocotb/integration/test_dsl_algorithms_integration.py](../verification/cocotb/integration/test_dsl_algorithms_integration.py).

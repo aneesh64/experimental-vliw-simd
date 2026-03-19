@@ -18,8 +18,8 @@ async def test_dsp_moving_average4_golden(dut):
         S.const(4, 400),
 
         S.label("ma4_scalar_loop"),
-        S.const(10, 0), S.add(10, 10, 0), S.load(20, 10),
-        S.const(11, 0), S.add(11, 11, 0), S.sub(11, 11, 2), S.load(21, 11),
+        S.const(10, 0), S.add(10, 10, 0), S.load(20, 10), S.wait_for_load(20),
+        S.const(11, 0), S.add(11, 11, 0), S.sub(11, 11, 2), S.load(21, 11), S.wait_for_load(21),
         S.add(22, 20, 21),
         S.shr(22, 22, 2),
         S.const(12, 0), S.add(12, 12, 4), S.add(12, 12, 0),
@@ -58,8 +58,8 @@ async def test_dsp_moving_average4_sw_pipeline_golden(dut):
         S.const(4, 400),
 
         S.label("ma4_scalar_swp_loop"),
-        S.const(10, 0), S.add(10, 10, 0), S.load(20, 10),
-        S.const(11, 0), S.add(11, 11, 0), S.sub(11, 11, 2), S.load(21, 11),
+        S.const(10, 0), S.add(10, 10, 0), S.load(20, 10), S.wait_for_load(20),
+        S.const(11, 0), S.add(11, 11, 0), S.sub(11, 11, 2), S.load(21, 11), S.wait_for_load(21),
         S.add(22, 20, 21),
         S.shr(22, 22, 2),
         S.const(12, 0), S.add(12, 12, 4), S.add(12, 12, 0),
@@ -235,6 +235,8 @@ async def test_cv_threshold_segmentation_golden(dut):
         # ---- Loop body ----
         S.label("th_loop"),
         S.load(11, 10),          # pixel = mem[in_addr]
+        S.wait_for_load(11),     # ensure load completes before next operation
+
         S.lt(12, 11, 3),         # mask = pixel < threshold
         S.store(13, 12),         # mem[out_addr] = mask
         # Dual-ALU: increment both address registers in one bundle
@@ -295,18 +297,24 @@ async def test_cv_threshold_segmentation_sw_pipeline_golden(dut):
         S.label("th_swp_loop"),
         # pixel 0
         S.load(11, 10),
+        S.wait_for_load(11),
+
         S.lt(12, 11, 3),
         S.store(13, 12),
         # pixel 1
         S.load(17, 16),
+        S.wait_for_load(17),
         S.lt(18, 17, 3),
         S.store(19, 18),
         # pixel 2
         S.load(22, 21),
+        S.wait_for_load(22),
+
         S.lt(23, 22, 3),
         S.store(24, 23),
         # pixel 3
         S.load(27, 26),
+        S.wait_for_load(27),
         S.lt(28, 27, 3),
         S.store(29, 28),
 
@@ -362,6 +370,8 @@ async def test_full_image_threshold_kernel_with_artifacts(dut):
         # ---- Loop body ----
         S.label("img_th_loop"),
         S.load(11, 10),          # pixel = mem[in_addr]
+        S.wait_for_load(11),     # ensure load completes before next operation
+
         S.lt(12, 11, 3),         # mask = pixel < threshold
         S.store(13, 12),         # mem[out_addr] = mask
         # Dual-ALU: increment both addresses in one bundle
@@ -456,18 +466,22 @@ async def test_full_image_threshold_kernel_sw_pipeline_with_artifacts(dut):
         S.label("img_th_swp_loop"),
         # pixel 0
         S.load(11, 10),
+        S.wait_for_load(11),
         S.lt(12, 11, 3),
         S.store(13, 12),
         # pixel 1
         S.load(17, 16),
+        S.wait_for_load(17),
         S.lt(18, 17, 3),
         S.store(19, 18),
         # pixel 2
         S.load(22, 21),
+        S.wait_for_load(22),
         S.lt(23, 22, 3),
         S.store(24, 23),
         # pixel 3
         S.load(27, 26),
+        S.wait_for_load(27),
         S.lt(28, 27, 3),
         S.store(29, 28),
 

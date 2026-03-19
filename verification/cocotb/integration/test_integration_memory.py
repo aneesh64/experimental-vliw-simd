@@ -20,6 +20,7 @@ async def test_load_store_roundtrip(dut):
         S.add_imm(30, 30, 0),
         S.add_imm(30, 30, 0),
         S.load(3, 1),           # s[3] = mem[0] = 42
+        S.wait_for_load(3),
         S.add_imm(30, 30, 0),
         S.add_imm(30, 30, 0),
         S.add_imm(30, 30, 0),
@@ -55,10 +56,12 @@ async def test_load_preloaded_memory(dut):
         S.const(30, 0),
         S.add_imm(30, 30, 0),
         S.add_imm(30, 30, 0),
+        S.wait_for_load(1),     # ensure load completes before next load
         S.add_imm(0, 0, 1),     # addr = 101
         S.load(2, 0),           # s[2] = mem[101] = 2000
         S.add_imm(30, 30, 0),
         S.add_imm(30, 30, 0),
+        S.wait_for_load(2),     # ensure load completes before next operation
         S.add(3, 1, 2),         # s[3] = 3000
         S.const(10, 0),
         S.store(10, 3),         # mem[0] = 3000
@@ -97,6 +100,10 @@ async def test_memory_scatter_gather(dut):
         S.add_imm(10, 10, 1),
         S.load(3, 10),          # s[3] = 40
         S.add_imm(30, 30, 0),
+        S.wait_for_load(0),
+        S.wait_for_load(1),
+        S.wait_for_load(2),
+        S.wait_for_load(3),
         S.add(4, 0, 1),         # s[4] = 30
         S.add(5, 2, 3),         # s[5] = 70
         S.add(6, 4, 5),         # s[6] = 100
@@ -282,7 +289,11 @@ async def test_vector_load_compute_store_pipeline(dut):
 
 @cocotb.test()
 async def test_scalar_load_use_immediate_dependency_stalls(dut):
-    """Immediate scalar load-use dependency with forced read latency."""
+    """Immediate scalar load-use dependency with forced read latency.
+
+    Software-managed hazard avoidance: WAIT_FOR_LOAD barrier stalls the
+    pipeline until the pending load completes.
+    """
     harness = VliwCoreHarness(dut, axi_latency=8)
     harness.axi_mem.preload(100, [21])
     await harness.init()
@@ -293,6 +304,7 @@ async def test_scalar_load_use_immediate_dependency_stalls(dut):
         {},
         {},
         {"load": [("load", 1, 0)]},
+        {"load": [("wait_for_load", 1)]},
         {"alu": [("add", 2, 1, 1)]},
         {"load": [("const", 10, 1000)]},
         {},
@@ -329,6 +341,7 @@ async def test_vector_vload_use_immediate_dependency_stalls(dut):
         {},
         {},
         {"load": [("vload", 320, 0)]},
+        {"load": [("wait_for_load", 320)]},
         {"valu": [("add", 328, 320, 320)]},
         {"load": [("const", 10, 2000)]},
         {},
@@ -363,6 +376,7 @@ async def test_load_use_independent_before_dependent_progress(dut):
         {},
         {},
         {"load": [("load", 1, 0)]},
+        {"load": [("wait_for_load", 1)]},
         {"flow": [("add_imm", 20, 20, 7)]},
         {"alu": [("add", 2, 1, 1)]},
         {"load": [("const", 10, 1300)]},
@@ -385,6 +399,47 @@ async def test_load_use_independent_before_dependent_progress(dut):
 
 
 @cocotb.test()
+async def test_load_use_replays_first_dependent_bundle_after_stall_release(dut):
+    """The first dependent bundle after a load-use stall must execute, not be bubbled away.
+
+    This is a focused regression for FetchUnit stallReleaseBubble handling.
+    Only true memory replay stalls may arm the release bubble. If a generic
+    load-use stall reuses that path, the first dependent bundle after hazard
+    release is suppressed and the dependent chain produces the wrong result.
+    """
+    harness = VliwCoreHarness(dut, axi_latency=11)
+    harness.axi_mem.preload(600, [9])
+    await harness.init()
+
+    program = _assemble_direct([
+        {},
+        {"load": [("const", 0, 600)]},
+        {},
+        {},
+        {"load": [("load", 1, 0)]},
+        {"load": [("wait_for_load", 1)]},
+        {"alu": [("add", 2, 1, 1)]},
+        {"alu": [("add", 3, 2, 1)]},
+        {"load": [("const", 10, 1400)]},
+        {},
+        {},
+        {"store": [("store", 10, 2)]},
+        {"flow": [("add_imm", 10, 10, 1)]},
+        {"store": [("store", 10, 3)]},
+        {"flow": [("halt",)]},
+    ])
+
+    await harness.load_program(program)
+    await harness.run(max_cycles=5000)
+
+    first_dependent = harness.axi_mem.read_word(1400)
+    second_dependent = harness.axi_mem.read_word(1401)
+    dut._log.info(f"[diag] first_dependent (s[2])={first_dependent}, second_dependent (s[3])={second_dependent}")
+    assert first_dependent == 18, f"First dependent bundle expected 18, got {first_dependent}"
+    assert second_dependent == 27, f"Second dependent bundle expected 27, got {second_dependent}"
+
+
+@cocotb.test()
 async def test_load_use_randomized_axi_latency_robustness(dut):
     """Stress immediate load-use dependencies under randomized per-transaction AXI read latency."""
     harness = VliwCoreHarness(dut, axi_latency_mode="stress", axi_latency_n=20)
@@ -399,16 +454,19 @@ async def test_load_use_randomized_axi_latency_robustness(dut):
         {},
         {},
         {"load": [("load", 1, 0)]},
+        {"load": [("wait_for_load", 1)]},
         {"alu": [("add", 2, 1, 1)]},
 
         {"flow": [("add_imm", 0, 0, 1)]},
         {"load": [("load", 3, 0)]},
+        {"load": [("wait_for_load", 3)]},
         {"alu": [("add", 4, 3, 3)]},
 
         {"load": [("const", 5, 500)]},
         {},
         {},
         {"load": [("vload", 320, 5)]},
+        {"load": [("wait_for_load", 320)]},
         {"valu": [("add", 328, 320, 320)]},
 
         {"load": [("const", 10, 2000)]},

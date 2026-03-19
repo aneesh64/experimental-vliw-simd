@@ -36,13 +36,15 @@ class ScheduleValidator:
 
     def validate_load_use_latency(self):
         """
-        Ensure no load-use within LOAD_RESULT_LATENCY cycles.
+        Ensure no load-use hazards.
         
-        The compiler knows that when a LOAD is issued at cycle N,
-        the result is available at cycle N + LOAD_RESULT_LATENCY.
-        Any read of that register must occur at cycle N + LOAD_RESULT_LATENCY + 1 or later.
+        With software-managed hazard avoidance, the scheduler inserts
+        WAIT_FOR_LOAD barriers before any consumer of a pending load.
+        This validator checks that either:
+        1. A WAIT_FOR_LOAD barrier exists between load and consumer, OR
+        2. The gap between load and consumer >= LOAD_RESULT_LATENCY
         """
-        load_result_latency = self.cfg.get("LOAD_RESULT_LATENCY", 20)
+        load_result_latency = self.cfg.get("LOAD_RESULT_LATENCY", 1)
 
         # Map: register -> bundle_index_when_loaded
         load_destinations = {}

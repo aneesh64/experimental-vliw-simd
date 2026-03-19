@@ -1,0 +1,88 @@
+digraph VliwCoreMemoryMatrix {
+  graph [
+    rankdir=LR,
+    splines=ortho,
+    newrank=true,
+    compound=true,
+    nodesep=0.6,
+    ranksep=1.0,
+    pad=0.28,
+    bgcolor="transparent",
+    fontname="Trebuchet MS"
+  ];
+
+  node [
+    shape=box,
+    style="filled",
+    fontname="Trebuchet MS",
+    fontsize=12,
+    margin="0.20,0.14",
+    color="#5f5543",
+    fillcolor="#f7f1e3",
+    fontcolor="#1d1b17",
+    penwidth=1.8
+  ];
+
+  edge [
+    color="#645846",
+    penwidth=1.6,
+    arrowsize=0.85,
+    fontname="Trebuchet MS",
+    fontsize=10,
+    fontcolor="#3b352c"
+  ];
+
+  subgraph cluster_core {
+    label="VliwCore Memory and Matrix Data Paths";
+    labelloc=t;
+    labeljust=l;
+    color="#84745b";
+    penwidth=1.5;
+    style="filled";
+    fillcolor="#fcfbf7";
+
+    SCRATCH [label="BankedScratchMemory", fillcolor="#eaf4e4", color="#42633b", width=3.2, height=0.86];
+    MEM     [label="MemoryEngine", fillcolor="#e7f0fb", color="#355c7d", width=2.3, height=0.86];
+    MATRIX  [label="MatrixEngine", fillcolor="#e7f0fb", color="#355c7d", width=2.2, height=0.86];
+    WB      [label="WritebackController", fillcolor="#f3ead6", color="#6a5a44", width=2.8, height=0.82];
+
+    subgraph cluster_matlocal {
+      label="Matrix-local memories";
+      labelloc=t;
+      labeljust=l;
+      color="#91ab89";
+      penwidth=1.2;
+      style="filled";
+      fillcolor="#eef6ea";
+
+      MATA   [label="MatrixScratchpad A", fillcolor="#eaf4e4", color="#42633b"];
+      MATB   [label="MatrixScratchpad B", fillcolor="#eaf4e4", color="#42633b"];
+      MATACC [label="MatrixAccumulatorMemory", fillcolor="#eaf4e4", color="#42633b"];
+    }
+
+    { rank=same; SCRATCH; WB; }
+    { rank=same; MEM; MATRIX; }
+    { rank=same; MATA; MATB; MATACC; }
+  }
+
+  AXI [label="External DMEM AXI", fillcolor="#fff8ec", color="#5f5543", width=2.3, height=0.8];
+
+  SCRATCH:ne -> MEM:w    [xlabel="load/store addresses and payloads"];
+  SCRATCH:se -> MATRIX:w [xlabel="matrix instruction operands"];
+
+  MEM:nw -> WB:e [xlabel="scalar and vector load returns"];
+  WB:w -> SCRATCH:n [xlabel="scratch writes"];
+
+  MEM:s -> AXI:w [xlabel="AXI bursts"];
+
+  MEM:ne -> MATA:w   [xlabel="system DMA", minlen=2];
+  MEM:e  -> MATB:w   [xlabel="system DMA", minlen=2];
+  MEM:se -> MATACC:w [xlabel="system DMA", minlen=2];
+
+  MATRIX:ne -> MATA:s   [xlabel="matrix port", minlen=2];
+  MATRIX:e  -> MATB:s   [xlabel="matrix port", minlen=2];
+  MATRIX:se -> MATACC:s [xlabel="accumulator port", minlen=2];
+
+  MATA -> MATB [style=invis, weight=10];
+  MATB -> MATACC [style=invis, weight=10];
+}

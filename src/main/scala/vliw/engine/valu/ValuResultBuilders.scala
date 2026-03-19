@@ -40,6 +40,14 @@ trait ValuResultBuilders extends ValuPackedOps with ValuWideningOps with ValuCas
           if (ew == 32) r := (a === b).asUInt.resize(32)
           else r := packedEq(a, b, ew, n)
         }
+        is(AluOpcode.MAX) {
+          if (ew == 32) r := Mux(sgn, Mux(a.asSInt >= b.asSInt, a, b), Mux(a >= b, a, b))
+          else r := packedMax(a, b, ew, n, sgn)
+        }
+        is(AluOpcode.MIN) {
+          if (ew == 32) r := Mux(sgn, Mux(a.asSInt <= b.asSInt, a, b), Mux(a <= b, a, b))
+          else r := packedMin(a, b, ew, n, sgn)
+        }
         is(ValuOpcode.VBROADCAST) {
           if (ew == 32) r := c
           else r := packedBroadcast(c, ew, n)

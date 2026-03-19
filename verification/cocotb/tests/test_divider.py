@@ -58,7 +58,7 @@ async def do_divide(dut, dividend, divisor, check=True):
 @cocotb.test()
 async def test_basic_division(dut):
     """Test simple division cases."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     test_cases = [
@@ -84,7 +84,7 @@ async def test_basic_division(dut):
 @cocotb.test()
 async def test_latency(dut):
     """Verify division takes exactly DIV_LATENCY cycles."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     _, _, cyc = await do_divide(dut, 100, 7)
@@ -96,7 +96,7 @@ async def test_latency(dut):
 @cocotb.test()
 async def test_busy_flag(dut):
     """Verify busy is high during computation, low otherwise."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     assert int(dut.io_busy.value) == 0, "busy should be 0 after reset"
@@ -127,7 +127,7 @@ async def test_busy_flag(dut):
 @cocotb.test()
 async def test_back_to_back(dut):
     """Test starting a new division immediately after done."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     pairs = [(100, 7), (200, 13), (999, 37), (12345, 67)]
@@ -143,7 +143,7 @@ async def test_back_to_back(dut):
 @cocotb.test()
 async def test_random_exhaustive(dut):
     """Test 50 random division cases."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     rng = random.Random(42)
@@ -158,7 +158,7 @@ async def test_random_exhaustive(dut):
 @cocotb.test()
 async def test_powers_of_two(dut):
     """Test division by powers of 2 (should match shift)."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     dividend = 0xDEADBEEF

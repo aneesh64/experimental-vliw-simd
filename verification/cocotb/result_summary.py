@@ -30,14 +30,18 @@ def collect_results_summary(results_xml: Path, cycle_metrics_file: Path | None =
 
     passed = 0
     failed = 0
+    skipped = 0
     cycles_numeric: list[int] = []
 
     for testsuite in tree.iter("testsuite"):
         for tc in testsuite.iter("testcase"):
             name = tc.get("name", "?")
             fail_elem = tc.find("failure")
+            skip_elem = tc.find("skipped")
             if fail_elem is not None:
                 failed += 1
+            elif skip_elem is not None:
+                skipped += 1
             else:
                 passed += 1
 
@@ -45,7 +49,7 @@ def collect_results_summary(results_xml: Path, cycle_metrics_file: Path | None =
             if isinstance(cyc, int):
                 cycles_numeric.append(cyc)
 
-    total = passed + failed
+    total = passed + failed + skipped
     cycles_total = sum(cycles_numeric)
     cycles_count = len(cycles_numeric)
     cycles_max = max(cycles_numeric) if cycles_numeric else 0
@@ -55,6 +59,7 @@ def collect_results_summary(results_xml: Path, cycle_metrics_file: Path | None =
     return {
         "passed": passed,
         "failed": failed,
+        "skipped": skipped,
         "total": total,
         "cycles_count": cycles_count,
         "cycles_total": cycles_total,
@@ -70,6 +75,7 @@ def print_results_summary(results_xml: Path, cycle_metrics_file: Path | None = N
 
     passed = 0
     failed = 0
+    skipped = 0
 
     for testsuite in tree.iter("testsuite"):
         for tc in testsuite.iter("testcase"):
@@ -77,14 +83,20 @@ def print_results_summary(results_xml: Path, cycle_metrics_file: Path | None = N
             sim_time_ns = tc.get("sim_time_ns", "?")
             cycles = cycle_metrics.get(name, "n/a")
             fail_elem = tc.find("failure")
+            skip_elem = tc.find("skipped")
             if fail_elem is not None:
                 failed += 1
                 msg = fail_elem.get("message", fail_elem.text or "").strip().replace("\n", " ")[:180]
                 print(f"  FAIL: {name} | sim_ns={sim_time_ns} | cycles={cycles} | {msg}")
+            elif skip_elem is not None:
+                skipped += 1
+                reason = skip_elem.get("message", skip_elem.text or "").strip().replace("\n", " ")[:180]
+                suffix = f" | {reason}" if reason else ""
+                print(f"  SKIP: {name} | sim_ns={sim_time_ns} | cycles={cycles}{suffix}")
             else:
                 passed += 1
                 print(f"  PASS: {name} | sim_ns={sim_time_ns} | cycles={cycles}")
 
     print()
-    print(f"Total: {passed} passed, {failed} failed")
+    print(f"Total: {passed} passed, {failed} failed, {skipped} skipped")
     return passed, failed

@@ -84,6 +84,8 @@ class AluEngine(cfg: VliwSocConfig) extends Component with EnginePlugin {
       is(AluOpcode.SHR) { result := a |>> b(4 downto 0) }
       is(AluOpcode.LT)  { result := (a < b).asUInt.resize(cfg.dataWidth) }
       is(AluOpcode.EQ)  { result := (a === b).asUInt.resize(cfg.dataWidth) }
+      is(AluOpcode.MAX) { result := Mux(a >= b, a, b) }
+      is(AluOpcode.MIN) { result := Mux(a <= b, a, b) }
       // MOD, DIV, CDIV: handled by divider — combinatorial result unused
     }
 

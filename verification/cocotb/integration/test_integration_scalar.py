@@ -28,6 +28,31 @@ async def test_add_sub(dut):
     assert val_250 == 250, f"Expected 250, got {val_250}"
 
 
+@cocotb.test()
+async def test_max_min(dut):
+    """Unsigned scalar MAX/MIN execute correctly through the full core + AXI path."""
+    harness = VliwCoreHarness(dut)
+    await harness.init()
+
+    program = build_program([
+        S.const(0, 42),
+        S.const(1, 7),
+        S.max(2, 0, 1),
+        S.min(3, 0, 1),
+        S.const(10, 0),
+        S.store(10, 2),
+        S.add_imm(10, 10, 1),
+        S.store(10, 3),
+        S.halt(),
+    ])
+
+    await harness.load_program(program)
+    await harness.run(max_cycles=500)
+
+    assert harness.axi_mem.read_word(0) == 42, f"MAX: {harness.axi_mem.read_word(0)}"
+    assert harness.axi_mem.read_word(1) == 7, f"MIN: {harness.axi_mem.read_word(1)}"
+
+
 # ============================================================================
 #  Test 2: MUL, AND, OR, XOR
 # ============================================================================
@@ -520,6 +545,7 @@ async def test_multi_engine_simultaneous(dut):
         S.load(1, 5),
         S.add_imm(20, 20, 0),   # spacing for load latency
         # ALU engine: val * 2
+        S.wait_for_load(1),     # ensure load completes before multiplication
         S.mul(2, 1, 9),
         # ALU engine: accumulate
         S.add(0, 0, 2),

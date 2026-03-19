@@ -74,7 +74,7 @@ asm = Assembler(cfg)
 |----------|---------|---------|
 | `scratch_addr_width` | `ceil(log2(scratch_size))` | 11 bits |
 | `imem_addr_width` | `ceil(log2(imem_depth))` | 10 bits |
-| `bundle_width` | Sum of all slot widths, padded to 64-bit boundary | 256 bits |
+| `bundle_width` | Sum of all slot widths, padded to 64-bit boundary | 256 bits (default config, still padded) |
 | `bundle_bytes` | `bundle_width / 8` | 32 bytes |
 
 ### API
@@ -128,11 +128,11 @@ Each slot type has a standalone encoder function:
 
 | Function | Slot Width | Parameters |
 |----------|-----------|------------|
-| `encode_alu_slot(op, dest, src1, src2)` | 40 bits | ALU opcode string, scratch addresses |
-| `encode_valu_slot(op, dest_base, src1_base, src2_base, src3_base)` | 56 bits | VALU opcode, base addresses |
-| `encode_load_slot(op, dest, addr_reg, offset, immediate)` | 48 bits | Load opcode, scratch/immediate |
-| `encode_store_slot(op, addr_reg, src_reg)` | 28 bits | Store opcode, scratch addresses |
-| `encode_flow_slot(op, dest, operand_a, operand_b, immediate)` | 48 bits | Flow opcode, operands |
+| `encode_alu_slot(op, dest, src1, src2)` | 41 bits | ALU opcode string, scratch addresses |
+| `encode_valu_slot(op, dest_base, src1_base, src2_base, src3_base)` | 57 bits | VALU opcode, base addresses |
+| `encode_load_slot(op, dest, addr_reg, offset, immediate)` | 49 bits | Load opcode, scratch/immediate |
+| `encode_store_slot(op, addr_reg, src_reg)` | 29 bits | Store opcode, scratch addresses |
+| `encode_flow_slot(op, dest, operand_a, operand_b, immediate)` | 49 bits | Flow opcode, operands |
 
 All have corresponding `encode_*_nop()` functions that return `0`.
 
@@ -171,7 +171,7 @@ cfg = SchedulerConfig(
     scratch_banks = 8,       # For bank-conflict detection
     data_width    = 32,
     div_latency   = 33,      # dataWidth + 1
-    mem_post_gap  = 2,       # Conservative guard after memory ops
+    mem_post_gap  = 0,       # Independent ops may follow memory immediately; RTL stalls true load-use hazards
 )
 
 s = VliwScheduler(cfg)
@@ -186,7 +186,7 @@ s = VliwScheduler(cfg)
 | `DIV_LATENCY` | 35 | Issue to readable: 33 busy + 2 scratch readback |
 | `DIV_BUSY_CYCLES` | 33 | Divider occupied cycles |
 | `JUMP_BUBBLE` | 3 | Dead slots after taken branch (3-cycle delay) |
-| `DEFAULT_MEM_POST_GAP` | 2 | NOP bundles after memory ops |
+| `DEFAULT_MEM_POST_GAP` | 0 | Extra NOP bundles after memory ops |
 
 ### Operation Constructors
 
@@ -200,6 +200,11 @@ The scheduler provides convenience methods that return `Op` objects:
 | `load(dest, addr_reg)` | `→ Op` | Scalar load from memory |
 | `load_offset(dest, addr_reg, offset)` | `→ Op` | Load with offset |
 | `vload(dest_base, addr_reg, vlen=8)` | `→ Op` | Vector burst load (VLEN words) |
+| `wait_for_load(dest_addr)` | `→ Op` | Stall until addressed load commits |
+| `scopy_m2v(dest_vec_base, src_mat_base)` | `→ Op` | Copy VLEN words: matrix-local → vector scratch |
+| `scopy_v2m(dest_mat_base, src_vec_base)` | `→ Op` | Copy VLEN words: vector scratch → matrix-local |
+| `scopy_v2s(dest_scalar, src_vec)` | `→ Op` | Copy 1 word: vector scratch → scalar |
+| `scopy_s2v(dest_vec, src_scalar)` | `→ Op` | Copy 1 word: scalar → vector scratch |
 
 #### Store Operations
 
@@ -222,6 +227,8 @@ The scheduler provides convenience methods that return `Op` objects:
 | `shr(dest, src1, src2)` | `→ Op` | 2 bundles |
 | `lt(dest, src1, src2)` | `→ Op` | 2 bundles |
 | `eq(dest, src1, src2)` | `→ Op` | 2 bundles |
+| `max(dest, src1, src2)` | `→ Op` | 2 bundles |
+| `min(dest, src1, src2)` | `→ Op` | 2 bundles |
 | `div(dest, src1, src2)` | `→ Op` | **35 bundles** |
 | `mod(dest, src1, src2)` | `→ Op` | **35 bundles** |
 | `cdiv(dest, src1, src2)` | `→ Op` | **35 bundles** |
@@ -513,13 +520,16 @@ Empty or missing engine keys are filled with NOPs.
 | `"%"`, `"mod"` | 10 | Unsigned modulo (33 cycles) |
 | `"//"`, `"div"` | 11 | Unsigned division (33 cycles) |
 | `"cdiv"` | 12 | Ceiling division (33 cycles) |
+| `"max"` | 13 | Unsigned maximum |
+| `"min"` | 14 | Unsigned minimum |
 
 ### VALU Extra Opcodes
 
 | String Key | Value | Operation |
 |-----------|-------|-----------|
-| `"vbroadcast"` | 13 | Replicate scalar to all vector lanes |
-| `"multiply_add"` | 14 | Fused multiply-add (a*b+c) per lane |
+| `"vbroadcast"` | 15 | Replicate scalar to all vector lanes |
+| `"multiply_add"` | 16 | Fused multiply-add (a*b+c) per lane |
+| `"vcast"` | 17 | Convert element width / signedness |
 
 ### Load Opcodes
 
@@ -584,9 +594,9 @@ Constraints:
 
 ### Memory Post-Gap
 
-After a bundle containing a non-CONST memory op, the scheduler advances `current_cycle` by `1 + mem_post_gap` (default: 3 total cycles). This is a conservative guard — the actual stall duration depends on AXI timing, and the pipeline handles it via hardware stall.
+After a bundle containing a non-CONST memory op, the scheduler advances `current_cycle` by `1 + mem_post_gap`. The current default is `0`, so independent ops may be scheduled immediately after memory issue while true consumers still respect register ready-time and the RTL load-use stall path.
 
-> **Hardware Safety Net (March 2026):** VliwCore now includes hardware load-use hazard detection that stalls the pipeline when a consuming instruction reads a register still being written by an in-flight load. The scheduler's conservative `mem_post_gap` means this rarely activates, but it guarantees correctness even if software scheduling is imperfect. See `ARCHITECTURE.md § Load-Use Hazard Detection` for details.
+> **Hardware Safety Net (March 2026):** VliwCore now includes hardware load-use hazard detection that stalls the pipeline when a consuming instruction reads a register still being written by an in-flight load. This allows the scheduler to keep `mem_post_gap=0` by default and rely on explicit RAW latency plus hardware stalls rather than inserting fixed bubbles after every memory op. See `ARCHITECTURE.md § Load-Use Hazard Detection` for details.
 
 ### Jump Handling
 
@@ -740,12 +750,12 @@ Note: VALU bundles block all scalar reads. The scheduler enforces this by checki
 | S1 | No instruction reordering across basic blocks | Missed packing opportunities | Implement global scheduling |
 | S2 | No software pipelining | Loop iterations not overlapped | Add modulo scheduling pass |
 | S3 | Loop-carried hazards only warned, not fixed | User must manually pad | Auto-insert prologue/epilogue NOPs |
-| S4 | `mem_post_gap` is conservative (fixed 2 NOPs) | Unnecessary NOPs when AXI is fast | Model actual AXI latency per path |
+| S4 | `mem_post_gap` may still need per-target tuning | Static schedules can remain conservative on unusual memory paths | Model actual AXI latency per path |
 | S5 | VALU mutual exclusion is implicit | May reject valid packings | Explicitly model VALU port ownership |
 | S6 | No register allocation/spilling | User must manually assign scratch addresses | Add register allocator |
 | S7 | Single-pass greedy scheduling | Sub-optimal packing | Implement list scheduling with priority |
 | S8 | `NORMAL_LATENCY=2` is conservative | Could be 1 with write bypass enabled | Coordinate with HW bypass enable |
-| S9 | Scheduler unaware of HW load-use stalls | Over-conservative spacing around loads | Tighten `mem_post_gap` now that HW stalls provide safety net |
+| S9 | Scheduler still uses a global memory-gap knob | Some targets may need finer-grained policies for loads vs stores | Specialize post-gap rules per memory path |
 
 ### Assembler Limitations
 

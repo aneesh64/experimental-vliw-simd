@@ -49,8 +49,12 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
   val fetch    = new FetchUnit(cfg)
   val decode   = new DecodeUnit(cfg)
   val scratch  = new BankedScratchMemory(cfg)
+  val matrixScratchA = new MatrixScratchpad(cfg)
+  val matrixScratchB = new MatrixScratchpad(cfg)
+  val matrixAccum = new MatrixAccumulatorMemory(cfg)
   val alu      = new AluEngine(cfg)
   val valu     = new ValuEngine(cfg)
+  val matrix   = new MatrixEngine(cfg)
   val flow     = new FlowEngine(cfg, coreId)
   val mem      = new MemoryEngine(cfg)
   val wb       = new WritebackController(cfg)
@@ -77,11 +81,6 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
 
   decode.io.bundle := fetch.io.exBundle
   decode.io.valid  := fetch.io.exValid
-
-  // ======================== Scratch read address wiring ========================
-  // 3-stage pipeline: scratch read addresses are presented from the decoded
-  // bundle (combinatorial on exBundle, which is IF stage output). Because
-  // BRAM reads are synchronous (1-cycle latency), the data appears at the
   // start of EX (next cycle after address presentation).
   //
   // exSlotsReg registers the decoded slots to align with BRAM read data.
@@ -112,15 +111,35 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
     scalarReadIdx += 1
   }
 
+  // Hold store source controls while memory engine stalls so scalar/vector
+  // store operand addressing remains stable for replayed or multi-cycle stores.
+  val storeValidHeld   = Vec(Reg(Bool()) init False, cfg.nStoreSlots)
+  val storeOpcodeHeld  = Vec(Reg(UInt(SlotEncodingWidths.StoreOpcodeBits bits)) init StoreOpcode.STORE, cfg.nStoreSlots)
+  val storeAddrRegHeld = Vec(Reg(UInt(cfg.scratchAddrWidth bits)) init 0, cfg.nStoreSlots)
+  val storeSrcRegHeld  = Vec(Reg(UInt(cfg.scratchAddrWidth bits)) init 0, cfg.nStoreSlots)
+
+  when(!mem.io.stall) {
+    for (i <- 0 until cfg.nStoreSlots) {
+      storeValidHeld(i)   := decode.io.storeSlots(i).valid
+      storeOpcodeHeld(i)  := decode.io.storeSlots(i).opcode
+      storeAddrRegHeld(i) := decode.io.storeSlots(i).addrReg
+      storeSrcRegHeld(i)  := decode.io.storeSlots(i).srcReg
+    }
+  }
+
   // ---- Store scratch reads: 2 per slot (addrReg, srcReg) ----
   for (i <- 0 until cfg.nStoreSlots) {
     val sslot = decode.io.storeSlots(i)
-    scratch.io.scalarReadAddr(scalarReadIdx) := decode.io.storeSlots(i).addrReg
-    scratch.io.scalarReadEn(scalarReadIdx)   := decode.io.storeSlots(i).valid
+    val slotValid = Mux(mem.io.stall, storeValidHeld(i), sslot.valid)
+    val slotOpcode = Mux(mem.io.stall, storeOpcodeHeld(i), sslot.opcode)
+    val slotAddrReg = Mux(mem.io.stall, storeAddrRegHeld(i), sslot.addrReg)
+    val slotSrcReg = Mux(mem.io.stall, storeSrcRegHeld(i), sslot.srcReg)
+    scratch.io.scalarReadAddr(scalarReadIdx) := slotAddrReg
+    scratch.io.scalarReadEn(scalarReadIdx)   := slotValid
     scalarReadIdx += 1
 
-    scratch.io.scalarReadAddr(scalarReadIdx) := decode.io.storeSlots(i).srcReg
-    scratch.io.scalarReadEn(scalarReadIdx)   := sslot.valid && (sslot.opcode === StoreOpcode.STORE)
+    scratch.io.scalarReadAddr(scalarReadIdx) := slotSrcReg
+    scratch.io.scalarReadEn(scalarReadIdx)   := slotValid && (slotOpcode === StoreOpcode.STORE)
     scalarReadIdx += 1
   }
 
@@ -159,28 +178,14 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
     scalarReadIdx += 1
   }
 
-  // Hold vstore vector source controls while memory engine stalls so
-  // vector source lane addressing remains stable for multi-beat vstore.
-  val vstoreValidHeld  = Vec(Reg(Bool()) init False, cfg.nStoreSlots)
-  val vstoreOpcodeHeld = Vec(Reg(UInt(2 bits)) init StoreOpcode.STORE, cfg.nStoreSlots)
-  val vstoreSrcRegHeld = Vec(Reg(UInt(cfg.scratchAddrWidth bits)) init 0, cfg.nStoreSlots)
-
-  when(!mem.io.stall) {
-    for (i <- 0 until cfg.nStoreSlots) {
-      vstoreValidHeld(i)  := decode.io.storeSlots(i).valid
-      vstoreOpcodeHeld(i) := decode.io.storeSlots(i).opcode
-      vstoreSrcRegHeld(i) := decode.io.storeSlots(i).srcReg
-    }
-  }
-
   // ---- VALU active flag ----
   // Vector read groups are multiplexed between:
   //   - VALU src1/src2 reads (when any VALU slot is valid)
   //   - VSTORE source vector reads (when VALU is idle)
   val valuActiveDecode = decode.io.valuSlots.map(_.valid).reduce(_ || _)
   val vstoreVectorReadActiveDecode = (0 until cfg.nStoreSlots).map { i =>
-    val slotValid = Mux(mem.io.stall, vstoreValidHeld(i), decode.io.storeSlots(i).valid)
-    val slotIsVstore = Mux(mem.io.stall, vstoreOpcodeHeld(i) === StoreOpcode.VSTORE, decode.io.storeSlots(i).opcode === StoreOpcode.VSTORE)
+    val slotValid = Mux(mem.io.stall, storeValidHeld(i), decode.io.storeSlots(i).valid)
+    val slotIsVstore = Mux(mem.io.stall, storeOpcodeHeld(i) === StoreOpcode.VSTORE, decode.io.storeSlots(i).opcode === StoreOpcode.VSTORE)
     slotValid && slotIsVstore
   }.reduce(_ || _)
   scratch.io.valuActive       := valuActiveDecode
@@ -216,9 +221,9 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
     // Use odd groups (Port B) so scalar store address reads can continue on Port A.
     for (i <- 0 until cfg.nStoreSlots) {
       val groupIdx = (i * 2 + 1) % (cfg.nValuSlots * 2)
-      val slotValid = Mux(mem.io.stall, vstoreValidHeld(i), decode.io.storeSlots(i).valid)
-      val slotIsVstore = Mux(mem.io.stall, vstoreOpcodeHeld(i) === StoreOpcode.VSTORE, decode.io.storeSlots(i).opcode === StoreOpcode.VSTORE)
-      val slotSrcReg = Mux(mem.io.stall, vstoreSrcRegHeld(i), decode.io.storeSlots(i).srcReg)
+      val slotValid = Mux(mem.io.stall, storeValidHeld(i), decode.io.storeSlots(i).valid)
+      val slotIsVstore = Mux(mem.io.stall, storeOpcodeHeld(i) === StoreOpcode.VSTORE, decode.io.storeSlots(i).opcode === StoreOpcode.VSTORE)
+      val slotSrcReg = Mux(mem.io.stall, storeSrcRegHeld(i), decode.io.storeSlots(i).srcReg)
       when(slotValid && slotIsVstore) {
         for (lane <- 0 until cfg.vlen) {
           scratch.io.valuReadAddr(groupIdx)(lane) :=
@@ -239,6 +244,7 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
     val valuSlots = Vec(Reg(ValuSlot(cfg)), cfg.nValuSlots)
     val loadSlots = Vec(Reg(LoadSlot(cfg)), cfg.nLoadSlots)
     val storeSlots= Vec(Reg(StoreSlot(cfg)), cfg.nStoreSlots)
+    val matrixSlots = Vec(Reg(MatrixSlot(cfg)), cfg.nMatrixSlots)
     val flowSlot  = Reg(FlowSlot(cfg))
     val pc        = RegNext(fetch.io.pc) init 0
 
@@ -246,255 +252,105 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
     for (i <- 0 until cfg.nValuSlots) valuSlots(i) := decode.io.valuSlots(i)
     for (i <- 0 until cfg.nLoadSlots) loadSlots(i) := decode.io.loadSlots(i)
     for (i <- 0 until cfg.nStoreSlots) storeSlots(i) := decode.io.storeSlots(i)
+    for (i <- 0 until cfg.nMatrixSlots) matrixSlots(i) := decode.io.matrixSlots(i)
     flowSlot := decode.io.flowSlot
   }
 
   // ======================== Decode-time load-use hazard detection ========================
-  // Hazard source #1: pending MemoryEngine load register.
-  // Hazard source #2: load being issued by current EX slot this cycle.
-  val exIssuingLoad = Bool()
-  val exIssuingLoadIsVector = Bool()
-  val exIssuingLoadDest = UInt(cfg.scratchAddrWidth bits)
+  // REMOVED: Hardware load-use hazard detection has been replaced by software-managed
+  // hazard avoidance. The scheduler now inserts WAIT_FOR_LOAD barriers before any
+  // instruction that consumes a pending load result. The MemoryEngine stalls the
+  // pipeline when WAIT_FOR_LOAD is issued while a load is still pending.
+  // This simplifies the hardware significantly by eliminating combinatorial
+  // dependency checking across all engine slots.
 
-  // One-cycle extension for load-use hazard after AXI response has arrived,
-  // because load/vload data is still traveling through WB pipeline registers.
-  val wbCommittingLoadValid = RegInit(False)
-  val wbCommittingLoadIsVector = RegInit(False)
-  val wbCommittingLoadDest = Reg(UInt(cfg.scratchAddrWidth bits)) init 0
+  // Software-managed hazard avoidance: no hardware load-use detection needed.
+  // The WAIT_FOR_LOAD instruction in the load slot stalls the pipeline via
+  // mem.io.stall until all pending loads have completed.
 
-  val exLoadIssueValid = Vec(Bool(), cfg.nLoadSlots)
-  val exLoadIssueIsVector = Vec(Bool(), cfg.nLoadSlots)
-  val exLoadIssueDest = Vec(UInt(cfg.scratchAddrWidth bits), cfg.nLoadSlots)
-
-  for (i <- 0 until cfg.nLoadSlots) {
-    val slot = exSlotsReg.loadSlots(i)
-    val isMemLoad = exSlotsReg.valid && slot.valid &&
-      (slot.opcode === LoadOpcode.LOAD || slot.opcode === LoadOpcode.LOAD_OFFSET || slot.opcode === LoadOpcode.VLOAD)
-    exLoadIssueValid(i) := isMemLoad
-    exLoadIssueIsVector(i) := slot.opcode === LoadOpcode.VLOAD
-    exLoadIssueDest(i) := Mux(slot.opcode === LoadOpcode.LOAD_OFFSET,
-                              (slot.dest + slot.offset).resize(cfg.scratchAddrWidth),
-                              slot.dest)
+  val decodeHasMatrixOp = if (cfg.nMatrixSlots > 0) {
+    decode.io.matrixSlots.map(_.valid).reduce(_ || _)
+  } else {
+    False
   }
-
-  exIssuingLoad := exLoadIssueValid.reduce(_ || _)
-
-  var issuingVecSel: Bool = False
-  var issuingDestSel: UInt = U(0, cfg.scratchAddrWidth bits)
-  for (i <- 0 until cfg.nLoadSlots) {
-    issuingVecSel = Mux(exLoadIssueValid(i), exLoadIssueIsVector(i), issuingVecSel)
-    issuingDestSel = Mux(exLoadIssueValid(i), exLoadIssueDest(i), issuingDestSel)
-  }
-  exIssuingLoadIsVector := issuingVecSel
-  exIssuingLoadDest := issuingDestSel
-
-  val anyLoadWriteRsp = mem.io.loadWriteReqs.map(_.valid).reduce(_ || _)
-  val anyVloadWriteRsp = mem.io.vloadWriteReqs.map(_.map(_.valid).reduce(_ || _)).reduce(_ || _)
-
-  wbCommittingLoadValid := anyLoadWriteRsp || anyVloadWriteRsp
-  wbCommittingLoadIsVector := anyVloadWriteRsp
-  when(anyVloadWriteRsp) {
-    wbCommittingLoadDest := mem.io.vloadWriteReqs(0)(0).addr
-  } elsewhen(anyLoadWriteRsp) {
-    wbCommittingLoadDest := mem.io.loadWriteReqs(0).addr
-  }
-
-  def decodeReadsPendingDest(pendingDest: UInt, pendingIsVector: Bool): Bool = {
-    val pendingVecEnd = (pendingDest + (cfg.vlen - 1)).resize(cfg.scratchAddrWidth)
-
-    def scalarHits(addr: UInt): Bool = {
-      val inVecRange = (addr >= pendingDest) && (addr <= pendingVecEnd)
-      Mux(pendingIsVector, inVecRange, addr === pendingDest)
-    }
-
-    def vectorBaseHits(base: UInt): Bool = {
-      val srcEnd = (base + (cfg.vlen - 1)).resize(cfg.scratchAddrWidth)
-      val overlapsVec = (base <= pendingVecEnd) && (pendingDest <= srcEnd)
-      val coversScalar = (base <= pendingDest) && (pendingDest <= srcEnd)
-      Mux(pendingIsVector, overlapsVec, coversScalar)
-    }
-
-    val hasDep = Bool()
-    hasDep := False
-
-    for (i <- 0 until cfg.nAluSlots) {
-      val slot = decode.io.aluSlots(i)
-      when(slot.valid && (scalarHits(slot.src1) || scalarHits(slot.src2))) {
-        hasDep := True
-      }
-    }
-
-    for (i <- 0 until cfg.nLoadSlots) {
-      val slot = decode.io.loadSlots(i)
-      val needsAddrRead = slot.valid && (slot.opcode =/= LoadOpcode.CONST)
-      when(needsAddrRead && scalarHits(slot.addrReg)) {
-        hasDep := True
-      }
-    }
-
-    for (i <- 0 until cfg.nStoreSlots) {
-      val slot = decode.io.storeSlots(i)
-      when(slot.valid) {
-        val srcHazard = Mux(slot.opcode === StoreOpcode.VSTORE,
-                            vectorBaseHits(slot.srcReg),
-                            scalarHits(slot.srcReg))
-        when(scalarHits(slot.addrReg) || srcHazard) {
-          hasDep := True
-        }
-      }
-    }
-
-    for (s <- 0 until cfg.nValuSlots) {
-      val slot = decode.io.valuSlots(s)
-      val usesSrc3 = slot.opcode === ValuOpcode.VBROADCAST || slot.opcode === ValuOpcode.MULTIPLY_ADD
-      when(slot.valid) {
-        when(vectorBaseHits(slot.src1Base) || vectorBaseHits(slot.src2Base) ||
-             (usesSrc3 && scalarHits(slot.src3Base))) {
-          hasDep := True
-        }
-      }
-    }
-
-    {
-      val fv = decode.io.flowSlot.valid
-      val op = decode.io.flowSlot.opcode
-
-      val needsCond = fv && (op === FlowOpcode.SELECT || op === FlowOpcode.VSELECT ||
-                             op === FlowOpcode.ADD_IMM || op === FlowOpcode.COND_JUMP ||
-                             op === FlowOpcode.COND_JUMP_REL || op === FlowOpcode.JUMP_INDIRECT)
-      val needsSrcA = fv && (op === FlowOpcode.SELECT || op === FlowOpcode.VSELECT)
-      val needsSrcB = fv && (op === FlowOpcode.SELECT || op === FlowOpcode.VSELECT)
-
-      when((needsCond && scalarHits(decode.io.flowSlot.operandA)) ||
-           (needsSrcA && scalarHits(decode.io.flowSlot.operandB)) ||
-           (needsSrcB && scalarHits(decode.io.flowSlot.immediate.resize(cfg.scratchAddrWidth)))) {
-        hasDep := True
-      }
-    }
-
-    hasDep
-  }
-
-  def exReadsPendingDest(pendingDest: UInt, pendingIsVector: Bool): Bool = {
-    val pendingVecEnd = (pendingDest + (cfg.vlen - 1)).resize(cfg.scratchAddrWidth)
-
-    def scalarHits(addr: UInt): Bool = {
-      val inVecRange = (addr >= pendingDest) && (addr <= pendingVecEnd)
-      Mux(pendingIsVector, inVecRange, addr === pendingDest)
-    }
-
-    def vectorBaseHits(base: UInt): Bool = {
-      val srcEnd = (base + (cfg.vlen - 1)).resize(cfg.scratchAddrWidth)
-      val overlapsVec = (base <= pendingVecEnd) && (pendingDest <= srcEnd)
-      val coversScalar = (base <= pendingDest) && (pendingDest <= srcEnd)
-      Mux(pendingIsVector, overlapsVec, coversScalar)
-    }
-
-    val hasDep = Bool()
-    hasDep := False
-
-    when(exSlotsReg.valid) {
-      for (i <- 0 until cfg.nAluSlots) {
-        val slot = exSlotsReg.aluSlots(i)
-        when(slot.valid && (scalarHits(slot.src1) || scalarHits(slot.src2))) {
-          hasDep := True
-        }
-      }
-
-      for (i <- 0 until cfg.nLoadSlots) {
-        val slot = exSlotsReg.loadSlots(i)
-        val needsAddrRead = slot.valid && (slot.opcode =/= LoadOpcode.CONST)
-        when(needsAddrRead && scalarHits(slot.addrReg)) {
-          hasDep := True
-        }
-      }
-
-      for (i <- 0 until cfg.nStoreSlots) {
-        val slot = exSlotsReg.storeSlots(i)
-        when(slot.valid) {
-          val srcHazard = Mux(slot.opcode === StoreOpcode.VSTORE,
-                              vectorBaseHits(slot.srcReg),
-                              scalarHits(slot.srcReg))
-          when(scalarHits(slot.addrReg) || srcHazard) {
-            hasDep := True
-          }
-        }
-      }
-
-      for (s <- 0 until cfg.nValuSlots) {
-        val slot = exSlotsReg.valuSlots(s)
-        val usesSrc3 = slot.opcode === ValuOpcode.VBROADCAST || slot.opcode === ValuOpcode.MULTIPLY_ADD
-        when(slot.valid) {
-          when(vectorBaseHits(slot.src1Base) || vectorBaseHits(slot.src2Base) ||
-               (usesSrc3 && scalarHits(slot.src3Base))) {
-            hasDep := True
-          }
-        }
-      }
-
-      {
-        val fv = exSlotsReg.flowSlot.valid
-        val op = exSlotsReg.flowSlot.opcode
-
-        val needsCond = fv && (op === FlowOpcode.SELECT || op === FlowOpcode.VSELECT ||
-                               op === FlowOpcode.ADD_IMM || op === FlowOpcode.COND_JUMP ||
-                               op === FlowOpcode.COND_JUMP_REL || op === FlowOpcode.JUMP_INDIRECT)
-        val needsSrcA = fv && (op === FlowOpcode.SELECT || op === FlowOpcode.VSELECT)
-        val needsSrcB = fv && (op === FlowOpcode.SELECT || op === FlowOpcode.VSELECT)
-
-        when((needsCond && scalarHits(exSlotsReg.flowSlot.operandA)) ||
-             (needsSrcA && scalarHits(exSlotsReg.flowSlot.operandB)) ||
-             (needsSrcB && scalarHits(exSlotsReg.flowSlot.immediate.resize(cfg.scratchAddrWidth)))) {
-          hasDep := True
-        }
-      }
-    }
-
-    hasDep
-  }
-
-  val hazardFromPending = mem.io.loadPendingValid &&
-    decodeReadsPendingDest(mem.io.loadPendingDestAddr, mem.io.loadPendingIsVector)
-  val hazardFromIssuing = exIssuingLoad && decodeReadsPendingDest(exIssuingLoadDest, exIssuingLoadIsVector)
-  val hazardFromWbCommit = wbCommittingLoadValid &&
-    decodeReadsPendingDest(wbCommittingLoadDest, wbCommittingLoadIsVector)
-  val loadUseHazard = hazardFromPending || hazardFromIssuing || hazardFromWbCommit
-
-  val exHazardFromPending = mem.io.loadPendingValid &&
-    exReadsPendingDest(mem.io.loadPendingDestAddr, mem.io.loadPendingIsVector)
-  val exHazardFromWbCommit = wbCommittingLoadValid &&
-    exReadsPendingDest(wbCommittingLoadDest, wbCommittingLoadIsVector)
-  val exLoadUseHazard = exHazardFromPending || exHazardFromWbCommit
+  val matrixLoadWaitStall = mem.io.matrixTransferBusy &&
+    mem.io.matrixTransferBypassable && decodeHasMatrixOp
+  val matrixTransferStall = mem.io.matrixTransferBusy && !mem.io.matrixTransferBypassable
 
   // When stalled, hold ALL pipeline registers (not just valid).
   // Without this, the next instruction's decode output leaks into
   // exSlotsReg during stall, causing premature execution of the
   // following instruction (e.g., HALT fires before STORE completes).
-  // The scheduler enforces sufficient spacing for memory dependencies;
-  // pipeline stall is driven by true memory backpressure only.
-  val pipelineStall = mem.io.stall
+  // Pipeline stall covers memory backpressure, long-latency matrix compute,
+  // outbound matrix stores, which must drain before later work proceeds.
+  val pipelineStall = mem.io.stall || matrix.io.busy || matrixTransferStall
 
-  // Hold EX registers only on real memory backpressure stalls.
-  // For load-use hazards we stall fetch/decode, but let EX advance so
-  // the issued load instruction doesn't self-hold and deadlock hazard logic.
-  when(mem.io.stall) {
+  // Hold EX registers on pipeline stalls.
+  // Software-managed hazard avoidance: WAIT_FOR_LOAD stalls via mem.io.stall,
+  // so no EX-side load-use hazard detection is needed.
+  val exStageHold = pipelineStall
+  when(exStageHold) {
     exSlotsReg.valid := exSlotsReg.valid  // hold
     for (i <- 0 until cfg.nAluSlots)   exSlotsReg.aluSlots(i)   := exSlotsReg.aluSlots(i)
     for (i <- 0 until cfg.nValuSlots)  exSlotsReg.valuSlots(i)  := exSlotsReg.valuSlots(i)
     for (i <- 0 until cfg.nLoadSlots)  exSlotsReg.loadSlots(i)  := exSlotsReg.loadSlots(i)
     for (i <- 0 until cfg.nStoreSlots) exSlotsReg.storeSlots(i) := exSlotsReg.storeSlots(i)
+    for (i <- 0 until cfg.nMatrixSlots) exSlotsReg.matrixSlots(i) := exSlotsReg.matrixSlots(i)
     exSlotsReg.flowSlot := exSlotsReg.flowSlot
     exSlotsReg.pc       := exSlotsReg.pc
   }
 
-  // On decode-side load-use hazard, inject bubble into EX so the already-issued
-  // load can complete and clear pending state without deadlocking.
-  when(loadUseHazard && !mem.io.stall && !exLoadUseHazard) {
+  // When an EX bundle is held, the decode stage may already have advanced to a
+  // different instruction. Snapshot the aligned scratch read data on the first
+  // hold cycle so the resumed EX bundle executes with its original operands.
+  val scalarOperandCount = cfg.scalarReadPorts + cfg.nValuSlots
+  val heldScalarReadData = Vec(Reg(UInt(cfg.dataWidth bits)) init 0, scalarOperandCount)
+  val heldValuReadData = Vec(Vec(Reg(UInt(cfg.dataWidth bits)) init 0, cfg.vlen), cfg.nValuSlots * 2)
+  val heldReadDataValid = RegInit(False)
+  val prevExStageHold = RegNext(exStageHold) init False
+
+  when(exStageHold && !prevExStageHold) {
+    for (i <- 0 until scalarOperandCount) {
+      heldScalarReadData(i) := scratch.io.scalarReadData(i)
+    }
+    for (g <- 0 until cfg.nValuSlots * 2) {
+      for (lane <- 0 until cfg.vlen) {
+        heldValuReadData(g)(lane) := scratch.io.valuReadData(g)(lane)
+      }
+    }
+    heldReadDataValid := exSlotsReg.valid
+  } elsewhen(!exStageHold && heldReadDataValid && exSlotsReg.valid) {
+    heldReadDataValid := False
+  }
+
+  // NOTE: Hardware load-use hazard bubble injection removed.
+  // Software WAIT_FOR_LOAD instruction now handles load-use dependencies.
+
+  // Inbound matrix loads are allowed to overlap unrelated bundles, but the
+  // first later matrix bundle must wait in fetch/decode until the matrix-local
+  // scratchpad has been filled. Bubble EX so that bundle enters with fresh
+  // operand reads once the transfer completes.
+  when(matrixLoadWaitStall && !pipelineStall) {
     exSlotsReg.valid := False
     for (i <- 0 until cfg.nAluSlots)   exSlotsReg.aluSlots(i).valid := False
     for (i <- 0 until cfg.nValuSlots)  exSlotsReg.valuSlots(i).valid := False
     for (i <- 0 until cfg.nLoadSlots)  exSlotsReg.loadSlots(i).valid := False
     for (i <- 0 until cfg.nStoreSlots) exSlotsReg.storeSlots(i).valid := False
+    for (i <- 0 until cfg.nMatrixSlots) exSlotsReg.matrixSlots(i).valid := False
+    exSlotsReg.flowSlot.valid := False
+  }
+
+  // Matrix operations are long-latency resources driven from EX.
+  // Once a matrix compute or direct matrix transfer starts, consume the EX
+  // slot immediately so the same bundle cannot re-fire when the busy window
+  // eventually clears.
+  when(matrix.io.startPulse || mem.io.matrixTransferStartPulse) {
+    exSlotsReg.valid := False
+    for (i <- 0 until cfg.nAluSlots)   exSlotsReg.aluSlots(i).valid := False
+    for (i <- 0 until cfg.nValuSlots)  exSlotsReg.valuSlots(i).valid := False
+    for (i <- 0 until cfg.nLoadSlots)  exSlotsReg.loadSlots(i).valid := False
+    for (i <- 0 until cfg.nStoreSlots) exSlotsReg.storeSlots(i).valid := False
+    for (i <- 0 until cfg.nMatrixSlots) exSlotsReg.matrixSlots(i).valid := False
     exSlotsReg.flowSlot.valid := False
   }
 
@@ -503,17 +359,42 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
 
   // 3-stage pipeline: engines fire in EX when valid and not stalled.
   // Stall directly gates engine firing — no suppressRefire needed.
-  // When stall clears, the held instruction fires exactly once (memProcessed
-  // in MemoryEngine prevents double-push; WB register captures results).
-  val engineFireValid = exSlotsReg.valid && !pipelineStall && !exLoadUseHazard
+  // When stall clears, the held instruction fires exactly once because
+  // exSlotsReg advances to the next instruction on the following clock edge.
+  // The blanket scalarStorePending stall has been removed; HALT waits for
+  // stores via fetch.io.memBusy independently.
+  // Scratch bank conflicts can block the current cycle's operand reads. Hold the
+  // EX bundle and suppress data-consuming engines until the read ports are clear.
+  val vectorBankConflictStall = scratch.io.vectorBankConflict
+  val scratchBankConflictStall = vectorBankConflictStall || scratch.io.scalarBankConflict
+  when(scratchBankConflictStall && !pipelineStall) {
+    exSlotsReg.valid := False
+    for (i <- 0 until cfg.nAluSlots)   exSlotsReg.aluSlots(i).valid := False
+    for (i <- 0 until cfg.nValuSlots)  exSlotsReg.valuSlots(i).valid := False
+    for (i <- 0 until cfg.nLoadSlots)  exSlotsReg.loadSlots(i).valid := False
+    for (i <- 0 until cfg.nStoreSlots) exSlotsReg.storeSlots(i).valid := False
+    for (i <- 0 until cfg.nMatrixSlots) exSlotsReg.matrixSlots(i).valid := False
+    exSlotsReg.flowSlot.valid := False
+  }
+
+  val engineFireValid = exSlotsReg.valid && !pipelineStall
+
+  // Held read data: when EX stalls, exSlotsReg holds instruction I while
+  // exBundleReg (frozen by fetch.io.stall) holds instruction I+1. Since
+  // scratch read addresses are driven by decode(exBundleReg) = I+1's addresses,
+  // the live scratch data after the first stall cycle is for I+1 — wrong for
+  // instruction I in exSlotsReg. The snapshot captured at the first stall cycle
+  // contains the correct data for I (from reads set up one cycle before the
+  // stall when decode still processed I). Use that snapshot whenever valid.
+  val useHeldReadData = heldReadDataValid
 
   // ---- ALU operand wiring ----
   alu.io.valid := engineFireValid
   for (i <- 0 until cfg.nAluSlots) {
     alu.io.slots(i) := exSlotsReg.aluSlots(i)
     // scalarReadData indices match the order addresses were assigned
-    alu.io.operandA(i) := scratch.io.scalarReadData(i * 2)
-    alu.io.operandB(i) := scratch.io.scalarReadData(i * 2 + 1)
+    alu.io.operandA(i) := Mux(useHeldReadData, heldScalarReadData(i * 2), scratch.io.scalarReadData(i * 2))
+    alu.io.operandB(i) := Mux(useHeldReadData, heldScalarReadData(i * 2 + 1), scratch.io.scalarReadData(i * 2 + 1))
   }
 
   // ---- VALU operand wiring ----
@@ -522,14 +403,14 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
     valu.io.slots(s) := exSlotsReg.valuSlots(s)
     // Vector operands A and B from VALU read ports
     for (lane <- 0 until cfg.vlen) {
-      valu.io.operandA(s)(lane) := scratch.io.valuReadData(s * 2)(lane)
-      valu.io.operandB(s)(lane) := scratch.io.valuReadData(s * 2 + 1)(lane)
+      valu.io.operandA(s)(lane) := Mux(useHeldReadData, heldValuReadData(s * 2)(lane), scratch.io.valuReadData(s * 2)(lane))
+      valu.io.operandB(s)(lane) := Mux(useHeldReadData, heldValuReadData(s * 2 + 1)(lane), scratch.io.valuReadData(s * 2 + 1)(lane))
     }
     // Operand C: for multiply_add, read from src3Base vector; for vbroadcast, scalar
     // For v1: use the scalar read for src3 and broadcast it to all lanes
     val src3ScalarIdx = cfg.scalarReadPorts + s  // scalar read index for VALU src3
     for (lane <- 0 until cfg.vlen) {
-      valu.io.operandC(s)(lane) := scratch.io.scalarReadData(src3ScalarIdx)
+      valu.io.operandC(s)(lane) := Mux(useHeldReadData, heldScalarReadData(src3ScalarIdx), scratch.io.scalarReadData(src3ScalarIdx))
     }
   }
 
@@ -538,31 +419,74 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
   for (i <- 0 until cfg.nLoadSlots) {
     mem.io.loadSlots(i) := exSlotsReg.loadSlots(i)
     val loadReadIdx = cfg.nAluSlots * 2 + i
-    mem.io.loadAddrData(i) := scratch.io.scalarReadData(loadReadIdx)
+    mem.io.loadAddrData(i) := Mux(useHeldReadData, heldScalarReadData(loadReadIdx), scratch.io.scalarReadData(loadReadIdx))
   }
   for (i <- 0 until cfg.nStoreSlots) {
     mem.io.storeSlots(i) := exSlotsReg.storeSlots(i)
     val storeAddrIdx = cfg.nAluSlots * 2 + cfg.nLoadSlots + i * 2
     val storeSrcIdx  = cfg.nAluSlots * 2 + cfg.nLoadSlots + i * 2 + 1
-    mem.io.storeAddrData(i) := scratch.io.scalarReadData(storeAddrIdx)
-    mem.io.storeSrcData(i)  := scratch.io.scalarReadData(storeSrcIdx)
+    mem.io.storeAddrData(i) := Mux(useHeldReadData, heldScalarReadData(storeAddrIdx), scratch.io.scalarReadData(storeAddrIdx))
+    mem.io.storeSrcData(i)  := Mux(useHeldReadData, heldScalarReadData(storeSrcIdx), scratch.io.scalarReadData(storeSrcIdx))
 
     // vstore source lanes are supplied via scratch vector read groups.
     val vstoreGroupIdx = (i * 2 + 1) % (cfg.nValuSlots * 2)
     for (l <- 0 until cfg.vlen) {
-      mem.io.vstoreSrcData(i)(l) := scratch.io.valuReadData(vstoreGroupIdx)(l)
+      mem.io.vstoreSrcData(i)(l) := Mux(useHeldReadData, heldValuReadData(vstoreGroupIdx)(l), scratch.io.valuReadData(vstoreGroupIdx)(l))
     }
   }
+  for (i <- 0 until cfg.nMatrixSlots) {
+    mem.io.matrixSlots(i) := exSlotsReg.matrixSlots(i)
+  }
+  matrixScratchA.io.systemPort.addr := mem.io.matrixScratchAAddr
+  matrixScratchA.io.systemPort.en := mem.io.matrixScratchAEn
+  matrixScratchA.io.systemPort.we := mem.io.matrixScratchAWe
+  matrixScratchA.io.systemPort.wrData := mem.io.matrixScratchAWrData
+  mem.io.matrixScratchARdData := matrixScratchA.io.systemPort.rdData
+
+  matrixScratchB.io.systemPort.addr := mem.io.matrixScratchBAddr
+  matrixScratchB.io.systemPort.en := mem.io.matrixScratchBEn
+  matrixScratchB.io.systemPort.we := mem.io.matrixScratchBWe
+  matrixScratchB.io.systemPort.wrData := mem.io.matrixScratchBWrData
+  mem.io.matrixScratchBRdData := matrixScratchB.io.systemPort.rdData
+
+  matrixAccum.io.systemPort.addr := mem.io.matrixAccumAddr
+  matrixAccum.io.systemPort.en := mem.io.matrixAccumEn
+  matrixAccum.io.systemPort.we := mem.io.matrixAccumWe
+  matrixAccum.io.systemPort.wrData := mem.io.matrixAccumWrData
+  mem.io.matrixAccumRdData := matrixAccum.io.systemPort.rdData
 
   // ---- Flow engine wiring ----
   flow.io.valid := engineFireValid
   flow.io.slot  := exSlotsReg.flowSlot
   flow.io.currentPc := exSlotsReg.pc
 
+  // ---- Matrix engine wiring ----
+  matrix.io.valid := engineFireValid
+  for (i <- 0 until cfg.nMatrixSlots) {
+    matrix.io.slots(i) := exSlotsReg.matrixSlots(i)
+  }
+  matrixScratchA.io.matrixPort.addr := matrix.io.matrixScratchAAddr
+  matrixScratchA.io.matrixPort.en := matrix.io.matrixScratchAEn
+  matrixScratchA.io.matrixPort.we := matrix.io.matrixScratchAWe
+  matrixScratchA.io.matrixPort.wrData := matrix.io.matrixScratchAWrData
+  matrix.io.matrixScratchARdData := matrixScratchA.io.matrixPort.rdData
+
+  matrixScratchB.io.matrixPort.addr := matrix.io.matrixScratchBAddr
+  matrixScratchB.io.matrixPort.en := matrix.io.matrixScratchBEn
+  matrixScratchB.io.matrixPort.we := matrix.io.matrixScratchBWe
+  matrixScratchB.io.matrixPort.wrData := matrix.io.matrixScratchBWrData
+  matrix.io.matrixScratchBRdData := matrixScratchB.io.matrixPort.rdData
+
+  matrixAccum.io.matrixPort.addr := matrix.io.matrixAccumAddr
+  matrixAccum.io.matrixPort.en := matrix.io.matrixAccumEn
+  matrixAccum.io.matrixPort.we := matrix.io.matrixAccumWe
+  matrixAccum.io.matrixPort.wrData := matrix.io.matrixAccumWrData
+  matrix.io.matrixAccumRdData := matrixAccum.io.matrixPort.rdData
+
   val flowCondIdx = cfg.nAluSlots * 2 + cfg.nLoadSlots + cfg.nStoreSlots * 2
-  flow.io.operandCond := scratch.io.scalarReadData(flowCondIdx)
-  flow.io.operandA    := scratch.io.scalarReadData(flowCondIdx + 1)
-  flow.io.operandB    := scratch.io.scalarReadData(flowCondIdx + 2)
+  flow.io.operandCond := Mux(useHeldReadData, heldScalarReadData(flowCondIdx), scratch.io.scalarReadData(flowCondIdx))
+  flow.io.operandA    := Mux(useHeldReadData, heldScalarReadData(flowCondIdx + 1), scratch.io.scalarReadData(flowCondIdx + 1))
+  flow.io.operandB    := Mux(useHeldReadData, heldScalarReadData(flowCondIdx + 2), scratch.io.scalarReadData(flowCondIdx + 2))
 
   // vselect vector operands: for v1, not connected via dedicated vector paths
   // (would need additional VALU-style read groups)
@@ -575,12 +499,30 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
   // ---- Flow → Fetch feedback ----
   fetch.io.jump << flow.io.jumpTarget
   fetch.io.halt := flow.io.halt
-  // NOTE: scratch.io.conflict removed from stall path.
-  // Bank conflicts cause an infinite stall (same instruction re-decodes,
-  // same conflict persists).  The scheduler is responsible for avoiding
-  // bank conflicts; any unintended conflict degrades to stale data
-  // rather than a livelock.
-  fetch.io.stall := mem.io.stall || loadUseHazard || exLoadUseHazard
+  fetch.io.memBusy := mem.io.scalarStoreBusy || mem.io.matrixTransferBusy
+  fetch.io.stall := mem.io.stall ||
+    matrix.io.busy || matrix.io.startPulse ||
+    mem.io.matrixTransferStartPulse || matrixTransferStall || matrixLoadWaitStall ||
+    scratchBankConflictStall
+
+  // Replay-style stall handling: with the 3-stage pipeline and synchronous IMEM
+  // (readSync, 1-cycle latency), pc is always TWO ahead of exBundleReg:
+  //   exBundleReg = mem[pc - 2], next-to-fetch = mem[pc - 1]
+  //
+  // During a stall the fetch unit drives imemAddr = pc-1, so io.imemData holds
+  // mem[pc-1] — the NEXT instruction to be fetched, NOT a duplicate of
+  // exBundleReg.  On stall release the `otherwise` branch correctly captures
+  // this fresh instruction.  No stallReleaseBubble is needed; setting it would
+  // suppress a valid instruction and cause a bundle skip.
+  fetch.io.replayStall := False
+
+  // Tell FetchUnit when the stall is from a matrix operation so it can skip
+  // the stallReleaseBubble. Matrix stalls are one cycle late (combinatorial
+  // chain through exSlotsReg -> engine issue -> stall), so on stall release
+  // the pipeline should continue normally without suppressing a capture.
+  fetch.io.matrixStall := matrix.io.busy || matrix.io.startPulse ||
+    mem.io.matrixTransferStartPulse || matrixTransferStall || matrixLoadWaitStall ||
+    mem.io.scalarStoreBusy
 
   // ======================== WB Pipeline Registers (3-stage) ========================
   // Synchronous engine writes are registered here for 1-cycle delay (EX→WB).
@@ -621,6 +563,9 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
   val wbFlowScalarWrite = regWriteReq(flow.io.scalarWriteReq)
   val wbFlowVectorWrites = (0 until cfg.vlen).map(l => regWriteReq(flow.io.vectorWriteReqs(l)))
 
+  // Scratchpad copy writes → WB register (M2V writes to vector scratch)
+  val wbScopyWrite = regWriteReq(mem.io.scopyWriteReq)
+
   // ======================== Writeback wiring (WB stage → WritebackController) ========================
 
   // ALU writes (through WB register)
@@ -650,6 +595,9 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
     wb.io.flowVectorWrites(l) << wbFlowVectorWrites(l)
   }
 
+  // Scratchpad copy writes (through WB register)
+  wb.io.scopyWrite << wbScopyWrite
+
   // ======================== Scratch write crossbar ========================
 
   val totalWrites = wb.totalWrites
@@ -668,6 +616,16 @@ class VliwCore(cfg: VliwSocConfig, coreId: Int) extends Component {
 
   // ======================== AXI passthrough ========================
   io.dmemAxi <> mem.io.axiMaster
+
+  // ======================== SCOPY read port (V2M direction) ========================
+  // During SCOPY_V2M, MemoryEngine reads from vector scratch.
+  // Pipeline is stalled during SCOPY, so we safely hijack scalar read port 0.
+  // The stalled decode outputs are overridden; no engine consumes the data.
+  when(mem.io.scopyBusy) {
+    scratch.io.scalarReadAddr(0) := mem.io.scopyReadAddr
+    scratch.io.scalarReadEn(0)   := mem.io.scopyReadEn
+  }
+  mem.io.scopyReadData := scratch.io.scalarReadData(0)
 
   // ======================== Status outputs ========================
   io.halted      := fetch.io.halted

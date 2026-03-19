@@ -76,6 +76,32 @@ trait ValuPackedOps {
     Cat(subs.reverse: _*).asUInt.resize(32)
   }
 
+  protected def packedMax(a: UInt, b: UInt, ew: Int, n: Int, signed: Bool): UInt = {
+    val subs = (0 until n).map { k =>
+      val sa = a(k * ew + ew - 1 downto k * ew)
+      val sb = b(k * ew + ew - 1 downto k * ew)
+      Mux(
+        signed,
+        Mux(sa.asSInt >= sb.asSInt, sa, sb),
+        Mux(sa >= sb, sa, sb)
+      )
+    }
+    Cat(subs.reverse: _*).asUInt.resize(32)
+  }
+
+  protected def packedMin(a: UInt, b: UInt, ew: Int, n: Int, signed: Bool): UInt = {
+    val subs = (0 until n).map { k =>
+      val sa = a(k * ew + ew - 1 downto k * ew)
+      val sb = b(k * ew + ew - 1 downto k * ew)
+      Mux(
+        signed,
+        Mux(sa.asSInt <= sb.asSInt, sa, sb),
+        Mux(sa <= sb, sa, sb)
+      )
+    }
+    Cat(subs.reverse: _*).asUInt.resize(32)
+  }
+
   protected def packedBroadcast(scalarWord: UInt, ew: Int, n: Int): UInt = {
     val lowest = scalarWord(ew - 1 downto 0)
     Cat(Seq.fill(n)(lowest): _*).asUInt.resize(32)

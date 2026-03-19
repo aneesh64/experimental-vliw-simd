@@ -25,6 +25,13 @@ import math
 #  Opcode Tables — must match SlotBundles.scala
 # ============================================================================
 
+ALU_OPCODE_BITS = 5
+VALU_OPCODE_BITS = 5
+LOAD_OPCODE_BITS = 4
+STORE_OPCODE_BITS = 3
+FLOW_OPCODE_BITS = 5
+MATRIX_OPCODE_BITS = 5
+
 ALU_OPCODES = {
     "+":    0, "add":    0,
     "-":    1, "sub":    1,
@@ -39,12 +46,14 @@ ALU_OPCODES = {
     "%":   10, "mod":   10,
     "//":  11, "div":   11,
     "cdiv": 12,
+    "max": 13,
+    "min": 14,
 }
 
 VALU_EXTRA_OPCODES = {
-    "vbroadcast":   13,
-    "multiply_add": 14,
-    "vcast":        15,
+    "vbroadcast":   15,
+    "multiply_add": 16,
+    "vcast":        17,
 }
 
 # Element width encoding (3-bit, matches ElemWidth in SlotBundles.scala)
@@ -64,11 +73,16 @@ EWIDTH_MAP = {
 }
 
 LOAD_OPCODES = {
-    "nop":         0,
-    "load":        1,
-    "load_offset": 2,
-    "vload":       3,
-    "const":       4,
+    "nop":            0,
+    "load":           1,
+    "load_offset":    2,
+    "vload":          3,
+    "const":          4,
+    "wait_for_load":  5,
+    "scopy_m2v":      6,
+    "scopy_v2m":      7,
+    "scopy_v2s":      8,
+    "scopy_s2v":      9,
 }
 
 STORE_OPCODES = {
@@ -90,16 +104,30 @@ FLOW_OPCODES = {
     "coreid":         9,
 }
 
+MATRIX_OPCODES = {
+    "nop":          0,
+    "mcfg":         1,
+    "mmload":       2,
+    "mmstore":      3,
+    "mdmvin":       4,
+    "mdmvout":      5,
+    "mpreload":     6,
+    "mcompute":     7,
+    "mcompute_acc": 8,
+    "mzero":        9,
+}
+
 
 # ============================================================================
 #  Slot Widths — must match VliwSocConfig
 # ============================================================================
 
-ALU_SLOT_WIDTH   = 40
-VALU_SLOT_WIDTH  = 56
-LOAD_SLOT_WIDTH  = 48
-STORE_SLOT_WIDTH = 28
-FLOW_SLOT_WIDTH  = 48
+ALU_SLOT_WIDTH   = 41
+VALU_SLOT_WIDTH  = 57
+LOAD_SLOT_WIDTH  = 49
+STORE_SLOT_WIDTH = 29
+FLOW_SLOT_WIDTH  = 49
+MATRIX_SLOT_WIDTH = 65
 
 
 # ============================================================================
@@ -114,6 +142,7 @@ class AssemblerConfig:
     n_load_slots:  int = 1
     n_store_slots: int = 1
     n_flow_slots:  int = 1
+    n_matrix_slots:int = 0
     vlen:          int = 8
     scratch_size:  int = 1536
     imem_depth:    int = 1024
@@ -132,6 +161,7 @@ class AssemblerConfig:
                self.n_valu_slots * VALU_SLOT_WIDTH +
                self.n_load_slots * LOAD_SLOT_WIDTH +
                self.n_store_slots * STORE_SLOT_WIDTH +
+               self.n_matrix_slots * MATRIX_SLOT_WIDTH +
                self.n_flow_slots * FLOW_SLOT_WIDTH)
         return ((raw + 63) // 64) * 64
 
@@ -152,13 +182,13 @@ def _pack_bits(value: int, width: int) -> int:
 def encode_alu_slot(op: str, dest: int, src1: int, src2: int,
                     addr_w: int = 11) -> int:
     """
-    Encode a scalar ALU slot (40 bits).
-    [39] valid=1 | [38:35] opcode | [34:24] dest | [23:13] src1 | [12:2] src2 | [1:0] rsvd=0
+    Encode a scalar ALU slot (41 bits).
+    [40] valid=1 | [39:35] opcode | [34:24] dest | [23:13] src1 | [12:2] src2 | [1:0] rsvd=0
     """
     opcode = ALU_OPCODES[op]
     bits = 0
-    bits |= (1 << 39)                                        # valid
-    bits |= (_pack_bits(opcode, 4) << 35)                     # opcode
+    bits |= (1 << 40)                                        # valid
+    bits |= (_pack_bits(opcode, ALU_OPCODE_BITS) << 35)       # opcode
     bits |= (_pack_bits(dest, 11) << 24)                      # dest
     bits |= (_pack_bits(src1, 11) << 13)                      # src1
     bits |= (_pack_bits(src2, 11) << 2)                       # src2
@@ -176,8 +206,8 @@ def encode_valu_slot(op: str, dest_base: int, src1_base: int,
                      ewidth: int = 0, dwidth: int = 0,
                      signed: int = 0) -> int:
     """
-    Encode a vector ALU slot (56 bits).
-    [55] valid=1 | [54:51] opcode | [50:40] destBase | [39:29] src1Base |
+    Encode a vector ALU slot (57 bits).
+    [56] valid=1 | [55:51] opcode | [50:40] destBase | [39:29] src1Base |
     [28:18] src2Base | [17:7] src3Base | [6:4] ewidth | [3:1] dwidth | [0] signed
 
     ewidth/dwidth encoding: 0=32b, 1=8b, 2=16b, 3=4b, 4=64b
@@ -191,8 +221,8 @@ def encode_valu_slot(op: str, dest_base: int, src1_base: int,
         raise ValueError(f"Unknown VALU opcode: {op}")
 
     bits = 0
-    bits |= (1 << 55)
-    bits |= (_pack_bits(opcode, 4) << 51)
+    bits |= (1 << 56)
+    bits |= (_pack_bits(opcode, VALU_OPCODE_BITS) << 51)
     bits |= (_pack_bits(dest_base, 11) << 40)
     bits |= (_pack_bits(src1_base, 11) << 29)
     bits |= (_pack_bits(src2_base, 11) << 18)
@@ -211,15 +241,15 @@ def encode_load_slot(op: str, dest: int, addr_reg: int = 0,
                      offset: int = 0, immediate: int = 0,
                      addr_w: int = 11) -> int:
     """
-    Encode a load slot (48 bits).
-    [47] valid=1 | [46:44] opcode | [43:33] dest | [32:22] addrReg |
+    Encode a load slot (49 bits).
+    [48] valid=1 | [47:44] opcode | [43:33] dest | [32:22] addrReg |
     [21:19] offset | [18:0] rsvd
     For CONST: immediate packed in bits [31:0]
     """
     opcode = LOAD_OPCODES[op]
     bits = 0
-    bits |= (1 << 47)
-    bits |= (_pack_bits(opcode, 3) << 44)
+    bits |= (1 << 48)
+    bits |= (_pack_bits(opcode, LOAD_OPCODE_BITS) << 44)
     bits |= (_pack_bits(dest, 11) << 33)
 
     if op == "const":
@@ -239,13 +269,13 @@ def encode_load_nop() -> int:
 def encode_store_slot(op: str, addr_reg: int, src_reg: int = 0,
                       addr_w: int = 11) -> int:
     """
-    Encode a store slot (28 bits).
-    [27] valid=1 | [26:25] opcode | [24:14] addrReg | [13:3] srcReg | [2:0] rsvd=0
+    Encode a store slot (29 bits).
+    [28] valid=1 | [27:25] opcode | [24:14] addrReg | [13:3] srcReg | [2:0] rsvd=0
     """
     opcode = STORE_OPCODES[op]
     bits = 0
-    bits |= (1 << 27)
-    bits |= (_pack_bits(opcode, 2) << 25)
+    bits |= (1 << 28)
+    bits |= (_pack_bits(opcode, STORE_OPCODE_BITS) << 25)
     bits |= (_pack_bits(addr_reg, 11) << 14)
     bits |= (_pack_bits(src_reg, 11) << 3)
     return bits
@@ -259,14 +289,14 @@ def encode_flow_slot(op: str, dest: int = 0, operand_a: int = 0,
                      operand_b: int = 0, immediate: int = 0,
                      addr_w: int = 11, imem_addr_w: int = 10) -> int:
     """
-    Encode a flow slot (48 bits).
-    [47] valid=1 | [46:43] opcode | [42:32] dest | [31:21] operandA |
+    Encode a flow slot (49 bits).
+    [48] valid=1 | [47:43] opcode | [42:32] dest | [31:21] operandA |
     [20:10] operandB | [9:0] immediate
     """
     opcode = FLOW_OPCODES[op]
     bits = 0
-    bits |= (1 << 47)
-    bits |= (_pack_bits(opcode, 4) << 43)
+    bits |= (1 << 48)
+    bits |= (_pack_bits(opcode, FLOW_OPCODE_BITS) << 43)
     bits |= (_pack_bits(dest, 11) << 32)
     bits |= (_pack_bits(operand_a, 11) << 21)
     bits |= (_pack_bits(operand_b, 11) << 10)
@@ -275,6 +305,34 @@ def encode_flow_slot(op: str, dest: int = 0, operand_a: int = 0,
 
 
 def encode_flow_nop() -> int:
+    return 0
+
+
+def encode_matrix_slot(op: str, dest: int = 0, src_a: int = 0,
+                       src_b: int = 0, src_c: int = 0,
+                       tile_rows: int = 8, tile_cols: int = 8,
+                       flags: int = 0) -> int:
+    """
+    Encode a matrix slot (65 bits).
+    [64] valid=1 | [63:59] opcode | [58:48] dest | [47:37] srcA |
+    [36:26] srcB | [25:15] srcC | [14:11] tileRows | [10:7] tileCols |
+    [6:1] flags | [0] reserved
+    """
+    opcode = MATRIX_OPCODES[op]
+    bits = 0
+    bits |= (1 << 64)
+    bits |= (_pack_bits(opcode, MATRIX_OPCODE_BITS) << 59)
+    bits |= (_pack_bits(dest, 11) << 48)
+    bits |= (_pack_bits(src_a, 11) << 37)
+    bits |= (_pack_bits(src_b, 11) << 26)
+    bits |= (_pack_bits(src_c, 11) << 15)
+    bits |= (_pack_bits(tile_rows, 4) << 11)
+    bits |= (_pack_bits(tile_cols, 4) << 7)
+    bits |= (_pack_bits(flags, 6) << 1)
+    return bits
+
+
+def encode_matrix_nop() -> int:
     return 0
 
 
@@ -423,6 +481,14 @@ class Assembler:
                 dest, value = op_tuple[1], op_tuple[2]
                 slots.append(encode_load_slot(op, dest, immediate=value & 0xFFFFFFFF,
                                               addr_w=self.cfg.scratch_addr_width))
+            elif op == "wait_for_load":
+                dest = op_tuple[1]
+                slots.append(encode_load_slot(op, dest=dest, addr_w=self.cfg.scratch_addr_width))
+            elif op in ("scopy_m2v", "scopy_v2m", "scopy_v2s", "scopy_s2v"):
+                dest, addr_reg = op_tuple[1], op_tuple[2]
+                offset = op_tuple[3] if len(op_tuple) > 3 else 0
+                slots.append(encode_load_slot(op, dest, addr_reg, offset=offset,
+                                              addr_w=self.cfg.scratch_addr_width))
             else:
                 raise ValueError(f"Unknown load opcode: {op}")
         while len(slots) < self.cfg.n_load_slots:
@@ -507,6 +573,25 @@ class Assembler:
             raise ValueError(f"Too many flow ops: {len(slots)} > {self.cfg.n_flow_slots}")
         return slots
 
+    def _encode_matrix_ops(self, ops: List[tuple]) -> List[int]:
+        """Encode matrix operations into slot bit patterns."""
+        slots = []
+        for op_tuple in ops:
+            op = op_tuple[0]
+            dest = op_tuple[1] if len(op_tuple) > 1 else 0
+            src_a = op_tuple[2] if len(op_tuple) > 2 else 0
+            src_b = op_tuple[3] if len(op_tuple) > 3 else 0
+            src_c = op_tuple[4] if len(op_tuple) > 4 else 0
+            tile_rows = op_tuple[5] if len(op_tuple) > 5 else 8
+            tile_cols = op_tuple[6] if len(op_tuple) > 6 else 8
+            flags = op_tuple[7] if len(op_tuple) > 7 else 0
+            slots.append(encode_matrix_slot(op, dest, src_a, src_b, src_c, tile_rows, tile_cols, flags))
+        while len(slots) < self.cfg.n_matrix_slots:
+            slots.append(encode_matrix_nop())
+        if len(slots) > self.cfg.n_matrix_slots:
+            raise ValueError(f"Too many matrix ops: {len(slots)} > {self.cfg.n_matrix_slots}")
+        return slots
+
     def assemble(self, instruction: Dict[str, List[tuple]]) -> int:
         """
         Assemble one instruction bundle dict into a single integer (bit pattern).
@@ -521,12 +606,14 @@ class Assembler:
         valu_ops  = instruction.get("valu", [])
         load_ops  = instruction.get("load", [])
         store_ops = instruction.get("store", [])
+        matrix_ops = instruction.get("matrix", [])
         flow_ops  = instruction.get("flow", [])
 
         alu_slots   = self._encode_alu_ops(alu_ops)
         valu_slots  = self._encode_valu_ops(valu_ops)
         load_slots  = self._encode_load_ops(load_ops)
         store_slots = self._encode_store_ops(store_ops)
+        matrix_slots = self._encode_matrix_ops(matrix_ops)
         flow_slots  = self._encode_flow_ops(flow_ops)
 
         # Pack: LSB first, same order as DecodeUnit.scala
@@ -548,6 +635,10 @@ class Assembler:
         for s in store_slots:
             bundle |= (s << bit_offset)
             bit_offset += STORE_SLOT_WIDTH
+
+        for s in matrix_slots:
+            bundle |= (s << bit_offset)
+            bit_offset += MATRIX_SLOT_WIDTH
 
         for s in flow_slots:
             bundle |= (s << bit_offset)
@@ -590,11 +681,11 @@ class Assembler:
 # ============================================================================
 
 def disassemble_alu_slot(bits: int) -> Optional[tuple]:
-    """Decode a 40-bit ALU slot back to (op, dest, src1, src2) or None if NOP."""
-    valid = (bits >> 39) & 1
+    """Decode an ALU slot back to (op, dest, src1, src2) or None if NOP."""
+    valid = (bits >> 40) & 1
     if not valid:
         return None
-    opcode = (bits >> 35) & 0xF
+    opcode = (bits >> 35) & ((1 << ALU_OPCODE_BITS) - 1)
     dest   = (bits >> 24) & 0x7FF
     src1   = (bits >> 13) & 0x7FF
     src2   = (bits >> 2)  & 0x7FF
@@ -606,7 +697,7 @@ def disassemble_alu_slot(bits: int) -> Optional[tuple]:
 def disassemble_bundle(bundle: int, cfg: Optional[AssemblerConfig] = None) -> Dict[str, list]:
     """Disassemble a bundle integer back to instruction dict (partial — ALU only for now)."""
     cfg = cfg or AssemblerConfig()
-    result = {"alu": [], "valu": [], "load": [], "store": [], "flow": []}
+    result = {"alu": [], "valu": [], "load": [], "store": [], "matrix": [], "flow": []}
     bit_offset = 0
 
     for i in range(cfg.n_alu_slots):
@@ -620,6 +711,7 @@ def disassemble_bundle(bundle: int, cfg: Optional[AssemblerConfig] = None) -> Di
     bit_offset += cfg.n_valu_slots * VALU_SLOT_WIDTH
     bit_offset += cfg.n_load_slots * LOAD_SLOT_WIDTH
     bit_offset += cfg.n_store_slots * STORE_SLOT_WIDTH
+    bit_offset += cfg.n_matrix_slots * MATRIX_SLOT_WIDTH
     bit_offset += cfg.n_flow_slots * FLOW_SLOT_WIDTH
 
     return result

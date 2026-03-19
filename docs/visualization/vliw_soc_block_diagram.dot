@@ -1,0 +1,67 @@
+digraph VliwSocBlock {
+  graph [
+    rankdir=LR,
+    splines=ortho,
+    newrank=true,
+    compound=true,
+    nodesep=0.6,
+    ranksep=1.0,
+    pad=0.28,
+    bgcolor="transparent",
+    fontname="Trebuchet MS"
+  ];
+
+  node [
+    shape=box,
+    style="filled",
+    fontname="Trebuchet MS",
+    fontsize=12,
+    margin="0.22,0.14",
+    color="#5f5543",
+    fillcolor="#f7f1e3",
+    fontcolor="#1d1b17",
+    penwidth=1.8
+  ];
+
+  edge [
+    color="#645846",
+    penwidth=1.6,
+    arrowsize=0.85,
+    fontname="Trebuchet MS",
+    fontsize=10,
+    fontcolor="#3b352c"
+  ];
+
+  CSR  [label="CSR AXI-Lite host", fillcolor="#fff8ec", color="#5f5543", width=2.2, height=0.78];
+  DMEM [label="Shared DMEM AXI host port", fillcolor="#fff8ec", color="#5f5543", width=2.7, height=0.78];
+  IRQ  [label="IRQ", shape=circle, fillcolor="#f5dfdf", color="#7a3f3f", width=0.75, height=0.75, margin="0.06,0.04"];
+
+  subgraph cluster_soc {
+    label="VliwSimdSoc_1c";
+    labelloc=t;
+    labeljust=l;
+    color="#84745b";
+    penwidth=1.5;
+    style="filled";
+    fillcolor="#fcfbf7";
+
+    HOST     [label="HostInterface", fillcolor="#e7f0fb", color="#355c7d", width=2.0, height=0.82];
+    IMEMCTRL [label="IMEM bus control", fillcolor="#e7f0fb", color="#355c7d", width=2.2, height=0.82];
+    CORE     [label="VliwCore", fillcolor="#eadfc8", color="#7c5c2f", width=2.0, height=0.9, penwidth=2.0];
+    MEMSUB   [label="MemorySubsystem", fillcolor="#eaf4e4", color="#42633b", width=2.35, height=0.86];
+
+    { rank=same; HOST; IMEMCTRL; CORE; MEMSUB; }
+  }
+
+  CSR:e -> HOST:w;
+  HOST:e -> IMEMCTRL:w [xlabel="bundle assembly and commit"];
+  IMEMCTRL:e -> CORE:w [xlabel="imemWrite"];
+  HOST:n -> CORE:nw [xlabel="start, halt, PC, status", constraint=false, minlen=2];
+  CORE:e -> MEMSUB:nw [xlabel="core AXI read/write channel"];
+  DMEM:e -> MEMSUB:sw [xlabel="host AXI read/write channel"];
+  HOST:s -> IRQ:w [xlabel="interrupt status", constraint=false, minlen=2];
+
+  HOST -> IMEMCTRL [style=invis, weight=10];
+  IMEMCTRL -> CORE [style=invis, weight=10];
+  CORE -> MEMSUB [style=invis, weight=10];
+}

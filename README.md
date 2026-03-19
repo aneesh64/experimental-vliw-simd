@@ -56,6 +56,13 @@ python -m pytest tools/tests/test_dsl_examples.py tools/tests/test_dsl_lowering.
 python verification/cocotb/integration/run_integration.py --modules test_dsl_integration,test_dsl_helpers_integration,test_dsl_algorithms_integration
 ```
 
+### Run the tiled 32x32 matrix host-prep demo
+```bash
+python tools/matrix_matmul_32x32_demo.py
+python tools/matrix_matmul_32x32_demo.py --json
+python tools/matrix_matmul_32x32_demo.py --emit-dir <artifact_dir>
+```
+
 ## Documentation Map
 
 ### Start here
@@ -64,6 +71,7 @@ python verification/cocotb/integration/run_integration.py --modules test_dsl_int
 
 ### Hardware
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/ISA.md](docs/ISA.md)
 - [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md)
 - [docs/DRIVER_API.md](docs/DRIVER_API.md)
 - [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)
@@ -75,6 +83,7 @@ python verification/cocotb/integration/run_integration.py --modules test_dsl_int
 - [docs/DSL_TILEWEAVE_GUIDE.md](docs/DSL_TILEWEAVE_GUIDE.md)
 - [docs/DSL_DEVELOPER_GUIDE.md](docs/DSL_DEVELOPER_GUIDE.md)
 - [docs/DSL_HIGH_LEVEL_ROADMAP.md](docs/DSL_HIGH_LEVEL_ROADMAP.md)
+- [docs/DSL_EXAMPLE_MATRIX_MATMUL_32X32.md](docs/DSL_EXAMPLE_MATRIX_MATMUL_32X32.md)
 
 ## Repository Layout
 

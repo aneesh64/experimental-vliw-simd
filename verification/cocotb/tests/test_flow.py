@@ -17,7 +17,7 @@ import cocotb
 from cocotb.triggers import Timer
 
 # Propagation delay for combinatorial settling
-SETTLE = Timer(1, units="ns")
+SETTLE = Timer(1, unit="ns")
 
 
 class FlowOp:

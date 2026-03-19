@@ -1,11 +1,11 @@
 """
 cocotb testbench for AluEngine module (Sim config: 1 ALU slot).
 
-Tests all 13 ALU opcodes including the multi-cycle DIV/MOD/CDIV
+Tests all 15 ALU opcodes including the multi-cycle DIV/MOD/CDIV
 which use the fire-and-forget UnsignedDivider.
 
 Port naming (from generated Verilog):
-  io_slots_0_valid, io_slots_0_opcode[3:0], io_slots_0_dest[10:0],
+    io_slots_0_valid, io_slots_0_opcode[4:0], io_slots_0_dest[10:0],
   io_slots_0_src1[10:0], io_slots_0_src2[10:0]
   io_valid
   io_operandA_0[31:0], io_operandB_0[31:0]
@@ -35,6 +35,8 @@ class Op:
     MOD  = 10
     DIV  = 11
     CDIV = 12
+    MAX  = 13
+    MIN  = 14
 
 
 def expected_result(op, a, b):
@@ -53,6 +55,8 @@ def expected_result(op, a, b):
     if op == Op.MOD:  return a % b if b else 0
     if op == Op.DIV:  return a // b if b else 0
     if op == Op.CDIV: return ((a + b - 1) // b) if b else 0
+    if op == Op.MAX:  return a if a >= b else b
+    if op == Op.MIN:  return a if a <= b else b
     raise ValueError(f"Unknown opcode {op}")
 
 
@@ -118,7 +122,7 @@ async def check_single_cycle_result(dut, opcode, a, b, dest=5):
 @cocotb.test()
 async def test_single_cycle_ops(dut):
     """Test all single-cycle ALU operations."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     test_vectors = [
@@ -140,6 +144,10 @@ async def test_single_cycle_ops(dut):
         (Op.LT,   5, 5,      0),
         (Op.EQ,   42, 42,    1),
         (Op.EQ,   42, 43,    0),
+        (Op.MAX,  42, 7,     42),
+        (Op.MAX,  1, MASK32, MASK32),
+        (Op.MIN,  42, 7,     7),
+        (Op.MIN,  1, MASK32, 1),
     ]
 
     for opcode, a, b, exp in test_vectors:
@@ -153,7 +161,7 @@ async def test_single_cycle_ops(dut):
 @cocotb.test()
 async def test_div_multicycle(dut):
     """Test DIV opcode (multi-cycle via UnsignedDivider)."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     dest = 10
@@ -180,7 +188,7 @@ async def test_div_multicycle(dut):
 @cocotb.test()
 async def test_mod_multicycle(dut):
     """Test MOD opcode (multi-cycle, returns remainder)."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     dest = 11
@@ -206,7 +214,7 @@ async def test_mod_multicycle(dut):
 @cocotb.test()
 async def test_cdiv_multicycle(dut):
     """Test CDIV (ceiling division) opcode."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     dest = 12
@@ -232,7 +240,7 @@ async def test_cdiv_multicycle(dut):
 @cocotb.test()
 async def test_no_write_when_invalid(dut):
     """Verify no write request when valid=0."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     dut.io_valid.value = 0
@@ -253,11 +261,11 @@ async def test_no_write_when_invalid(dut):
 @cocotb.test()
 async def test_random_single_cycle(dut):
     """Random test for single-cycle operations."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset(dut)
 
     rng = random.Random(123)
-    single_ops = [Op.ADD, Op.SUB, Op.MUL, Op.XOR, Op.AND, Op.OR, Op.SHL, Op.SHR, Op.LT, Op.EQ]
+    single_ops = [Op.ADD, Op.SUB, Op.MUL, Op.XOR, Op.AND, Op.OR, Op.SHL, Op.SHR, Op.LT, Op.EQ, Op.MAX, Op.MIN]
 
     for _ in range(100):
         op = rng.choice(single_ops)

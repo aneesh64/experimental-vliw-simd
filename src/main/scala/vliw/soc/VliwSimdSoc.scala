@@ -118,7 +118,7 @@ class VliwSimdSoc(cfg: VliwSocConfig) extends Component {
 
     // Capture AW and W
     val awAddr = Reg(UInt(cfg.axiAddrWidth bits))
-    val wData  = Reg(Bits(cfg.axiDataWidth bits))
+    val wData  = Reg(Bits(cfg.axiLiteDataWidth bits))
     val awFire = Bool()
     val wFire  = Bool()
     awFire := axiLite.aw.valid && axiLite.aw.ready

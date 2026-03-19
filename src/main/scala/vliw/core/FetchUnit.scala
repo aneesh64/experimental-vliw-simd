@@ -30,7 +30,10 @@ class FetchUnit(cfg: VliwSocConfig) extends Component {
     val jump     = slave(Flow(UInt(cfg.imemAddrWidth bits)))  // From FlowEngine
     val halt     = in Bool()                                   // From FlowEngine
     val start    = in Bool()                                   // From HostInterface
-    val stall    = in Bool()                                   // From MemoryEngine
+    val stall       = in Bool()                                // Any stall source that must freeze fetch/PC
+    val replayStall = in Bool()                                // Memory replay stall that needs a stall-release bubble
+    val matrixStall = in Bool()                                // Matrix-specific stall (skip stallReleaseBubble)
+    val memBusy     = in Bool()                                // Outstanding AXI transactions still in flight
 
     // ---- Status outputs ----
     val pc       = out UInt(cfg.imemAddrWidth bits)
@@ -40,7 +43,7 @@ class FetchUnit(cfg: VliwSocConfig) extends Component {
 
   // ---- Core state machine ----
   object CoreState extends SpinalEnum {
-    val IDLE, RUNNING, HALTED = newElement()
+    val IDLE, RUNNING, HALT_DRAIN, HALTED = newElement()
   }
 
   val state = RegInit(CoreState.IDLE)
@@ -59,6 +62,13 @@ class FetchUnit(cfg: VliwSocConfig) extends Component {
   // the second capture with startupBubble to prevent executing bundle 0 twice.
   val startupBubble = RegInit(False)
 
+  // Stall-release bubble: during a replay-style stall the fetch unit drives
+  // imemAddr=pc-1 so the synchronous IMEM keeps outputting the in-flight
+  // instruction. On the first cycle after stall release, that stale instruction
+  // is still present on io.imemData. Suppress one capture so the next cycle
+  // sees the true pc bundle.
+  val stallReleaseBubble = RegInit(False)
+
   // ---- State transitions ----
   switch(state) {
     is(CoreState.IDLE) {
@@ -70,6 +80,15 @@ class FetchUnit(cfg: VliwSocConfig) extends Component {
     }
     is(CoreState.RUNNING) {
       when(io.halt) {
+        when(io.memBusy) {
+          state := CoreState.HALT_DRAIN
+        } otherwise {
+          state := CoreState.HALTED
+        }
+      }
+    }
+    is(CoreState.HALT_DRAIN) {
+      when(!io.memBusy) {
         state := CoreState.HALTED
       }
     }
@@ -84,12 +103,12 @@ class FetchUnit(cfg: VliwSocConfig) extends Component {
   }
 
   // ---- IMEM address ----
-  // During a stall, drive pc-1 so the IMEM keeps outputting the instruction
-  // that was "in flight" when the stall began.  Normally the IMEM has 1-cycle
-  // read latency and pc is always 1 ahead of what exBundleReg holds.  If we
-  // leave imemAddr=pc during a stall, the IMEM output drifts to mem[pc] and
-  // the instruction at mem[pc-1] is lost — causing an instruction skip on
-  // stall release.
+  // During any stall, drive pc-1 so the IMEM keeps outputting the next
+  // instruction to be fetched.  With readSync (1-cycle latency), pc is
+  // always TWO ahead of exBundleReg:
+  //   exBundleReg = mem[pc-2],  IMEM during stall outputs mem[pc-1]
+  // On stall release, the fresh instruction on io.imemData is captured
+  // normally by the `otherwise` branch — no stallReleaseBubble needed.
   io.imemAddr := Mux(io.stall, (pc - 1).resized, pc)
 
   // ---- Pipeline progression ----
@@ -101,6 +120,9 @@ class FetchUnit(cfg: VliwSocConfig) extends Component {
         startupBubble := False
         exValidReg    := False
         pc            := pc + 1
+      } elsewhen(stallReleaseBubble) {
+        stallReleaseBubble := False
+        exValidReg := False
       } elsewhen(io.jump.valid) {
         // Taken branch: load target, invalidate in-flight
         pc          := io.jump.payload
@@ -119,11 +141,27 @@ class FetchUnit(cfg: VliwSocConfig) extends Component {
       exValidReg := False
     }
   }
-  // When stalled: pc, exBundleReg, exValidReg hold their values
+  // When stalled: pc, exBundleReg, exValidReg hold their values.
+  // With the 3-stage pipeline and synchronous IMEM, stallReleaseBubble is
+  // NOT needed for memory replay stalls: imemAddr=pc-1 outputs the correct
+  // next instruction (mem[pc-1]), which is fresh, not a duplicate.
+  // stallReleaseBubble is kept as infrastructure but replayStall is always
+  // False (see VliwCore wiring).
+  when(io.replayStall && cycleActive && !io.matrixStall) {
+    stallReleaseBubble := True
+  }
 
   // ---- Outputs ----
   io.exBundle := exBundleReg
-  io.exValid  := exValidReg
+  // Combinatorially suppress exValid when HALT fires in the EX stage.
+  // Without this, the instruction fetched after HALT (at HALT_PC+1) would
+  // be decoded with valid=True during the same cycle HALT fires, and the
+  // registered exValidReg := False only takes effect one cycle later —
+  // too late to prevent the post-HALT instruction from entering exSlotsReg
+  // and executing.  This is critical when a shorter program follows a
+  // longer one: stale IMEM at HALT_PC+1 could contain active instructions
+  // (e.g. STORE) from the previous program.
+  io.exValid  := exValidReg && !io.halt
   io.pc       := pc
   io.running  := cycleActive
   io.halted   := (state === CoreState.HALTED)
