@@ -799,6 +799,9 @@ python verification/cocotb/integration/run_integration.py --modules test_integra
 python verification/cocotb/integration/run_integration.py --modules test_integration_control
 python verification/cocotb/integration/run_integration.py --modules test_integration_vector
 
+# Run the focused FP32 end-to-end suite
+python verification/cocotb/integration/run_integration.py --modules fp32
+
 # Run slot configuration and driver integration modules
 python verification/cocotb/integration/run_integration.py --modules test_slot_configs
 python verification/cocotb/integration/run_integration.py --modules test_driver_integration
@@ -809,6 +812,9 @@ python verification/cocotb/integration/run_integration.py --modules test_algorit
 
 # Filter specific tests within a module
 python verification/cocotb/integration/run_integration.py --modules test_algorithms_multiwidth test_multiwidth_packed_8bit_add
+
+# The fp32 alias also works as a test filter expansion
+python verification/cocotb/integration/run_integration.py --modules fp32 fp32
 ```
 
 Tooling tests are located in tools/tests:

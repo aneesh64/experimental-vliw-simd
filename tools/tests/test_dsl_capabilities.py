@@ -9,7 +9,7 @@ if str(TOOLS_DIR) not in sys.path:
 
 from assembler import AssemblerConfig
 from scheduler import SchedulerConfig
-from dsl import HardwareCapabilities, KernelBuilder, U8, compile_kernel
+from dsl import F32, HardwareCapabilities, KernelBuilder, U8, compile_kernel
 
 
 def test_capabilities_round_trip_configs():
@@ -60,3 +60,20 @@ def test_initial_lowering_respects_scratch_capacity():
         assert "scratch_size" in str(exc)
     else:
         raise AssertionError("Expected scratch overflow to raise ValueError")
+
+
+def test_fp32_capabilities_accept_new_scalar_and_vector_ops():
+    caps = HardwareCapabilities.from_configs()
+
+    for op in ("fadd", "fsub", "fmul", "fmax", "fmin", "i2f", "f2i", "u2f", "f2u"):
+        caps.require_scalar_op(op)
+        caps.require_vector_op(op)
+
+    kb = KernelBuilder("fp32_caps")
+    lhs = kb.scalar("lhs", dtype=F32)
+    rhs = kb.scalar("rhs", dtype=F32)
+    out = kb.scalar("out", dtype=F32)
+    kb.fadd(out, lhs, rhs).halt()
+
+    result = compile_kernel(kb.build(), caps, assemble=False)
+    assert any(getattr(op, "op", None) == "fadd" for op in result.operations if hasattr(op, "op"))

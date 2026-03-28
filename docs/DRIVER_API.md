@@ -186,18 +186,30 @@ printf("s[5] = 0x%x\n", val);
 
 ## 8. Data Memory Access (Optional CSR Bypass)
 
-### DMWA: Data Memory Write Address (0x020)
-
+### DMWA: Data Memory Address (0x020)
 Byte address for DMEM reads/writes via CSR (alternative to AXI).
 
-### DMWD: Data Memory Write Data (0x024)
-
+### DMWD: Data Memory Data (0x024)
 - **Read:** Returns word at DMWA
 - **Write:** Writes word to DMWA
 
-**Note:** Requires synchronization (can't access while cores are running).
+**C Driver Example:**
+```c
+volatile uint32_t *dmwa = (uint32_t*)(SOC_BASE + 0x020);
+volatile uint32_t *dmwd = (uint32_t*)(SOC_BASE + 0x024);
 
----
+// Write value to DMEM
+*dmwa = 0x100; // DMEM address
+*dmwd = 0x1234; // Write data
+
+// Read value from DMEM
+*dmwa = 0x100;
+uint32_t val = *dmwd;
+```
+
+**Note:** Do not access DMEM via CSR while cores are running.
+
+----
 
 ## 9. Full Boot Sequence (Example)
 
@@ -250,64 +262,50 @@ int main() {
     // Reset
     volatile uint32_t *ctrl = (uint32_t*)SOC_CTRL;
     *ctrl = 0x2;  // Set RESET bit
-    for (int i = 0; i < 10; i++) {
-        volatile int j = 0; j++;  // Delay
-    }
+    for (int i = 0; i < 10; i++) { volatile int j = 0; j++; }
     *ctrl = 0x0;  // Clear RESET
-    
-    // Load program
+
+    // Load program to IMEM
     volatile uint32_t *imbas = (uint32_t*)SOC_IMBAS;
     volatile uint32_t *imwd = (uint32_t*)SOC_IMWD;
-    
-    *imbas = 0x0;  // Start at bundle 0
-    
+    *imbas = 0x0;
     for (int b = 0; b < program_bundles; b++) {
         for (int w = 0; w < BUNDLE_WORDS; w++) {
             *imwd = program[b * BUNDLE_WORDS + w];
-            printf("  Wrote bundle[%d].word[%d] = 0x%08x\n", b, w, program[b * BUNDLE_WORDS + w]);
         }
     }
-    
-    printf("Program loaded. Starting execution...\n");
-    
-    // Start
-    *ctrl = 0x1;  // Set START bit
-    
+
+    // Optionally preload DMEM
+    volatile uint32_t *dmwa = (uint32_t*)SOC_BASE + 0x020;
+    volatile uint32_t *dmwd = (uint32_t*)SOC_BASE + 0x024;
+    *dmwa = 0x100;
+    *dmwd = 0x1234;
+
+    // Start execution
+    *ctrl = 0x1;
+
     // Wait for halt
     volatile uint32_t *stat = (uint32_t*)SOC_STAT;
     int timeout = 1000000;
-    while ((*stat & 0x1) == 0 && timeout-- > 0) {
-        // Polling
-    }
-    
+    while ((*stat & 0x1) == 0 && timeout-- > 0) {}
     if (*stat & 0x1) {
         printf("Core halted successfully.\n");
     } else {
         fprintf(stderr, "Timeout waiting for halt!\n");
         return -1;
     }
-    
     if (*stat & 0x2) {
         fprintf(stderr, "ERROR flag set!\n");
         return -1;
     }
-    
-    // Read result
+
+    // Read result from scratch
     volatile uint32_t *scra = (uint32_t*)SOC_SCRA;
     volatile uint32_t *scrd = (uint32_t*)SOC_SCRD;
-    
-    *scra = 0;  // Read s[0]
+    *scra = 0;
     uint32_t result = *scrd;
-    printf("s[0] after execution = %u\n", result);
-    
-    // Expected: s[0] = 1 (started at 0, incremented by 1)
-    if (result == 1) {
-        printf("SUCCESS: Result matches expected value.\n");
-        return 0;
-    } else {
-        printf("FAIL: Expected 1, got %u\n", result);
-        return -1;
-    }
+    printf("Result: %u\n", result);
+    return 0;
 }
 ```
 
@@ -337,6 +335,39 @@ The C example shows how to:
 1. read the generated IMEM words
 2. load them through `vliw_imem_write_word()`
 3. write the packed DMEM buffers through `vliw_dmem_write()`
+4. start execution and wait for halt
+5. compare the packed output buffer against the generated expected output image
+
+---
+
+## 11. TurboQuant-Style Score Artifact Flow Example
+
+For the TurboQuant-style `32x32` score path, the repository now includes:
+- artifact generator: [tools/turboquant_demo.py](../tools/turboquant_demo.py)
+- driver-side example consumer: [drivers/example_turboquant_32x32.c](../drivers/example_turboquant_32x32.c)
+- emitted example artifacts: [generated/turboquant_32x32_demo](../generated/turboquant_32x32_demo)
+
+Suggested workflow:
+
+```bash
+python tools/turboquant_demo.py --emit-dir generated/turboquant_32x32_demo
+```
+
+This emits:
+- `turboquant_32x32_instruction_bundles.txt`
+- `turboquant_32x32_imem_words.txt`
+- `turboquant_32x32_coarse_keys_tiles_i8.bin`
+- `turboquant_32x32_coarse_queries_tiles_i8.bin`
+- `turboquant_32x32_residual_keys_tiles_i8.bin`
+- `turboquant_32x32_residual_queries_tiles_i8.bin`
+- `turboquant_32x32_expected_out_tiles_u32_le.bin`
+- `turboquant_32x32_expected_out_row_major_u32_le.bin`
+- `turboquant_32x32_metadata.json`
+
+The C example shows how to:
+1. read the emitted bundle dump or IMEM word image
+2. load the IMEM words through `vliw_imem_write_word()` via `vliw_load_program()`
+3. write the encoded coarse and residual DMEM buffers through `vliw_dmem_write()`
 4. start execution and wait for halt
 5. compare the packed output buffer against the generated expected output image
 

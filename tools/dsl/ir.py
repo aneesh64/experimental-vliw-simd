@@ -15,6 +15,7 @@ class MemorySpace(str, Enum):
 class DType:
     bits: int
     signed: bool = False
+    is_float: bool = False
 
     @property
     def is_vector_legal(self) -> bool:
@@ -29,6 +30,7 @@ I8 = DType(8, signed=True)
 I16 = DType(16, signed=True)
 I32 = DType(32, signed=True)
 I64 = DType(64, signed=True)
+F32 = DType(32, signed=True, is_float=True)
 
 
 @dataclass(frozen=True)
@@ -145,6 +147,20 @@ class VectorCast(KernelOp):
 
 
 @dataclass(frozen=True)
+class ScalarConvert(KernelOp):
+    op: str
+    dest: str
+    src: str
+
+
+@dataclass(frozen=True)
+class VectorConvert(KernelOp):
+    op: str
+    dest: str
+    src: str
+
+
+@dataclass(frozen=True)
 class AddImmediate(KernelOp):
     dest: str
     src: str
@@ -193,6 +209,7 @@ class MatrixMultiply(KernelOp):
     rhs: str
     out: str
     accumulate: bool = False
+    format: str = "int8"
 
 
 @dataclass(frozen=True)

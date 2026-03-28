@@ -47,6 +47,22 @@ object ValuOpcode {
 }
 
 // ============================================================================
+//  FP32 Opcodes (shared by scalar ALU and EW32 VALU)
+// ============================================================================
+
+object Fp32Opcode {
+  def FADD : UInt = U(18, SlotEncodingWidths.AluOpcodeBits bits)
+  def FSUB : UInt = U(19, SlotEncodingWidths.AluOpcodeBits bits)
+  def FMUL : UInt = U(20, SlotEncodingWidths.AluOpcodeBits bits)
+  def FMAX : UInt = U(21, SlotEncodingWidths.AluOpcodeBits bits)
+  def FMIN : UInt = U(22, SlotEncodingWidths.AluOpcodeBits bits)
+  def I2F  : UInt = U(23, SlotEncodingWidths.AluOpcodeBits bits)
+  def F2I  : UInt = U(24, SlotEncodingWidths.AluOpcodeBits bits)
+  def U2F  : UInt = U(25, SlotEncodingWidths.AluOpcodeBits bits)
+  def F2U  : UInt = U(26, SlotEncodingWidths.AluOpcodeBits bits)
+}
+
+// ============================================================================
 //  Element Width Encoding (3-bit, packed in VALU reserved bits [6:4])
 // ============================================================================
 
@@ -123,20 +139,45 @@ object FlowOpcode {
 }
 
 // ============================================================================
-//  Matrix Opcode (v1 fixed 8x8 int8 systolic engine)
+//  Matrix Opcode (v1 fixed 8x8 engine, 8-bit inputs and 32-bit accumulators)
 // ============================================================================
 
 object MatrixOpcode {
-  def NOP         : UInt = U(0, SlotEncodingWidths.MatrixOpcodeBits bits)
-  def MCFG        : UInt = U(1, SlotEncodingWidths.MatrixOpcodeBits bits)
-  def MMLOAD      : UInt = U(2, SlotEncodingWidths.MatrixOpcodeBits bits)
-  def MMSTORE     : UInt = U(3, SlotEncodingWidths.MatrixOpcodeBits bits)
-  def MDMVIN      : UInt = U(4, SlotEncodingWidths.MatrixOpcodeBits bits)
-  def MDMVOUT     : UInt = U(5, SlotEncodingWidths.MatrixOpcodeBits bits)
-  def MPRELOAD    : UInt = U(6, SlotEncodingWidths.MatrixOpcodeBits bits)
-  def MCOMPUTE    : UInt = U(7, SlotEncodingWidths.MatrixOpcodeBits bits)
-  def MCOMPUTE_ACC: UInt = U(8, SlotEncodingWidths.MatrixOpcodeBits bits)
-  def MZERO       : UInt = U(9, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def NOP                  : UInt = U(0, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MCFG                 : UInt = U(1, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MMLOAD               : UInt = U(2, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MMSTORE              : UInt = U(3, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MDMVIN               : UInt = U(4, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MDMVOUT              : UInt = U(5, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MPRELOAD             : UInt = U(6, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MCOMPUTE             : UInt = U(7, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MCOMPUTE_ACC         : UInt = U(8, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MZERO                : UInt = U(9, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MCOMPUTE_FP8_E4M3    : UInt = U(10, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MCOMPUTE_FP8_E4M3_ACC: UInt = U(11, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MCOMPUTE_FP8_E5M2    : UInt = U(12, SlotEncodingWidths.MatrixOpcodeBits bits)
+  def MCOMPUTE_FP8_E5M2_ACC: UInt = U(13, SlotEncodingWidths.MatrixOpcodeBits bits)
+
+  def isCompute(op: UInt): Bool =
+    op === MCOMPUTE ||
+      op === MCOMPUTE_ACC ||
+      op === MCOMPUTE_FP8_E4M3 ||
+      op === MCOMPUTE_FP8_E4M3_ACC ||
+      op === MCOMPUTE_FP8_E5M2 ||
+      op === MCOMPUTE_FP8_E5M2_ACC
+
+  def isAccumulate(op: UInt): Bool =
+    op === MCOMPUTE_ACC ||
+      op === MCOMPUTE_FP8_E4M3_ACC ||
+      op === MCOMPUTE_FP8_E5M2_ACC
+
+  def isFp8E4M3(op: UInt): Bool =
+    op === MCOMPUTE_FP8_E4M3 || op === MCOMPUTE_FP8_E4M3_ACC
+
+  def isFp8E5M2(op: UInt): Bool =
+    op === MCOMPUTE_FP8_E5M2 || op === MCOMPUTE_FP8_E5M2_ACC
+
+  def isFp8(op: UInt): Bool = isFp8E4M3(op) || isFp8E5M2(op)
 }
 
 // ============================================================================
@@ -199,7 +240,7 @@ case class StoreSlot(cfg: VliwSocConfig) extends Bundle {
 }
 
 /** Matrix slot — 65 bits encoded.
- *  v1 keeps the 8x8 int8 systolic engine fixed and routes control through
+ *  v1 keeps the 8x8 matrix engine fixed and routes control through
  *  scratch-address-sized operands plus small tile/flag fields.
  *
  *  Direct DRAM move convention in v1:
@@ -209,7 +250,10 @@ case class StoreSlot(cfg: VliwSocConfig) extends Bundle {
  *    flags[1]=1 selects operand-B scratch when flags[0]=0; otherwise operand-A
  *
  *  Compute convention in v1:
- *    MCOMPUTE/MCOMPUTE_ACC use srcA as operand-A base, srcB as operand-B base,
+ *    MCOMPUTE/MCOMPUTE_ACC use signed int8 operands with int32 accumulation.
+ *    MCOMPUTE_FP8_E4M3/MCOMPUTE_FP8_E4M3_ACC use FP8 E4M3 inputs with FP32 accumulation.
+ *    MCOMPUTE_FP8_E5M2/MCOMPUTE_FP8_E5M2_ACC use FP8 E5M2 inputs with FP32 accumulation.
+ *    All compute variants use srcA as operand-A base, srcB as operand-B base,
  *    and dest as accumulator base.
  *
  *  [64] valid | [63:59] opcode | [58:48] dest | [47:37] srcA |

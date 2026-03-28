@@ -48,6 +48,17 @@ VALU_SRC3_LATENCY = NORMAL_LATENCY
 # Division: fire-and-forget divider takes dataWidth+1=33 cycles.
 # Result written at bundle N+33, then readable at N+33+1 = N+34.
 DIV_LATENCY = 34
+FP32_ADD_LATENCY = 4
+FP32_MUL_LATENCY = 5
+
+# FP32 engine latencies above describe the internal execution pipe depth in the
+# RTL. Scheduler-visible dependencies need one extra bundle for the core WB
+# stage before scratch reads can safely consume the result, and serialized
+# issue needs one extra bundle because Fp32Unit remains busy on its done cycle.
+FP32_ADD_READ_LATENCY = FP32_ADD_LATENCY + 1
+FP32_MUL_READ_LATENCY = FP32_MUL_LATENCY + 1
+FP32_ADD_BUSY_CYCLES = FP32_ADD_LATENCY + 1
+FP32_MUL_BUSY_CYCLES = FP32_MUL_LATENCY + 1
 
 # Division execution time (cycles the divider is busy on that ALU slot).
 DIV_BUSY_CYCLES = 33
@@ -75,7 +86,7 @@ DEFAULT_MEM_POST_GAP = 0
 # A 1-bundle post-gap avoids back-to-back VALU bundles that would otherwise
 # overlap src2 reads with prior bundle writes.
 DEFAULT_VALU_POST_GAP = 2
-DEFAULT_MATRIX_POST_GAP = 1
+DEFAULT_MATRIX_POST_GAP = 0
 MATRIX_COMPUTE_LATENCY = 1216
 
 MemoryDomain = Literal["scalar", "vector"]
@@ -111,6 +122,7 @@ class Op:
     params: Dict[str, Any] = field(default_factory=dict)
     latency: int = NORMAL_LATENCY
     is_div: bool = False
+    busy_cycles: int = 0
     is_jump: bool = False
     is_halt: bool = False
     label: Optional[str] = None
@@ -389,10 +401,11 @@ class VliwScheduler:
     # ---- ALU operations ----
 
     def _alu_op(self, op: str, dest: int, src1: int, src2: int,
-                latency: int = NORMAL_LATENCY, is_div: bool = False) -> Op:
+                latency: int = NORMAL_LATENCY, is_div: bool = False,
+                busy_cycles: int = 0) -> Op:
         return Op(engine="alu", op=op, dests=[dest], srcs=[src1, src2],
                   params={"dest": dest, "src1": src1, "src2": src2},
-                  latency=latency, is_div=is_div)
+                  latency=latency, is_div=is_div, busy_cycles=busy_cycles)
 
     def add(self, dest: int, src1: int, src2: int) -> Op:
         return self._alu_op("add", dest, src1, src2)
@@ -402,6 +415,54 @@ class VliwScheduler:
 
     def mul(self, dest: int, src1: int, src2: int) -> Op:
         return self._alu_op("mul", dest, src1, src2)
+
+    def fadd(self, dest: int, src1: int, src2: int) -> Op:
+        return self._alu_op("fadd", dest, src1, src2,
+                            latency=FP32_ADD_READ_LATENCY,
+                            busy_cycles=FP32_ADD_BUSY_CYCLES)
+
+    def fsub(self, dest: int, src1: int, src2: int) -> Op:
+        return self._alu_op("fsub", dest, src1, src2,
+                            latency=FP32_ADD_READ_LATENCY,
+                            busy_cycles=FP32_ADD_BUSY_CYCLES)
+
+    def fmul(self, dest: int, src1: int, src2: int) -> Op:
+        return self._alu_op("fmul", dest, src1, src2,
+                            latency=FP32_MUL_READ_LATENCY,
+                            busy_cycles=FP32_MUL_BUSY_CYCLES)
+
+    def fmax(self, dest: int, src1: int, src2: int) -> Op:
+        return self._alu_op("fmax", dest, src1, src2,
+                            latency=FP32_ADD_READ_LATENCY,
+                            busy_cycles=FP32_ADD_BUSY_CYCLES)
+
+    def fmin(self, dest: int, src1: int, src2: int) -> Op:
+        return self._alu_op("fmin", dest, src1, src2,
+                            latency=FP32_ADD_READ_LATENCY,
+                            busy_cycles=FP32_ADD_BUSY_CYCLES)
+
+    def i2f(self, dest: int, src1: int) -> Op:
+        return self._alu_op("i2f", dest, src1, 0,
+                            latency=FP32_ADD_READ_LATENCY,
+                            busy_cycles=FP32_ADD_BUSY_CYCLES)
+
+    def f2i(self, dest: int, src1: int) -> Op:
+        return self._alu_op("f2i", dest, src1, 0,
+                            latency=FP32_ADD_READ_LATENCY,
+                            busy_cycles=FP32_ADD_BUSY_CYCLES)
+
+    def u2f(self, dest: int, src1: int) -> Op:
+        return self._alu_op("u2f", dest, src1, 0,
+                            latency=FP32_ADD_READ_LATENCY,
+                            busy_cycles=FP32_ADD_BUSY_CYCLES)
+
+    def f2u(self, dest: int, src1: int) -> Op:
+        return self._alu_op("f2u", dest, src1, 0,
+                            latency=FP32_ADD_READ_LATENCY,
+                            busy_cycles=FP32_ADD_BUSY_CYCLES)
+
+    def fmadd(self, dest: int, src1: int, src2: int, src3: int, *, temp: int) -> List[Op]:
+        return [self.fmul(temp, src1, src2), self.fadd(dest, temp, src3)]
 
     def xor(self, dest: int, src1: int, src2: int) -> Op:
         return self._alu_op("xor", dest, src1, src2)
@@ -432,15 +493,18 @@ class VliwScheduler:
 
     def div(self, dest: int, src1: int, src2: int) -> Op:
         return self._alu_op("div", dest, src1, src2,
-                            latency=DIV_LATENCY, is_div=True)
+                            latency=DIV_LATENCY, is_div=True,
+                            busy_cycles=DIV_BUSY_CYCLES)
 
     def mod(self, dest: int, src1: int, src2: int) -> Op:
         return self._alu_op("mod", dest, src1, src2,
-                            latency=DIV_LATENCY, is_div=True)
+                            latency=DIV_LATENCY, is_div=True,
+                            busy_cycles=DIV_BUSY_CYCLES)
 
     def cdiv(self, dest: int, src1: int, src2: int) -> Op:
         return self._alu_op("cdiv", dest, src1, src2,
-                            latency=DIV_LATENCY, is_div=True)
+                            latency=DIV_LATENCY, is_div=True,
+                            busy_cycles=DIV_BUSY_CYCLES)
 
     # ---- VALU operations ----
 
@@ -461,7 +525,31 @@ class VliwScheduler:
                   params={"dest_base": dest_base, "src1_base": src1_base,
                           "src2_base": src2_base,
                           "ew": ew, "dw": dw if dw else ew, "signed": signed},
-                  latency=NORMAL_LATENCY)
+              latency=self._valu_latency(op),
+              busy_cycles=self._valu_busy_cycles(op))
+
+    @staticmethod
+    def _valu_latency(op: str) -> int:
+        if op == "fmul":
+            return FP32_MUL_READ_LATENCY
+        if op in {"fadd", "fsub", "fmax", "fmin", "i2f", "f2i", "u2f", "f2u"}:
+            return FP32_ADD_READ_LATENCY
+        return NORMAL_LATENCY
+
+    @staticmethod
+    def _valu_busy_cycles(op: str) -> int:
+        if op == "fmul":
+            return FP32_MUL_BUSY_CYCLES
+        if op in {"fadd", "fsub", "fmax", "fmin", "i2f", "f2i", "u2f", "f2u"}:
+            return FP32_ADD_BUSY_CYCLES
+        return 0
+
+    def vfmadd(self, dest_base: int, src1_base: int, src2_base: int, src3_base: int,
+               *, temp_base: int, vlen: int = 8) -> List[Op]:
+        return [
+            self.valu_op("fmul", temp_base, src1_base, src2_base, vlen=vlen, ew=32, dw=32, signed=0),
+            self.valu_op("fadd", dest_base, temp_base, src3_base, vlen=vlen, ew=32, dw=32, signed=0),
+        ]
 
     def vbroadcast(self, dest_base: int, src_scalar: int, vlen: int = 8,
                    ew: int = 32) -> Op:
@@ -618,6 +706,22 @@ class VliwScheduler:
 
     def mcompute_acc(self, dest: int = 0, src_a: int = 0, src_b: int = 0, src_c: int = 0) -> Op:
         return self.matrix_op("mcompute_acc", dest=dest, src_a=src_a, src_b=src_b,
+                              src_c=src_c, latency=MATRIX_COMPUTE_LATENCY)
+
+    def mcompute_fp8_e4m3(self, dest: int = 0, src_a: int = 0, src_b: int = 0, src_c: int = 0) -> Op:
+        return self.matrix_op("mcompute_fp8_e4m3", dest=dest, src_a=src_a, src_b=src_b,
+                              src_c=src_c, latency=MATRIX_COMPUTE_LATENCY)
+
+    def mcompute_fp8_e4m3_acc(self, dest: int = 0, src_a: int = 0, src_b: int = 0, src_c: int = 0) -> Op:
+        return self.matrix_op("mcompute_fp8_e4m3_acc", dest=dest, src_a=src_a, src_b=src_b,
+                              src_c=src_c, latency=MATRIX_COMPUTE_LATENCY)
+
+    def mcompute_fp8_e5m2(self, dest: int = 0, src_a: int = 0, src_b: int = 0, src_c: int = 0) -> Op:
+        return self.matrix_op("mcompute_fp8_e5m2", dest=dest, src_a=src_a, src_b=src_b,
+                              src_c=src_c, latency=MATRIX_COMPUTE_LATENCY)
+
+    def mcompute_fp8_e5m2_acc(self, dest: int = 0, src_a: int = 0, src_b: int = 0, src_c: int = 0) -> Op:
+        return self.matrix_op("mcompute_fp8_e5m2_acc", dest=dest, src_a=src_a, src_b=src_b,
                               src_c=src_c, latency=MATRIX_COMPUTE_LATENCY)
 
     def mzero(self, dest: int = 0) -> Op:
@@ -788,7 +892,7 @@ class VliwScheduler:
         block: List,
         start_cycle: int,
         reg_ready: Dict[int, int],
-        div_busy: Dict[int, int],
+        div_busy: Dict[Tuple[str, int], int],
         label_pcs: Dict[str, int],
         verbose: bool
     ) -> Tuple[int, List[Tuple[int, Dict]]]:
@@ -947,19 +1051,11 @@ class VliwScheduler:
                         cycle += 1
                         continue
 
-                    # 3. Division exclusion: if this is a div op, check if
-                    #    the ALU slot is busy from a previous div
-                    if op.is_div and op.engine == "alu":
-                        slot_idx = used  # which ALU slot this goes to
-                        busy_until = div_busy.get(slot_idx, 0)
-                        if cycle < busy_until:
-                            cycle += 1
-                            continue
-                    # Also check: would a non-div ALU op at this cycle conflict
-                    # with a divider.done?
-                    if op.engine == "alu" and not op.is_div:
+                    # 3. Serialized long-latency slot exclusion.
+                    if op.engine in ("alu", "valu"):
                         slot_idx = used
-                        if self._div_done_conflicts(slot_idx, cycle, div_busy):
+                        busy_until = div_busy.get((op.engine, slot_idx), -1)
+                        if cycle <= busy_until:
                             cycle += 1
                             continue
 
@@ -1078,10 +1174,10 @@ class VliwScheduler:
                 for d in op.dests:
                     pending_load_map[d] = load_base
 
-            # Track division busy state
-            if op.is_div and op.engine == "alu":
-                slot_idx = slot_usage[cycle].get("alu", 1) - 1
-                div_busy[slot_idx] = cycle + self.cfg.div_latency
+            # Track serialized long-latency slot occupancy
+            if op.busy_cycles > 0 and op.engine in ("alu", "valu"):
+                slot_idx = slot_usage[cycle].get(eng, 1) - 1
+                div_busy[(eng, slot_idx)] = cycle + op.busy_cycles
 
             # If this is a jump, advance past the bubble
             if op.is_jump:

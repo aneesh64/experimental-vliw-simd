@@ -1,6 +1,6 @@
 // Generator : SpinalHDL v1.10.2a    git head : a348a60b7e8b6a455c72e1536ec3d74a2ea16935
 // Component : FetchUnit
-// Git hash  : a8da78e2b1f81267a095ab65c53f95a59b70c238
+// Git hash  : 414aef5ea78ca06f57c39f378ed640d967e9cf6d
 
 `timescale 1ns/1ps
 
@@ -14,6 +14,9 @@ module FetchUnit (
   input  wire          io_halt,
   input  wire          io_start,
   input  wire          io_stall,
+  input  wire          io_replayStall,
+  input  wire          io_matrixStall,
+  input  wire          io_memBusy,
   output wire [9:0]    io_pc,
   output wire          io_running,
   output wire          io_halted,
@@ -22,7 +25,8 @@ module FetchUnit (
 );
   localparam CoreState_IDLE = 2'd0;
   localparam CoreState_RUNNING = 2'd1;
-  localparam CoreState_HALTED = 2'd2;
+  localparam CoreState_HALT_DRAIN = 2'd2;
+  localparam CoreState_HALTED = 2'd3;
 
   wire       [9:0]    _zz_io_imemAddr;
   reg        [1:0]    state;
@@ -31,9 +35,12 @@ module FetchUnit (
   reg        [255:0]  exBundleReg;
   reg                 exValidReg;
   reg                 startupBubble;
-  wire                when_FetchUnit_l96;
+  reg                 stallReleaseBubble;
+  wire                when_FetchUnit_l91;
+  wire                when_FetchUnit_l115;
+  wire                when_FetchUnit_l150;
   `ifndef SYNTHESIS
-  reg [55:0] state_string;
+  reg [79:0] state_string;
   `endif
 
 
@@ -41,19 +48,22 @@ module FetchUnit (
   `ifndef SYNTHESIS
   always @(*) begin
     case(state)
-      CoreState_IDLE : state_string = "IDLE   ";
-      CoreState_RUNNING : state_string = "RUNNING";
-      CoreState_HALTED : state_string = "HALTED ";
-      default : state_string = "???????";
+      CoreState_IDLE : state_string = "IDLE      ";
+      CoreState_RUNNING : state_string = "RUNNING   ";
+      CoreState_HALT_DRAIN : state_string = "HALT_DRAIN";
+      CoreState_HALTED : state_string = "HALTED    ";
+      default : state_string = "??????????";
     endcase
   end
   `endif
 
   assign cycleActive = (state == CoreState_RUNNING);
+  assign when_FetchUnit_l91 = (! io_memBusy);
   assign io_imemAddr = (io_stall ? _zz_io_imemAddr : pc);
-  assign when_FetchUnit_l96 = (! io_stall);
+  assign when_FetchUnit_l115 = (! io_stall);
+  assign when_FetchUnit_l150 = ((io_replayStall && cycleActive) && (! io_matrixStall));
   assign io_exBundle = exBundleReg;
-  assign io_exValid = exValidReg;
+  assign io_exValid = (exValidReg && (! io_halt));
   assign io_pc = pc;
   assign io_running = cycleActive;
   assign io_halted = (state == CoreState_HALTED);
@@ -64,6 +74,7 @@ module FetchUnit (
       exBundleReg <= 256'h0;
       exValidReg <= 1'b0;
       startupBubble <= 1'b0;
+      stallReleaseBubble <= 1'b0;
     end else begin
       case(state)
         CoreState_IDLE : begin
@@ -75,6 +86,15 @@ module FetchUnit (
         end
         CoreState_RUNNING : begin
           if(io_halt) begin
+            if(io_memBusy) begin
+              state <= CoreState_HALT_DRAIN;
+            end else begin
+              state <= CoreState_HALTED;
+            end
+          end
+        end
+        CoreState_HALT_DRAIN : begin
+          if(when_FetchUnit_l91) begin
             state <= CoreState_HALTED;
           end
         end
@@ -86,30 +106,38 @@ module FetchUnit (
           end
         end
       endcase
-      if(when_FetchUnit_l96) begin
+      if(when_FetchUnit_l115) begin
         if(cycleActive) begin
           if(startupBubble) begin
             startupBubble <= 1'b0;
             exValidReg <= 1'b0;
             pc <= (pc + 10'h001);
           end else begin
-            if(io_jump_valid) begin
-              pc <= io_jump_payload;
+            if(stallReleaseBubble) begin
+              stallReleaseBubble <= 1'b0;
               exValidReg <= 1'b0;
-              exBundleReg <= 256'h0;
             end else begin
-              if(io_halt) begin
+              if(io_jump_valid) begin
+                pc <= io_jump_payload;
                 exValidReg <= 1'b0;
+                exBundleReg <= 256'h0;
               end else begin
-                exBundleReg <= io_imemData;
-                exValidReg <= 1'b1;
-                pc <= (pc + 10'h001);
+                if(io_halt) begin
+                  exValidReg <= 1'b0;
+                end else begin
+                  exBundleReg <= io_imemData;
+                  exValidReg <= 1'b1;
+                  pc <= (pc + 10'h001);
+                end
               end
             end
           end
         end else begin
           exValidReg <= 1'b0;
         end
+      end
+      if(when_FetchUnit_l150) begin
+        stallReleaseBubble <= 1'b1;
       end
     end
   end

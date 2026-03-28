@@ -2,7 +2,7 @@
 
 ## Repository Snapshot
 
-**Date:** March 19, 2026
+**Date:** March 28, 2026
 
 ### Baseline hardware status
 - production-ready baseline VLIW SIMD core
@@ -10,7 +10,8 @@
 - baseline configuration: 1 ALU, 1 VALU, 1 Load, 1 Store, 1 Flow
 - ISA extended with scalar `max/min`, signed or unsigned vector `max/min`, and multi-width VALU support
 - HALT pipeline flush fix: `FetchUnit` combinatorially gates `exValid` on `!halt` to prevent delay-slot execution at `HALT_PC+1`
-- optional v1 matrix slot supports 8x8 int8 -> int32 matrix-local transfer and compute flows
+- optional v1 matrix slot supports 8×8 int8→int32 matrix-local transfer and compute flows
+- **FP8 matrix compute:** `mcompute_fp8_e4m3[_acc]` and `mcompute_fp8_e5m2[_acc]` (opcodes 10–13) decode 8-bit E4M3 or E5M2 operands to FP32 in the MAC stage and accumulate into the FP32 accumulator; see [ISA.md](ISA.md) for format details
 - MDMVIN transfers are decoupled: non-matrix bundles may retire during an in-flight MDMVIN; only the next matrix bundle waits (EX bubble)
 - SCOPY operations (opcodes 6-9) enable scratchpad-to-scratchpad copies between matrix-local and vector/scalar scratch without a DRAM round-trip
 

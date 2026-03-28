@@ -30,6 +30,49 @@ This guide shows how to use the Python DSL for realistic kernels, from low-level
 4. bind symbolic DMEM/scalar arguments
 5. validate with unit tests and RTL-backed integration tests
 
+## FP32 Support
+
+The DSL now exposes FP32 scalar and vector operations directly.
+
+Scalar FP32 builder methods:
+- `fadd`, `fsub`, `fmul`, `fmax`, `fmin`
+- `i2f`, `f2i`, `u2f`, `f2u`
+- `fmadd`
+
+Vector FP32 builder methods:
+- `vfadd`, `vfsub`, `vfmul`, `vfmax`, `vfmin`
+- `vi2f`, `vf2i`, `vu2f`, `vf2u`
+- `vfmadd`
+
+Type notes:
+- Use `F32` for FP32 buffers.
+- Vector FP32 lowering targets `EW32` lanes only.
+- `fmadd` and `vfmadd` are pseudo-ops lowered into `fmul` followed by `fadd`; they are not fused hardware FMA instructions.
+
+Example:
+
+```python
+from dsl import KernelBuilder, F32, I32
+
+
+kb = KernelBuilder("fp32_affine")
+x = kb.arg_scalar("x", dtype=I32)
+y = kb.arg_scalar("y", dtype=I32)
+bias = kb.arg_scalar("bias", dtype=I32)
+xf = kb.scalar("xf", dtype=F32)
+yf = kb.scalar("yf", dtype=F32)
+bf = kb.scalar("bf", dtype=F32)
+outf = kb.scalar("outf", dtype=F32)
+outi = kb.scalar("outi", dtype=I32)
+
+kb.i2f(xf, x)
+kb.i2f(yf, y)
+kb.i2f(bf, bias)
+kb.fmadd(outf, xf, yf, bf)
+kb.f2i(outi, outf)
+kb.halt()
+```
+
 ## Example 1: Streaming gain stage
 
 Real-world use: DSP front-end scaling, calibration, or audio gain.

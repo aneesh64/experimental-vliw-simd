@@ -1,8 +1,8 @@
 # VLIW SIMD Architecture - Current Implementation
 
-**Status:** Phase 5+ (Load-Use Hazard Detection + Store Backpressure + Multi-Width Vector ISA + Matrix Integration + HALT Flush Fix)  
-**Version:** Load-Use Hazard Detection + Store FIFO Backpressure + Multi-Width Vector Extension + HALT Pipeline Flush Fix  
-**Last Updated:** March 19, 2026
+**Status:** Phase 5+ (Load-Use Hazard Detection + Store Backpressure + Multi-Width Vector ISA + Matrix Integration + HALT Flush Fix + FP8 Matrix Compute)  
+**Version:** Load-Use Hazard Detection + Store FIFO Backpressure + Multi-Width Vector Extension + HALT Pipeline Flush Fix + FP8 Matrix Compute Extension  
+**Last Updated:** March 28, 2026
 
 ---
 
@@ -93,10 +93,11 @@ The pipeline detects data dependencies from pending loads and stalls automatical
 - Scheduler inserts 3 NOP bundles after taken branches (`JUMP_BUBBLE=3`)
 
 **1× Matrix Engine (Per Core, Dedicated Local Memory Path)**
-- Fixed v1 shape: 8x8 int8 inputs with int32 accumulation
+- Fixed v1 shape: 8x8 tiles with 8-bit operand storage and 32-bit accumulator storage
 - Operand storage: separate operand-A and operand-B matrix scratchpads per core
 - Result storage: separate accumulator memory per core
-- ISA model: dedicated matrix slot with MDMVIN, MDMVOUT, MZERO, MCOMPUTE, and MCOMPUTE_ACC
+- ISA model: dedicated matrix slot with MDMVIN, MDMVOUT, MZERO, signed-int8 compute ops, and FP8 E4M3/E5M2 compute ops
+- **FP8 compute ops:** `mcompute_fp8_e4m3[_acc]` and `mcompute_fp8_e5m2[_acc]` (opcodes 10–13). Both operand tiles are stored as packed 8-bit FP8 values in matrix-local memory; each element is decoded to FP32 in the MAC stage and accumulated into the 32-bit FP32 accumulator. E4M3 offers higher mantissa precision (3 bits, max ±448, no Inf); E5M2 offers wider dynamic range (2 bits, max ±57344, Inf/NaN representable). See [ISA.md](ISA.md#fp8-format-reference) for full bit-layout and NaN-propagation details.
 - **MDMVIN decoupling:** non-matrix bundles may retire while an `MDMVIN` transfer is in progress; only the first subsequent matrix-slot bundle is held in fetch/decode until the transfer completes (EX bubble injected). `MDMVOUT` remains globally blocking until the write drains.
 - **SCOPY operations:** `MemoryEngine` implements `SCOPY_M2V`/`SCOPY_V2M` (multi-cycle, VLEN words, managed by micro-sequencer) and `SCOPY_V2S`/`SCOPY_S2V` (single-word copies) for moving data between the normal scratch crossbar and matrix-local memory without a DRAM round-trip.
 - Plugin note: MatrixEngine implements `EnginePlugin` for engine inventory/debug only, but reports zero scratch ports because it does not participate in the normal BankedScratchMemory crossbar
@@ -120,59 +121,40 @@ The pipeline detects data dependencies from pending loads and stalls automatical
 
 ## Memory Subsystem
 
-### Memory Engine (MemoryEngine.scala - 391 LOC)
+### IMEM and DMEM Subsystem (2026 Update)
 
-**Simplified Design (Phase 3):**
-- **Load Tracking:** Single-item register replaces 3-item FIFO
-  - `loadReqValid` (1-bit flag)
-  - `loadReqEntry` (register holding {rd, coreId, wbTag})
-- **Load-Use Hazard Metadata:** Exports pending load info for VliwCore hazard detection:
-  - `loadPendingValid` — true when a load is in-flight
-  - `loadPendingDestAddr` — scratch destination address of pending load
-  - `loadPendingIsVector` — true if pending load is a vector burst load
-- **AR Channel:** Combinatorial drive (0-cycle latency from request to AR valid)
-- **Constraint:** Only one pending load at a time per core
-- **Alignment Assertions:** Debug-time assertions catch VLOAD/VSTORE beat boundary overflow:
-  - `assert(wordOffset <= wordsPerBeat - VLEN)` for both VLOAD and VSTORE
+The memory subsystem now features a clear separation between **Instruction Memory (IMEM)** and **Data Memory (DMEM)**, both accessible via the C driver and mapped into the SoC address space.
 
-**Load Request Flow:**
-```
-Cycle 0: Load instruction decoded
-         → loadAddr computed
-         → AR signals driven combinatorially
-         → loadReqValid := true
-         
-Cycle 1+: Wait for AXI R channel
-          → When R.ready && R.valid:
-             - loadReqValid := false
-             - Send to writeback with wbTag
-```
+#### IMEM (Instruction Memory)
+- Dedicated region for VLIW bundles.
+- Loaded via CSR registers (`IMBAS`, `IMWD`) or AXI-Lite writes.
+- Bundles are written as 32-bit words; hardware auto-commits after the last word per bundle.
+- Addressing is by bundle index, not byte address.
 
-**Store Operations:**
-- Store requests enqueue into a bounded FIFO
-- MemoryEngine drains queue through AW/W then waits for B response
-- Pipeline stalls only when a new store arrives and total in-flight + queued capacity is full
-- **VSTORE Alignment Constraint:** Word address must satisfy `addr % 16 ≤ 8`
-  (8 lanes at word offsets 0–7 within a 16-word AXI beat). See Known Issues #4a.
+#### DMEM (Data Memory)
+- Main data memory, accessible via AXI4 and optionally via CSR (`DMWA`, `DMWD`).
+- Used for program data, results, and host communication.
+- Supports both scalar and vector accesses.
 
-### Banked Scratch Memory (BankedScratchMemory.scala - 403 LOC)
+#### C Driver Integration
+- The C driver provides routines for IMEM/DMEM initialization, program loading, and result retrieval.
+- Example boot sequence and memory access code are in DRIVER_API.md.
+- The driver ensures correct protocol for bundle writes and memory synchronization.
 
-**Configuration:**
-- **8 banks** × `192` words = `1536` words total per core in the default verified configuration
-- **Word-interleaved addressing:**
-  - low bank-select bits choose the bank
-  - upper bits choose the row within the bank
-- **True Dual-Port:** Simultaneous read and write
+#### Memory Engine (MemoryEngine.scala)
+- Single pending load tracked per core; combinatorial AR drive for low-latency requests.
+- Store requests buffered in a FIFO; pipeline stalls only on full queue.
+- Alignment and hazard checks enforced in hardware.
 
-**Write Forwarding:**
-- If read and write to same address: forward written data
-- Prevents RAW hazards within same cycle
+#### Banked Scratch Memory
+- 8 banks × 192 words = 1536 words per core (default config).
+- Word-interleaved addressing for high bandwidth.
+- True dual-port for concurrent engine and memory access.
+- Write forwarding prevents RAW hazards.
 
-**Ports:**
-- Port A: Execution engines (read/write)
-- Port B: Load/store operations (read/write)
+See DRIVER_API.md for C driver usage and ISA.md for slot/field layouts.
 
----
+----
 
 ## SoC Integration (VliwSimdSoc.scala - 244 LOC)
 
@@ -278,6 +260,11 @@ VliwSocConfig.Sim.copy(nMatrixSlots = 1)
 | Load (cache hit) | 2-3 | AXI latency dependent |
 | Load AR drive | 0 | Combinatorial (Phase 3) |
 | Store | 1 | FIFO-backed, stalls only on full |
+| Matrix int8 compute (`mcompute`) | Multi-cycle | 8×8 tile, 8 MACs/cycle, ~8–72 cycles per tile |
+| Matrix FP8 compute (`mcompute_fp8_e4m3/e5m2`) | Multi-cycle | Same tile loop as int8; FP8 decode adds combinatorial decode stage before MAC |
+| MDMVIN (matrix DMA in) | Variable | AXI read of 64 bytes; decoupled — non-matrix ops retire in parallel |
+| MDMVOUT (matrix DMA out) | Variable | AXI write of 64 bytes; globally blocking until drain |
+| MZERO | Multi-cycle | ~8 cycles to clear 8×8 accumulator tile |
 | Branch taken | 3 | 3-cycle delay slot (IF→Decode→EX depth) |
 | Branch not taken | 0 | Falls through |
 
@@ -317,6 +304,30 @@ This caused silent data corruption when a shorter program followed a longer one:
   output ports for VliwCore’s load-use hazard detection
 - **Alignment Assertions:** Debug-time checks for VLOAD/VSTORE beat boundary overflow
 - Result: 367 → 391 LOC (net +24 from hazard metadata and assertions)
+
+### Phase 5+: FP8 Matrix Compute Extension (March 28, 2026)
+
+**Added FP8 E4M3 and E5M2 matrix multiply opcodes to the Matrix Engine:**
+
+- **Four new MATRIX opcodes** (10–13): `mcompute_fp8_e4m3`, `mcompute_fp8_e4m3_acc`,
+  `mcompute_fp8_e5m2`, `mcompute_fp8_e5m2_acc`.
+
+- **FP8 decode path in MatrixEngine:** Each operand byte is decoded from its FP8 encoding
+  to an internal FP32 representation (exponent unbias + mantissa shift) before the multiply.
+  Two independent decode trees exist: one for E4M3 (`fpA_E4M3_shift`, `fpB_E4M3_shift`) and
+  one for E5M2 (`fpA_E5M2_shift`, `fpB_E5M2_shift`). The active tree is selected by the
+  opcode at the start of the compute state machine.
+
+- **FP32 accumulator:** All four FP8 opcodes accumulate into the existing 32-bit IEEE-754
+  FP32 accumulator memory, identical to the int8 path. Switching between int8 and FP8 compute
+  within a kernel (on the same accumulator tile) without an intervening `mzero` produces
+  undefined results — always zero the tile before changing compute type.
+
+- **Backward compatibility:** Existing int8 programs using `mcompute`/`mcompute_acc` (opcodes
+  7–8) are unaffected; opcode decoding is additive.
+
+- **Assembler support:** All four FP8 opcodes are accepted by `tools/assembler.py` with the
+  same tuple form as `mcompute`: `(op, dest, srcA, srcB[, srcC[, tileRows[, tileCols[, flags]]]])`.
 
 ### Phase 4: Multi-Width Vector ISA Extension
 

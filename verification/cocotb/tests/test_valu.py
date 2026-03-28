@@ -2,22 +2,24 @@
 cocotb testbench for ValuEngine module (Sim config: 1 VALU slot, VLEN=8).
 
 Tests vector ALU operations across all 8 lanes, including:
-  - Lane-wise ADD, SUB, MUL, XOR, AND, OR, SHL, SHR, LT, EQ
-  - VBROADCAST (opcode 13)
-  - MULTIPLY_ADD (opcode 14, DSP48 path)
-  - Multi-cycle DIV/MOD/CDIV per lane (8 parallel dividers)
+    - Lane-wise ADD, SUB, MUL, XOR, AND, OR, SHL, SHR, LT, EQ
+    - VBROADCAST (opcode 13)
+    - MULTIPLY_ADD (opcode 14, DSP48 path)
+    - Multi-cycle DIV/MOD/CDIV per lane (8 parallel dividers)
 
 Port naming:
-  io_slots_0_{valid,opcode,destBase,src1Base,src2Base,src3Base}
-  io_valid
-  io_operandA_0_{0..7}, io_operandB_0_{0..7}, io_operandC_0_{0..7}
-  io_writeReqs_0_{0..7}_{valid,payload_addr,payload_data}
+    io_slots_0_{valid,opcode,destBase,src1Base,src2Base,src3Base}
+    io_valid
+    io_operandA_0_{0..7}, io_operandB_0_{0..7}, io_operandC_0_{0..7}
+    io_writeReqs_0_{0..7}_{valid,payload_addr,payload_data}
 """
 
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge
 import random
+import struct
+from verification.cocotb.golden_model import _f32_binop, _i32_to_f32_bits, _f32_to_i32_bits
 
 MASK32 = 0xFFFFFFFF
 VLEN = 8
@@ -27,8 +29,14 @@ class Op:
     ADD  = 0;  SUB  = 1;  MUL  = 2;  XOR = 3;  AND = 4;  OR  = 5
     SHL  = 6;  SHR  = 7;  LT   = 8;  EQ  = 9
     MOD  = 10; DIV  = 11; CDIV = 12; MAX = 13; MIN = 14
+    FADD = 18; FSUB = 19; FMUL = 20; FMAX = 21; FMIN = 22
+    I2F = 23; F2I = 24; U2F = 25; F2U = 26
     VBROADCAST   = 15
     MULTIPLY_ADD = 16
+
+
+def f32_to_bits(value: float) -> int:
+    return struct.unpack("<I", struct.pack("<f", float(value)))[0]
 
 
 def alu_ref(op, a, b, c=0):
@@ -116,6 +124,21 @@ async def fire_valu(dut, opcode, a_vec, b_vec, c_vec=None, dest_base=16):
     await RisingEdge(dut.clk)
     dut.io_valid.value = 0
     dut.io_slots_0_valid.value = 0
+
+
+async def wait_vector_fp_write(dut, latency, dest_base):
+    for cycle in range(latency - 1):
+        await RisingEdge(dut.clk)
+        results = get_write_results(dut)
+        assert all(valid == 0 for valid, _, _ in results), f"Vector FP32 op completed too early at cycle {cycle + 1}"
+
+    await RisingEdge(dut.clk)
+    results = get_write_results(dut)
+    for lane in range(VLEN):
+        valid, addr, _ = results[lane]
+        assert valid == 1, f"Lane {lane}: write not valid at latency {latency}"
+        assert addr == dest_base + lane, f"Lane {lane}: addr {addr} != {dest_base + lane}"
+    return [data for _, _, data in results]
 
 
 @cocotb.test()
@@ -415,3 +438,84 @@ async def test_all_single_cycle_ops(dut):
     dut.io_valid.value = 0
     dut.io_slots_0_valid.value = 0
     dut._log.info("test_all_single_cycle_ops: PASS")
+
+
+@cocotb.test()
+async def test_vector_fp32_add_smoke(dut):
+    """Smoke-test serialized EW32 vector FP32 add latency and lane outputs."""
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+    await reset(dut)
+
+    a = [f32_to_bits(v) for v in (1.0, 2.0, 3.5, 4.5, 5.0, 6.25, 7.5, 8.0)]
+    b = [f32_to_bits(v) for v in (0.5, 1.5, 2.5, 3.0, 4.0, 5.75, 6.5, 7.0)]
+    exp = [f32_to_bits(v) for v in (1.5, 3.5, 6.0, 7.5, 9.0, 12.0, 14.0, 15.0)]
+
+    await fire_valu(dut, Op.FADD, a, b, dest_base=500)
+    for cycle in range(3):
+        await RisingEdge(dut.clk)
+        results = get_write_results(dut)
+        assert all(valid == 0 for valid, _, _ in results), f"Vector FADD completed too early at cycle {cycle + 1}"
+
+    await RisingEdge(dut.clk)
+    results = get_write_results(dut)
+    for lane in range(VLEN):
+        valid, addr, data = results[lane]
+        assert valid == 1, f"Lane {lane}: FP32 write not valid"
+        assert addr == 500 + lane, f"Lane {lane}: addr {addr} != {500 + lane}"
+        assert data == exp[lane], f"Lane {lane}: got 0x{data:08x}, expected 0x{exp[lane]:08x}"
+
+    dut._log.info("test_vector_fp32_add_smoke: PASS")
+
+
+@cocotb.test()
+async def test_vector_fp32_reference_ops(dut):
+    """Check vector FP32 ops against the golden-model reference."""
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+    await reset(dut)
+
+    dest_base = 560
+    op_cases = [
+        (
+            Op.FADD,
+            "fadd",
+            4,
+            [0x3F800000, 0x00000001, 0x7F800000, 0x80000000, 0xBF800000, 0x7FC00000, 0x00400000, 0x7F7FFFFF],
+            [0x40000000, 0x00000001, 0xFF800000, 0x00000000, 0x3F800000, 0x3F800000, 0x00400000, 0x00800000],
+        ),
+        (
+            Op.FMUL,
+            "fmul",
+            5,
+            [0x3FC00000, 0x00000001, 0x7F800000, 0xBF800000, 0x3F000000, 0x7FC00000, 0x00400000, 0x7F7FFFFF],
+            [0x40200000, 0x3F800000, 0x00000000, 0x40000000, 0x3F000000, 0x3F800000, 0x00400000, 0x00800000],
+        ),
+    ]
+
+    for opcode, ref_name, latency, a_vec, b_vec in op_cases:
+        await fire_valu(dut, opcode, a_vec, b_vec, dest_base=dest_base)
+        data_vec = await wait_vector_fp_write(dut, latency, dest_base)
+        for lane in range(VLEN):
+            exp = _f32_binop(ref_name, a_vec[lane], b_vec[lane])
+            assert data_vec[lane] == exp, f"Lane {lane} {ref_name}: got 0x{data_vec[lane]:08x}, expected 0x{exp:08x}"
+        await RisingEdge(dut.clk)
+        dest_base += VLEN
+
+    a_vec = [0, 1, 0xFFFFFFFF, 0x80000000, 0x7FFFFFFF, 123456789, 0x00010000, 0x00FFFFFF]
+    zeros = [0] * VLEN
+    await fire_valu(dut, Op.I2F, a_vec, zeros, dest_base=dest_base)
+    data_vec = await wait_vector_fp_write(dut, 4, dest_base)
+    for lane in range(VLEN):
+        exp = _i32_to_f32_bits(a_vec[lane])
+        assert data_vec[lane] == exp, f"Lane {lane} i2f: got 0x{data_vec[lane]:08x}, expected 0x{exp:08x}"
+    await RisingEdge(dut.clk)
+    dest_base += VLEN
+
+    a_vec = [0x00000001, 0x3FC00000, 0xBF800000, 0x7F800000, 0x7FC00000, 0x00400000, 0x7F7FFFFF, 0xCF000000]
+    await fire_valu(dut, Op.F2I, a_vec, zeros, dest_base=dest_base)
+    data_vec = await wait_vector_fp_write(dut, 4, dest_base)
+    for lane in range(VLEN):
+        exp = _f32_to_i32_bits(a_vec[lane])
+        assert data_vec[lane] == exp, f"Lane {lane} f2i: got 0x{data_vec[lane]:08x}, expected 0x{exp:08x}"
+    await RisingEdge(dut.clk)
+
+    dut._log.info("test_vector_fp32_reference_ops: PASS")

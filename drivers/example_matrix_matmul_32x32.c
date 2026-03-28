@@ -19,9 +19,19 @@
 #include "vliw_driver.h"
 
 #define VLIW_CSR_BASE   0x60000000
-#define VLIW_IMEM_BASE  0x60000400
-#define VLIW_DMEM_BASE  0x60000800
+#define VLIW_DDR_BASE   0x40000000
 
+/* DDR layout: program bundles at 0x0, data at 0x100000 */
+#define PROG_DDR_OFFSET      0x00000000
+#define DATA_DDR_OFFSET      0x00100000
+#define AXI_BEAT_BYTES       64
+
+/* Data offsets within DDR data region (byte addresses) */
+#define LHS_DDR_OFFSET  (DATA_DDR_OFFSET + 0u)
+#define RHS_DDR_OFFSET  (DATA_DDR_OFFSET + 1024u)
+#define OUT_DDR_OFFSET  (DATA_DDR_OFFSET + 2048u)
+
+/* Core-side DMEM word addresses (must match assembled program expectations) */
 #define LHS_DMEM_WORD_ADDR   0u
 #define RHS_DMEM_WORD_ADDR   256u
 #define OUT_DMEM_WORD_ADDR   512u
@@ -94,12 +104,27 @@ static uint8_t *read_binary_file(const char *path, size_t *size_out) {
     return data;
 }
 
-static int load_program_words(vliw_handle_t *h, const uint32_t *words, size_t word_count) {
-    size_t word_index;
-    for (word_index = 0; word_index < word_count; ++word_index) {
-        vliw_imem_write_word(h, 0, (uint32_t)word_index, words[word_index]);
+static int pack_and_load_program(vliw_handle_t *h, const uint32_t *words,
+                                  size_t word_count) {
+    /* Determine bundle size in 32-bit words from hardware config */
+    uint32_t bundle_bits = h->bundle_width;
+    uint32_t words_per_bundle = bundle_bits / 32;
+    if (words_per_bundle == 0) words_per_bundle = 1;
+    size_t bundle_count = word_count / words_per_bundle;
+
+    /* Pack each bundle into one AXI beat (64 bytes) in DDR */
+    uint8_t beat[AXI_BEAT_BYTES];
+    for (size_t b = 0; b < bundle_count; b++) {
+        memset(beat, 0, sizeof(beat));
+        size_t copy_bytes = words_per_bundle * 4;
+        if (copy_bytes > AXI_BEAT_BYTES) copy_bytes = AXI_BEAT_BYTES;
+        memcpy(beat, &words[b * words_per_bundle], copy_bytes);
+        vliw_ddr_write(h, PROG_DDR_OFFSET + b * AXI_BEAT_BYTES, beat, AXI_BEAT_BYTES);
     }
-    return 0;
+
+    /* Trigger hardware IMEM loader */
+    return vliw_load_program(h, VLIW_DDR_BASE + PROG_DDR_OFFSET,
+                              (uint32_t)bundle_count, 1000000);
 }
 
 int main(int argc, char **argv) {
@@ -151,13 +176,19 @@ int main(int argc, char **argv) {
 
     vliw_init(&vliw,
               (uint32_t *)VLIW_CSR_BASE,
-              (uint32_t *)VLIW_IMEM_BASE,
-              (uint8_t *)VLIW_DMEM_BASE);
+              (uint8_t *)VLIW_DDR_BASE);
     vliw_reset(&vliw);
 
-    load_program_words(&vliw, imem_words, imem_word_count);
-    vliw_dmem_write(&vliw, LHS_DMEM_WORD_ADDR * 4u, lhs_tiles, lhs_size);
-    vliw_dmem_write(&vliw, RHS_DMEM_WORD_ADDR * 4u, rhs_tiles, rhs_size);
+    if (pack_and_load_program(&vliw, imem_words, imem_word_count) != 0) {
+        fprintf(stderr, "Timed out loading program into IMEM\n");
+        free(imem_words);
+        free(lhs_tiles);
+        free(rhs_tiles);
+        free(expected_out);
+        return 1;
+    }
+    vliw_ddr_write(&vliw, LHS_DDR_OFFSET, lhs_tiles, lhs_size);
+    vliw_ddr_write(&vliw, RHS_DDR_OFFSET, rhs_tiles, rhs_size);
 
     vliw_start(&vliw);
     rc = vliw_wait_halted(&vliw, 1000000);
@@ -178,7 +209,7 @@ int main(int argc, char **argv) {
         free(expected_out);
         return 1;
     }
-    vliw_dmem_read(&vliw, OUT_DMEM_WORD_ADDR * 4u, actual_out, expected_size);
+    vliw_ddr_read(&vliw, OUT_DDR_OFFSET, actual_out, expected_size);
 
     if (memcmp(actual_out, expected_out, expected_size) != 0) {
         fprintf(stderr, "Matrix output mismatch against generated expected tile-packed output\n");

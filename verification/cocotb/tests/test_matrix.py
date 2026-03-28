@@ -13,6 +13,7 @@ memories.
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge
+from tools.dsl import encode_fp8_e4m3, encode_fp8_e5m2, golden_matrix_fp8_matmul
 
 
 class MatrixOp:
@@ -26,6 +27,10 @@ class MatrixOp:
     MCOMPUTE = 7
     MCOMPUTE_ACC = 8
     MZERO = 9
+    MCOMPUTE_FP8_E4M3 = 10
+    MCOMPUTE_FP8_E4M3_ACC = 11
+    MCOMPUTE_FP8_E5M2 = 12
+    MCOMPUTE_FP8_E5M2_ACC = 13
 
 
 def _s8(value: int) -> int:
@@ -184,3 +189,50 @@ async def test_mcompute_acc_accumulates_existing_tile(dut):
     for idx, exp in enumerate(expected):
         got = accum_mem.get(idx, 0)
         assert got == exp, f"MCOMPUTE_ACC mismatch at accum[{idx}]: got {got:#x}, expected {exp:#x}"
+
+
+@cocotb.test()
+async def test_mcompute_fp8_e4m3_writes_expected_fp32_tile(dut):
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+
+    lhs = encode_fp8_e4m3([((row - col) / 4.0) for row in range(8) for col in range(8)])
+    rhs = encode_fp8_e4m3([
+        1.0 if row == col else (((row + col) % 5) - 2.0) / 8.0
+        for row in range(8)
+        for col in range(8)
+    ])
+    a_mem = {idx: value for idx, value in enumerate(lhs)}
+    b_mem = {idx: value for idx, value in enumerate(rhs)}
+    accum_mem = {idx: 0 for idx in range(64)}
+    cocotb.start_soon(matrix_memory_model(dut, a_mem, b_mem, accum_mem))
+
+    await reset(dut)
+    await issue_matrix_slot(dut, MatrixOp.MCOMPUTE_FP8_E4M3, dest=0, src_a=0, src_b=0)
+    await wait_not_busy(dut)
+
+    expected = golden_matrix_fp8_matmul(lhs, rhs, fmt="fp8_e4m3")
+    for idx, exp in enumerate(expected):
+        got = accum_mem.get(idx, 0)
+        assert got == exp, f"MCOMPUTE_FP8_E4M3 mismatch at accum[{idx}]: got {got:#010x}, expected {exp:#010x}"
+
+
+@cocotb.test()
+async def test_mcompute_fp8_e5m2_acc_accumulates_existing_fp32_tile(dut):
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+
+    lhs = encode_fp8_e5m2([((row * 2.0) - col + 1.0) / 16.0 for row in range(8) for col in range(8)])
+    rhs = encode_fp8_e5m2([((row + col + 1.0) / 32.0) for row in range(8) for col in range(8)])
+    seed = golden_matrix_fp8_matmul(lhs, lhs, fmt="fp8_e5m2")
+    a_mem = {idx: value for idx, value in enumerate(lhs)}
+    b_mem = {idx: value for idx, value in enumerate(rhs)}
+    accum_mem = {idx: value for idx, value in enumerate(seed)}
+    cocotb.start_soon(matrix_memory_model(dut, a_mem, b_mem, accum_mem))
+
+    await reset(dut)
+    await issue_matrix_slot(dut, MatrixOp.MCOMPUTE_FP8_E5M2_ACC, dest=0, src_a=0, src_b=0)
+    await wait_not_busy(dut)
+
+    expected = golden_matrix_fp8_matmul(lhs, rhs, fmt="fp8_e5m2", accum_seed_bits=seed)
+    for idx, exp in enumerate(expected):
+        got = accum_mem.get(idx, 0)
+        assert got == exp, f"MCOMPUTE_FP8_E5M2_ACC mismatch at accum[{idx}]: got {got:#010x}, expected {exp:#010x}"

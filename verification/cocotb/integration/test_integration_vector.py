@@ -1,4 +1,177 @@
 from test_integration_common import *
+from verification.cocotb.golden_model import (
+    _f32_binop,
+    _f32_to_i32_bits,
+    _f32_to_u32_bits,
+    _i32_to_f32_bits,
+    _u32_to_f32_bits,
+)
+
+
+@cocotb.test()
+async def test_vector_fp32_core_path(dut):
+    """Vector FP32 ops execute correctly through scheduler, core, and AXI storeback."""
+    harness = VliwCoreHarness(dut)
+    await harness.init()
+
+    lhs = [1, 2, 3, 4, 5, 6, 7, 8]
+    rhs = [8, 7, 6, 5, 4, 3, 2, 1]
+    sum_bits = [_f32_binop("fadd", _i32_to_f32_bits(a), _i32_to_f32_bits(b)) for a, b in zip(lhs, rhs)]
+    back_to_int = [_f32_to_i32_bits(bits) for bits in sum_bits]
+
+    init_ops = []
+    for idx, value in enumerate(lhs):
+        init_ops.append(S.const(96 + idx, value))
+    for idx, value in enumerate(rhs):
+        init_ops.append(S.const(104 + idx, value))
+
+    store_ops = [S.const(10, 1600)]
+    for lane in range(8):
+        if lane != 0:
+            store_ops.append(S.add_imm(10, 10, 1))
+        store_ops.append(S.store(10, 216 + lane))
+    store_ops.append(S.add_imm(10, 10, 1))
+    for lane in range(8):
+        if lane != 0:
+            store_ops.append(S.add_imm(10, 10, 1))
+        store_ops.append(S.store(10, 224 + lane))
+
+    program = build_program([
+        *init_ops,
+        S.valu_op("i2f", 200, 96, 0, ew=32, dw=32, signed=0),
+        S.valu_op("i2f", 208, 104, 0, ew=32, dw=32, signed=0),
+        S.valu_op("fadd", 216, 200, 208, ew=32, dw=32, signed=0),
+        S.valu_op("f2i", 224, 216, 0, ew=32, dw=32, signed=0),
+        *store_ops,
+        S.halt(),
+    ])
+
+    await harness.load_program(program)
+    await harness.run(max_cycles=6000)
+
+    for lane, exp in enumerate(sum_bits):
+        got = harness.axi_mem.read_word(1600 + lane)
+        assert got == exp, f"fadd lane={lane}: expected 0x{exp:08x}, got 0x{got:08x}"
+    for lane, exp in enumerate(back_to_int):
+        got = harness.axi_mem.read_word(1608 + lane)
+        assert got == exp, f"f2i lane={lane}: expected 0x{exp:08x}, got 0x{got:08x}"
+
+
+@cocotb.test()
+async def test_vector_fp32_vfmadd_pseudoop(dut):
+    """Vector VFMADD pseudo-op lowers correctly and executes through the full core path."""
+    harness = VliwCoreHarness(dut)
+    await harness.init()
+
+    lhs = [1, 2, 3, 4, 5, 6, 7, 8]
+    rhs = [2, 3, 4, 5, 6, 7, 8, 9]
+    addend = [10, 20, 30, 40, 50, 60, 70, 80]
+
+    out_bits = []
+    out_i32 = []
+    for a, b, c in zip(lhs, rhs, addend):
+        a_bits = _i32_to_f32_bits(a)
+        b_bits = _i32_to_f32_bits(b)
+        c_bits = _i32_to_f32_bits(c)
+        prod_bits = _f32_binop("fmul", a_bits, b_bits)
+        result_bits = _f32_binop("fadd", prod_bits, c_bits)
+        out_bits.append(result_bits)
+        out_i32.append(_f32_to_i32_bits(result_bits))
+
+    init_ops = []
+    for idx, value in enumerate(lhs):
+        init_ops.append(S.const(96 + idx, value))
+    for idx, value in enumerate(rhs):
+        init_ops.append(S.const(104 + idx, value))
+    for idx, value in enumerate(addend):
+        init_ops.append(S.const(112 + idx, value))
+
+    store_ops = [S.const(10, 1700)]
+    for lane in range(8):
+        if lane != 0:
+            store_ops.append(S.add_imm(10, 10, 1))
+        store_ops.append(S.store(10, 232 + lane))
+    store_ops.append(S.add_imm(10, 10, 1))
+    for lane in range(8):
+        if lane != 0:
+            store_ops.append(S.add_imm(10, 10, 1))
+        store_ops.append(S.store(10, 240 + lane))
+
+    program = build_program([
+        *init_ops,
+        S.valu_op("i2f", 200, 96, 0, ew=32, dw=32, signed=0),
+        S.valu_op("i2f", 208, 104, 0, ew=32, dw=32, signed=0),
+        S.valu_op("i2f", 216, 112, 0, ew=32, dw=32, signed=0),
+        *S.vfmadd(232, 200, 208, 216, temp_base=224, vlen=8),
+        S.valu_op("f2i", 240, 232, 0, ew=32, dw=32, signed=0),
+        *store_ops,
+        S.halt(),
+    ])
+
+    await harness.load_program(program)
+    await harness.run(max_cycles=8000)
+
+    for lane, exp in enumerate(out_bits):
+        got = harness.axi_mem.read_word(1700 + lane)
+        assert got == exp, f"vfmadd lane={lane}: expected 0x{exp:08x}, got 0x{got:08x}"
+    for lane, exp in enumerate(out_i32):
+        got = harness.axi_mem.read_word(1708 + lane)
+        assert got == exp, f"vfmadd->f2i lane={lane}: expected 0x{exp:08x}, got 0x{got:08x}"
+
+
+@cocotb.test()
+async def test_vector_fp32_conversion_and_extrema_path(dut):
+    """Vector FP32 conversions and extrema ops execute correctly through the full core path."""
+    harness = VliwCoreHarness(dut)
+    await harness.init()
+
+    signed_vals = [(-8) & 0xFFFFFFFF, (-4) & 0xFFFFFFFF, (-2) & 0xFFFFFFFF, (-1) & 0xFFFFFFFF,
+                   0, 1, 2, 7]
+    unsigned_vals = [0, 1, 2, 3, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFE, 0xFFFFFFFF]
+
+    i2f_bits = [_i32_to_f32_bits(value) for value in signed_vals]
+    u2f_bits = [_u32_to_f32_bits(value) for value in unsigned_vals]
+    fmax_bits = [_f32_binop("fmax", a_bits, b_bits) for a_bits, b_bits in zip(i2f_bits, u2f_bits)]
+    fmin_bits = [_f32_binop("fmin", a_bits, b_bits) for a_bits, b_bits in zip(i2f_bits, u2f_bits)]
+    f2u_bits = [_f32_to_u32_bits(bits) for bits in fmax_bits]
+    f2i_bits = [_f32_to_i32_bits(bits) for bits in fmin_bits]
+
+    init_ops = []
+    for idx, value in enumerate(signed_vals):
+        init_ops.append(S.const(96 + idx, value))
+    for idx, value in enumerate(unsigned_vals):
+        init_ops.append(S.const(104 + idx, value))
+
+    store_ops = [S.const(10, 1800)]
+    for base in (200, 208, 216, 224, 232, 240):
+        for lane in range(8):
+            if base != 200 or lane != 0:
+                store_ops.append(S.add_imm(10, 10, 1))
+            store_ops.append(S.store(10, base + lane))
+
+    program = build_program([
+        *init_ops,
+        S.valu_op("i2f", 200, 96, 0, ew=32, dw=32, signed=0),
+        S.valu_op("u2f", 208, 104, 0, ew=32, dw=32, signed=0),
+        S.valu_op("fmax", 216, 200, 208, ew=32, dw=32, signed=0),
+        S.valu_op("fmin", 224, 200, 208, ew=32, dw=32, signed=0),
+        S.valu_op("f2u", 232, 216, 0, ew=32, dw=32, signed=0),
+        S.valu_op("f2i", 240, 224, 0, ew=32, dw=32, signed=0),
+        *store_ops,
+        S.halt(),
+    ])
+
+    await harness.load_program(program)
+    await harness.run(max_cycles=9000)
+
+    expected_vectors = [i2f_bits, u2f_bits, fmax_bits, fmin_bits, f2u_bits, f2i_bits]
+    for vector_idx, expected in enumerate(expected_vectors):
+        base_addr = 1800 + (vector_idx * 8)
+        for lane, exp in enumerate(expected):
+            got = harness.axi_mem.read_word(base_addr + lane)
+            assert got == exp, (
+                f"vector={vector_idx} lane={lane}: expected 0x{exp:08x}, got 0x{got:08x}"
+            )
 
 @cocotb.test()
 async def test_valu_short_opcode_coverage_golden(dut):

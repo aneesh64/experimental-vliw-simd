@@ -16,14 +16,24 @@ if str(PROJECT_ROOT / "tools") not in sys.path:
 from assembler import Assembler, AssemblerConfig
 from dsl import (
     HardwareCapabilities,
+    build_matrix_fp8_e4m3_accumulate_kernel,
+    build_matrix_fp8_e4m3_matmul_kernel,
+    build_matrix_fp8_e5m2_accumulate_kernel,
+    build_matrix_fp8_e5m2_matmul_kernel,
     build_matrix_matmul_32x32_tiled_kernel,
     build_matrix_matmul_accumulate_kernel,
     build_matrix_matmul_kernel,
+    build_turboquant_score_32x32_kernel,
     build_pipelined_multi_matrix_residual_affine_kernel,
     build_tileweave_matrix_residual_affine_kernel,
     golden_multi_matrix_residual_affine,
+    golden_turboquant_scores_32x32,
     golden_tileweave_matrix_residual_affine,
     compile_kernel,
+    encode_fp8_e4m3,
+    encode_fp8_e5m2,
+    golden_matrix_fp8_matmul,
+    pack_matrix_matmul_32x32_u32_tiles,
     pack_matrix_matmul_32x32_u8_tiles,
     unpack_matrix_matmul_32x32_u32_tiles,
 )
@@ -361,6 +371,59 @@ async def test_dsl_matrix_matmul_accumulate_golden(dut):
 
 
 @cocotb.test(skip=CFG.n_matrix_slots < 1)
+async def test_dsl_matrix_fp8_e4m3_golden(dut):
+    cocotb.start_soon(Clock(dut.clk, CFG.clock_period_ns, unit="ns").start())
+
+    lhs = encode_fp8_e4m3([((row - col) / 4.0) for row in range(8) for col in range(8)])
+    rhs = encode_fp8_e4m3([
+        1.0 if row == col else (((row + col) % 5) - 2.0) / 8.0
+        for row in range(8)
+        for col in range(8)
+    ])
+    expected = golden_matrix_fp8_matmul(lhs, rhs, fmt="fp8_e4m3")
+
+    memory_words: dict[int, int] = {}
+    _preload_u8_tile(memory_words, 0, lhs)
+    _preload_u8_tile(memory_words, 16, rhs)
+
+    cocotb.start_soon(_axi_memory_model(dut, memory_words))
+    await _reset(dut)
+
+    await _run_dsl_kernel(dut, build_matrix_fp8_e4m3_matmul_kernel(), {"lhs": 0, "rhs": 16, "out": 32})
+
+    assert _read_words(memory_words, 32, 64) == expected, "DSL FP8 E4M3 matrix matmul kernel wrote unexpected results"
+
+
+@cocotb.test(skip=CFG.n_matrix_slots < 1)
+async def test_dsl_matrix_fp8_e5m2_accumulate_golden(dut):
+    cocotb.start_soon(Clock(dut.clk, CFG.clock_period_ns, unit="ns").start())
+
+    lhs0 = encode_fp8_e5m2([((row + 1.0) / 8.0) for row in range(8) for _ in range(8)])
+    rhs0 = encode_fp8_e5m2([((col + 1.0) / 16.0) for _ in range(8) for col in range(8)])
+    lhs1 = encode_fp8_e5m2([((row * 2.0) - col + 1.0) / 16.0 for row in range(8) for col in range(8)])
+    rhs1 = encode_fp8_e5m2([((row + col + 1.0) / 32.0) for row in range(8) for col in range(8)])
+    expected_first = golden_matrix_fp8_matmul(lhs0, rhs0, fmt="fp8_e5m2")
+    expected = golden_matrix_fp8_matmul(lhs1, rhs1, fmt="fp8_e5m2", accum_seed_bits=expected_first)
+
+    memory_words: dict[int, int] = {}
+    _preload_u8_tile(memory_words, 0, lhs0)
+    _preload_u8_tile(memory_words, 16, rhs0)
+    _preload_u8_tile(memory_words, 32, lhs1)
+    _preload_u8_tile(memory_words, 48, rhs1)
+
+    cocotb.start_soon(_axi_memory_model(dut, memory_words))
+    await _reset(dut)
+
+    await _run_dsl_kernel(
+        dut,
+        build_matrix_fp8_e5m2_accumulate_kernel(),
+        {"lhs0": 0, "rhs0": 16, "lhs1": 32, "rhs1": 48, "out": 64},
+    )
+
+    assert _read_words(memory_words, 64, 64) == expected, "DSL FP8 E5M2 accumulate kernel wrote unexpected results"
+
+
+@cocotb.test(skip=CFG.n_matrix_slots < 1)
 async def test_dsl_matrix_matmul_32x32_tiled_golden(dut):
     cocotb.start_soon(Clock(dut.clk, CFG.clock_period_ns, unit="ns").start())
 
@@ -415,6 +478,47 @@ async def test_dsl_matrix_matmul_32x32_tiled_row_major_host_flow_golden(dut):
 
     assert out_row_major == expected_row_major, (
         "DSL tiled 32x32 matrix matmul host flow wrote unexpected row-major results after tile unpack"
+    )
+
+
+@cocotb.test(skip=CFG.n_matrix_slots < 1)
+async def test_dsl_turboquant_score_32x32_golden(dut):
+    cocotb.start_soon(Clock(dut.clk, CFG.clock_period_ns, unit="ns").start())
+
+    keys_row_major = [(((row * 5) - (col * 3) + 7) % 9) - 4 for row in range(32) for col in range(32)]
+    queries_row_major = [(((row * 2) + (col * 5) + 1) % 9) - 4 for row in range(32) for col in range(32)]
+    golden = golden_turboquant_scores_32x32(keys_row_major, queries_row_major)
+
+    coarse_keys_tiles = golden["coarse_keys_tiles"]
+    coarse_queries_tiles = golden["coarse_queries_tiles"]
+    residual_keys_tiles = golden["residual_keys_tiles"]
+    residual_queries_tiles = golden["residual_queries_tiles"]
+    expected_tiles = golden["score_tiles"]
+
+    memory_words: dict[int, int] = {}
+    _preload_u8_tile(memory_words, 0, coarse_keys_tiles)
+    _preload_u8_tile(memory_words, 256, coarse_queries_tiles)
+    _preload_u8_tile(memory_words, 512, residual_keys_tiles)
+    _preload_u8_tile(memory_words, 768, residual_queries_tiles)
+
+    cocotb.start_soon(_axi_memory_model(dut, memory_words))
+    await _reset(dut)
+
+    await _run_dsl_kernel(
+        dut,
+        build_turboquant_score_32x32_kernel(),
+        {
+            "coarse_keys_tiles": 0,
+            "coarse_queries_tiles": 256,
+            "residual_keys_tiles": 512,
+            "residual_queries_tiles": 768,
+            "out_tiles": 1024,
+        },
+        max_cycles=200000,
+    )
+
+    assert _read_words(memory_words, 1024, 1024) == expected_tiles, (
+        "DSL TurboQuant-style 32x32 score kernel wrote unexpected tile-packed results"
     )
 
 

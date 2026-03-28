@@ -3,8 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List, Optional, cast
 
-from assembler import Assembler
-from scheduler import Label as SchedulerLabel, MemoryDomain, Op, VliwScheduler
+try:
+    from ..assembler import Assembler
+    from ..scheduler import Label as SchedulerLabel, MemoryDomain, Op, VliwScheduler
+except ImportError:
+    from assembler import Assembler
+    from scheduler import Label as SchedulerLabel, MemoryDomain, Op, VliwScheduler
 
 from .capabilities import HardwareCapabilities
 from .manifest import KernelManifest
@@ -22,12 +26,14 @@ from .ir import (
     MemorySpace,
     ReadCoreId,
     ScalarBinary,
+    ScalarConvert,
     ScalarLoad,
     ScalarSelect,
     ScalarStore,
     VectorBinary,
     VectorBroadcast,
     VectorCast,
+    VectorConvert,
     VectorLoad,
     VectorStore,
 )
@@ -212,8 +218,15 @@ class DslLowerer:
             dest = self._addr(op.dest, scratch_map)
             lhs = self._addr(op.lhs, scratch_map)
             rhs = self._addr(op.rhs, scratch_map)
-            constructor = getattr(self.scheduler, op.op)
+            # Python keywords are suffixed with _op on the scheduler (e.g. or → or_op)
+            method_name = f"{op.op}_op" if op.op in ("or", "and") else op.op
+            constructor = getattr(self.scheduler, method_name)
             return [constructor(dest, lhs, rhs)]
+
+        if isinstance(op, ScalarConvert):
+            self.capabilities.require_scalar_op(op.op)
+            constructor = getattr(self.scheduler, op.op)
+            return [constructor(self._addr(op.dest, scratch_map), self._addr(op.src, scratch_map))]
 
         if isinstance(op, ScalarSelect):
             return [self.scheduler.select(
@@ -272,6 +285,22 @@ class DslLowerer:
                 vlen=dest_buf.elements,
             )]
 
+        if isinstance(op, VectorConvert):
+            self.capabilities.require_vector_op(op.op)
+            dest_buf = self._buffer(op.dest, kernel)
+            src_buf = self._buffer(op.src, kernel)
+            self._require_matching_vector_shapes(dest_buf, src_buf)
+            return [self.scheduler.valu_op(
+                op.op,
+                self._addr(op.dest, scratch_map),
+                self._addr(op.src, scratch_map),
+                0,
+                vlen=dest_buf.elements,
+                ew=32,
+                dw=32,
+                signed=0,
+            )]
+
         if isinstance(op, AddImmediate):
             return [self.scheduler.add_imm(
                 self._addr(op.dest, scratch_map),
@@ -306,7 +335,16 @@ class DslLowerer:
         scratch_map: Dict[str, int],
         bindings: Dict[str, int],
     ) -> List[Op]:
-        for matrix_op in ("mdmvin", "mdmvout", "mcompute_acc" if op.accumulate else "mcompute"):
+        if op.format == "int8":
+            compute_op = "mcompute_acc" if op.accumulate else "mcompute"
+        elif op.format == "fp8_e4m3":
+            compute_op = "mcompute_fp8_e4m3_acc" if op.accumulate else "mcompute_fp8_e4m3"
+        elif op.format == "fp8_e5m2":
+            compute_op = "mcompute_fp8_e5m2_acc" if op.accumulate else "mcompute_fp8_e5m2"
+        else:
+            raise ValueError(f"Unsupported matrix format '{op.format}'")
+
+        for matrix_op in ("mdmvin", "mdmvout", compute_op):
             self.capabilities.require_matrix_op(matrix_op)
         if not op.accumulate:
             self.capabilities.require_matrix_op("mzero")
@@ -328,9 +366,19 @@ class DslLowerer:
         ]
         if not op.accumulate:
             lowered.append(self.scheduler.mzero(dest=0))
-            lowered.append(self.scheduler.mcompute(dest=0, src_a=0, src_b=0, src_c=0))
+            if op.format == "int8":
+                lowered.append(self.scheduler.mcompute(dest=0, src_a=0, src_b=0, src_c=0))
+            elif op.format == "fp8_e4m3":
+                lowered.append(self.scheduler.mcompute_fp8_e4m3(dest=0, src_a=0, src_b=0, src_c=0))
+            else:
+                lowered.append(self.scheduler.mcompute_fp8_e5m2(dest=0, src_a=0, src_b=0, src_c=0))
         else:
-            lowered.append(self.scheduler.mcompute_acc(dest=0, src_a=0, src_b=0, src_c=0))
+            if op.format == "int8":
+                lowered.append(self.scheduler.mcompute_acc(dest=0, src_a=0, src_b=0, src_c=0))
+            elif op.format == "fp8_e4m3":
+                lowered.append(self.scheduler.mcompute_fp8_e4m3_acc(dest=0, src_a=0, src_b=0, src_c=0))
+            else:
+                lowered.append(self.scheduler.mcompute_fp8_e5m2_acc(dest=0, src_a=0, src_b=0, src_c=0))
         lowered.append(self.scheduler.mdmvout(dest=out_addr, src_a=0, flags=0b1))
         return lowered
 

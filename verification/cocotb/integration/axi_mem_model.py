@@ -205,6 +205,10 @@ class Axi4MemoryModel:
                     # to avoid permanently blocking the requester.
                     addr = 0
                 burst_len = int(self._sig("ar_payload_len").value)  # should be 0
+                try:
+                    ar_id = int(self._sig("ar_payload_id").value)
+                except (ValueError, AttributeError):
+                    ar_id = 0
 
                 # Accept AR
                 self._sig("ar_ready").value = 1
@@ -227,7 +231,7 @@ class Axi4MemoryModel:
                     self._sig("r_valid").value = 1
                     self._sig("r_payload_data").value = data
                     self._sig("r_payload_resp").value = 0  # OKAY
-                    self._sig("r_payload_id").value = 0
+                    self._sig("r_payload_id").value = ar_id
                     self._sig("r_payload_last").value = 1 if beat == burst_len else 0
 
                     # Wait for R handshake
@@ -259,6 +263,10 @@ class Axi4MemoryModel:
                     # to avoid permanently blocking the requester.
                     addr = 0
                 burst_len = int(self._sig("aw_payload_len").value)  # should be 0
+                try:
+                    aw_id = int(self._sig("aw_payload_id").value)
+                except (ValueError, AttributeError):
+                    aw_id = 0
 
                 aw_delay_cycles = self._next_write_aw_delay()
                 for _ in range(aw_delay_cycles):
@@ -315,7 +323,7 @@ class Axi4MemoryModel:
 
                 self._sig("b_valid").value = 1
                 self._sig("b_payload_resp").value = 0  # OKAY
-                self._sig("b_payload_id").value = 0
+                self._sig("b_payload_id").value = aw_id
                 while True:
                     await RisingEdge(self.dut.clk)
                     try:

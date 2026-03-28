@@ -6,53 +6,34 @@ import spinal.lib.bus.amba4.axi._
 import vliw.config.VliwSocConfig
 
 /**
- * Memory Subsystem — shared main data memory.
+ * Memory Subsystem — DDR-facing AXI arbiter.
  *
- * Backed by on-chip BRAM (or URAM on UltraScale+).
- * Provides an AXI4 slave port per core plus one for host access.
- * Uses SpinalHDL's Axi4SharedOnChipRam with a crossbar arbiter.
+ * Arbitrates N core AXI4 master ports plus the IMEM loader port into a
+ * single AXI4 master port for connection to external DDR memory
+ * (e.g., Zynq PS DDR controller).
+ *
+ * The host (e.g., Zynq PS ARM cores) accesses DDR directly through its
+ * own memory controller, so no host port is needed here.  The host
+ * pre-loads operand data and instruction bundles into DDR before starting
+ * the accelerator, and reads results back from DDR after the cores halt.
  */
 class MemorySubsystem(cfg: VliwSocConfig) extends Component {
   val io = new Bundle {
-    val corePorts = Vec(slave(Axi4(cfg.axiConfig)), cfg.nCores)
-    val hostPort  = slave(Axi4(cfg.axiConfig))
+    val corePorts  = Vec(slave(Axi4(cfg.axiConfig)), cfg.nCores)
+    val loaderPort = slave(Axi4(cfg.axiConfig))
+    val ddrPort    = master(Axi4(cfg.ddrAxiConfig))
   }
 
-  // Wider ID to accommodate multiple masters through the crossbar
-  val crossbarIdWidth = cfg.axiIdWidth + log2Up(cfg.nCores + 1) + 1
-
-  val ramConfig = Axi4Config(
-    addressWidth = cfg.axiAddrWidth,
-    dataWidth    = cfg.axiDataWidth,
-    idWidth      = crossbarIdWidth,
-    useBurst     = true,
-    useLen       = true,
-    useSize      = true,
-    useLock      = false,
-    useCache     = false,
-    useProt      = false,
-    useQos       = false,
-    useRegion    = false
-  )
-
-  // On-chip RAM with AXI4 slave interface
-  val ram = Axi4SharedOnChipRam(
-    dataWidth = cfg.axiDataWidth,
-    byteCount = cfg.mainMemWords.toLong * (cfg.dataWidth / 8),
-    idWidth   = crossbarIdWidth,
-    arwStage  = true
-  )
-
-  // AXI4 crossbar: N core ports + 1 host port → 1 RAM port
+  // AXI4 crossbar: (N core ports + 1 loader port) → 1 DDR master port
   val crossbar = Axi4CrossbarFactory()
-  val ramAddrRange = (BigInt(0), BigInt(cfg.mainMemWords.toLong * (cfg.dataWidth / 8)))
+  val addrRange = (BigInt(0), BigInt(1) << cfg.axiAddrWidth)
 
-  crossbar.addSlaves(ram.io.axi -> ramAddrRange)
+  crossbar.addSlaves(io.ddrPort -> addrRange)
 
   for (i <- 0 until cfg.nCores) {
-    crossbar.addConnections(io.corePorts(i) -> List(ram.io.axi))
+    crossbar.addConnections(io.corePorts(i) -> List(io.ddrPort))
   }
-  crossbar.addConnections(io.hostPort -> List(ram.io.axi))
+  crossbar.addConnections(io.loaderPort -> List(io.ddrPort))
 
   crossbar.build()
 }

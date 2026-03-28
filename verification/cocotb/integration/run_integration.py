@@ -45,6 +45,39 @@ if os.path.isdir(iverilog_bin) and iverilog_bin not in os.environ.get("PATH", ""
 INTEGRATION_DIR = Path(__file__).parent
 RTL_DIR = PROJECT_ROOT / "generated_rtl" / "modules"
 
+DEFAULT_MODULES = [
+    "test_slot_configs",
+    "test_integration",
+    "test_algorithms",
+    "test_integration_scalar",
+    "test_integration_memory",
+    "test_integration_control",
+    "test_integration_vector",
+    "test_dsl_integration",
+    "test_dsl_helpers_integration",
+    "test_dsl_algorithms_integration",
+    "test_algorithms_kernels",
+    "test_algorithms_multiwidth",
+]
+
+MODULE_ALIASES = {
+    "fp32": [
+        "test_integration_scalar",
+        "test_integration_vector",
+    ],
+}
+
+TEST_FILTER_ALIASES = {
+    "fp32": [
+        "test_fp32_scalar_core_path",
+        "test_fp32_scalar_fmadd_pseudoop",
+        "test_fp32_scalar_conversion_and_extrema_path",
+        "test_vector_fp32_core_path",
+        "test_vector_fp32_vfmadd_pseudoop",
+        "test_vector_fp32_conversion_and_extrema_path",
+    ],
+}
+
 USAGE_TEXT = """Usage:
     python run_integration.py                      # auto-detect RTL changes, run all tests
     python run_integration.py --help              # show this help
@@ -58,21 +91,22 @@ USAGE_TEXT = """Usage:
     python run_integration.py --modules test_integration_memory
     python run_integration.py --modules test_integration_control
     python run_integration.py --modules test_integration_vector
+    python run_integration.py --modules fp32
     python run_integration.py --modules test_dsl_integration
     python run_integration.py --modules test_dsl_helpers_integration
     python run_integration.py --modules test_dsl_algorithms_integration
     python run_integration.py --modules test_algorithms_kernels
     python run_integration.py --modules test_algorithms_multiwidth
 
-Default module if --modules is omitted: test_slot_configs
+Default behavior if --modules is omitted: run all integration modules
 """
 
 
-def _parse_args(argv: list[str]) -> tuple[Path, list[str], str, Path, str, str]:
+def _parse_args(argv: list[str]) -> tuple[Path, list[str], str, Path, str | None, str]:
     cfg_path = default_config_path(PROJECT_ROOT)
     run_label = "manual"
     log_file = PROJECT_ROOT / "verification" / "results" / "integration_runs_v2.csv"
-    modules = "test_slot_configs"
+    modules = None
     rtl_mode = "auto"
     tests: list[str] = []
     idx = 0
@@ -113,6 +147,59 @@ def _parse_args(argv: list[str]) -> tuple[Path, list[str], str, Path, str, str]:
         tests.append(token)
         idx += 1
     return cfg_path, tests, run_label, log_file, modules, rtl_mode
+
+
+def _selected_modules(modules_arg: str | None) -> list[str]:
+    if modules_arg is None:
+        return list(DEFAULT_MODULES)
+    selected: list[str] = []
+    for module in (module.strip() for module in modules_arg.split(",") if module.strip()):
+        if module in MODULE_ALIASES:
+            selected.extend(MODULE_ALIASES[module])
+        else:
+            selected.append(module)
+    return selected
+
+
+def _expand_requested_tests(requested_tests: list[str]) -> list[str]:
+    expanded: list[str] = []
+    for test_name in requested_tests:
+        if test_name in TEST_FILTER_ALIASES:
+            expanded.extend(TEST_FILTER_ALIASES[test_name])
+        else:
+            expanded.append(test_name)
+    return expanded
+
+
+def _merge_summaries(summaries: list[dict[str, int | float]]) -> dict[str, int | float]:
+    if not summaries:
+        return {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "total": 0,
+            "cycles_count": 0,
+            "cycles_total": 0,
+            "cycles_min": 0,
+            "cycles_max": 0,
+            "cycles_avg": 0.0,
+        }
+
+    cycle_mins = [int(summary["cycles_min"]) for summary in summaries if int(summary["cycles_count"]) > 0]
+    cycle_maxes = [int(summary["cycles_max"]) for summary in summaries if int(summary["cycles_count"]) > 0]
+    cycles_total = sum(int(summary["cycles_total"]) for summary in summaries)
+    cycles_count = sum(int(summary["cycles_count"]) for summary in summaries)
+    return {
+        "passed": sum(int(summary["passed"]) for summary in summaries),
+        "failed": sum(int(summary["failed"]) for summary in summaries),
+        "skipped": sum(int(summary["skipped"]) for summary in summaries),
+        "total": sum(int(summary["total"]) for summary in summaries),
+        "cycles_count": cycles_count,
+        "cycles_total": cycles_total,
+        "cycles_min": min(cycle_mins) if cycle_mins else 0,
+        "cycles_max": max(cycle_maxes) if cycle_maxes else 0,
+        "cycles_avg": (cycles_total / cycles_count) if cycles_count else 0.0,
+    }
 
 
 def _append_run_log(log_file: Path, run_label: str, modules: str, cfg, requested_tests: list[str], summary: dict[str, int | float], duration_sec: float):
@@ -243,6 +330,7 @@ def main():
 
     try:
         cfg_path, requested_tests, run_label, log_file, modules, rtl_mode = _parse_args(sys.argv[1:])
+        requested_tests = _expand_requested_tests(requested_tests)
         cfg = load_test_config(config_path=cfg_path, project_root=PROJECT_ROOT)
     except (ValueError, FileNotFoundError) as exc:
         print(f"ERROR: {exc}")
@@ -266,6 +354,8 @@ def main():
                 sys.exit(exc.returncode)
         else:
             print("RTL up-to-date (no source/config changes detected)")
+
+    selected_modules = _selected_modules(modules)
 
     verilog_file = RTL_DIR / "VliwCore.v"
     if not verilog_file.exists():
@@ -308,29 +398,52 @@ def main():
     if test_filter:
         extra_env["TESTCASE"] = test_filter
 
-    try:
-        with active_test_config(cfg.config_path, PROJECT_ROOT):
-            runner.test(
-                hdl_toplevel="VliwCore",
-                test_module=modules,
-                build_dir=str(build_dir),
-                extra_env=extra_env,
-            )
-    except Exception:
-        pass
+    print(f"Running modules: {', '.join(selected_modules)}")
 
+    module_summaries: list[dict[str, int | float]] = []
+    had_failures = False
     results_xml = build_dir / "results.xml"
-    if results_xml.exists():
-        passed, failed = print_results_summary(results_xml, cycle_metrics_file)
-        summary = collect_results_summary(results_xml, cycle_metrics_file)
-        duration_sec = time.perf_counter() - started
-        _append_run_log(log_file, run_label, modules, cfg, requested_tests, summary, duration_sec)
+
+    for module_name in selected_modules:
+        if results_xml.exists():
+            results_xml.unlink()
         if cycle_metrics_file.exists():
             cycle_metrics_file.unlink()
-        sys.exit(1 if failed > 0 else 0)
 
-    print("ERROR: No results.xml found")
-    sys.exit(1)
+        print(f"\n=== Module: {module_name} ===")
+        try:
+            with active_test_config(cfg.config_path, PROJECT_ROOT):
+                runner.test(
+                    hdl_toplevel="VliwCore",
+                    test_module=module_name,
+                    build_dir=str(build_dir),
+                    extra_env=extra_env,
+                )
+        except Exception:
+            pass
+
+        if not results_xml.exists():
+            print(f"ERROR: No results.xml found for module {module_name}")
+            sys.exit(1)
+
+        passed, failed = print_results_summary(results_xml, cycle_metrics_file)
+        module_summaries.append(collect_results_summary(results_xml, cycle_metrics_file))
+        had_failures = had_failures or failed > 0
+
+    summary = _merge_summaries(module_summaries)
+    duration_sec = time.perf_counter() - started
+    modules_label = modules if modules is not None else ",".join(selected_modules)
+    _append_run_log(log_file, run_label, modules_label, cfg, requested_tests, summary, duration_sec)
+
+    if cycle_metrics_file.exists():
+        cycle_metrics_file.unlink()
+
+    print()
+    print(
+        f"Aggregate: {summary['passed']} passed, {summary['failed']} failed, "
+        f"{summary['skipped']} skipped across {len(selected_modules)} module(s)"
+    )
+    sys.exit(1 if had_failures else 0)
 
 
 if __name__ == "__main__":

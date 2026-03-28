@@ -3,8 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import FrozenSet, Optional
 
-from assembler import AssemblerConfig
-from scheduler import SchedulerConfig
+try:
+    from ..assembler import AssemblerConfig
+    from ..scheduler import SchedulerConfig
+except ImportError:
+    from assembler import AssemblerConfig
+    from scheduler import SchedulerConfig
 
 
 @dataclass(frozen=True)
@@ -37,12 +41,12 @@ class HardwareCapabilities:
     bundle_width: int = 256
     mem_post_gap: int = 2
     valu_post_gap: int = 2
-    matrix_post_gap: int = 1
+    matrix_post_gap: int = 0
     supported_scalar_ops: FrozenSet[str] = field(
-        default_factory=lambda: frozenset({"add", "sub", "mul", "xor", "and", "or", "shl", "shr", "lt", "eq", "max", "min", "div", "mod", "cdiv"})
+        default_factory=lambda: frozenset({"add", "sub", "mul", "xor", "and", "or", "shl", "shr", "lt", "eq", "max", "min", "div", "mod", "cdiv", "fadd", "fsub", "fmul", "fmax", "fmin", "i2f", "f2i", "u2f", "f2u"})
     )
     supported_vector_ops: FrozenSet[str] = field(
-        default_factory=lambda: frozenset({"add", "sub", "mul", "xor", "and", "or", "shl", "shr", "lt", "eq", "max", "min", "vbroadcast", "multiply_add", "vcast"})
+        default_factory=lambda: frozenset({"add", "sub", "mul", "xor", "and", "or", "shl", "shr", "lt", "eq", "max", "min", "vbroadcast", "multiply_add", "vcast", "fadd", "fsub", "fmul", "fmax", "fmin", "i2f", "f2i", "u2f", "f2u"})
     )
     supported_load_ops: FrozenSet[str] = field(
         default_factory=lambda: frozenset({"const", "load", "load_offset", "vload"})
@@ -54,7 +58,21 @@ class HardwareCapabilities:
         default_factory=lambda: frozenset({"halt", "jump", "cond_jump", "cond_jump_rel", "jump_indirect", "select", "vselect", "add_imm", "coreid"})
     )
     supported_matrix_ops: FrozenSet[str] = field(
-        default_factory=lambda: frozenset({"mcfg", "mmload", "mmstore", "mdmvin", "mdmvout", "mpreload", "mcompute", "mcompute_acc", "mzero"})
+        default_factory=lambda: frozenset({
+            "mcfg",
+            "mmload",
+            "mmstore",
+            "mdmvin",
+            "mdmvout",
+            "mpreload",
+            "mcompute",
+            "mcompute_acc",
+            "mcompute_fp8_e4m3",
+            "mcompute_fp8_e4m3_acc",
+            "mcompute_fp8_e5m2",
+            "mcompute_fp8_e5m2_acc",
+            "mzero",
+        })
     )
     supported_element_widths: FrozenSet[int] = field(
         default_factory=lambda: frozenset({4, 8, 16, 32, 64})

@@ -10,7 +10,7 @@ if str(TOOLS_DIR) not in sys.path:
 
 from assembler import AssemblerConfig
 from scheduler import SchedulerConfig
-from dsl import HardwareCapabilities, KernelBuilder, TileWeaveKernelBuilder, U8, U16, U32, compile_kernel
+from dsl import F32, HardwareCapabilities, KernelBuilder, TileWeaveKernelBuilder, U8, U16, U32, compile_kernel
 from scheduler import Op
 
 
@@ -252,6 +252,77 @@ def test_missing_required_binding_fails():
         assert "requires binding" in str(exc)
     else:
         raise AssertionError("Expected missing binding to raise ValueError")
+
+
+def test_fp32_scalar_lowering_uses_alu_ops_and_expected_latencies():
+    kb = KernelBuilder("fp32_scalar")
+    a = kb.scalar("a", dtype=F32)
+    b = kb.scalar("b", dtype=F32)
+    out = kb.scalar("out", dtype=F32)
+    kb.fadd(out, a, b)
+    kb.fmul(out, out, b)
+    kb.halt()
+
+    result = compile_kernel(kb.build(), HardwareCapabilities.from_configs(), assemble=False)
+    ops = _real_ops(result)
+    fp_ops = [op for op in ops if op.engine == "alu" and op.op in {"fadd", "fmul"}]
+
+    assert [op.op for op in fp_ops] == ["fadd", "fmul"]
+    assert fp_ops[0].latency == 4
+    assert fp_ops[1].latency == 5
+
+
+def test_fp32_vector_lowering_uses_valu_ops_with_ew32():
+    kb = KernelBuilder("fp32_vector")
+    va = kb.vector("va", dtype=F32)
+    vb = kb.vector("vb", dtype=F32)
+    vc = kb.vector("vc", dtype=F32)
+    kb.vfadd(vc, va, vb)
+    kb.vfmul(vc, vc, vb)
+    kb.halt()
+
+    caps = HardwareCapabilities.from_configs(assembler_config=AssemblerConfig(vlen=8, scratch_size=256))
+    result = compile_kernel(kb.build(), caps, assemble=False)
+    ops = _real_ops(result)
+    fp_ops = [op for op in ops if op.engine == "valu" and op.op in {"fadd", "fmul"}]
+
+    assert [op.op for op in fp_ops] == ["fadd", "fmul"]
+    assert all(op.params["ew"] == 32 for op in fp_ops)
+    assert fp_ops[0].latency == 4
+    assert fp_ops[1].latency == 5
+
+
+def test_fmadd_builder_expands_to_fmul_then_fadd_with_temp():
+    kb = KernelBuilder("fp32_fmadd")
+    a = kb.scalar("a", dtype=F32)
+    b = kb.scalar("b", dtype=F32)
+    c = kb.scalar("c", dtype=F32)
+    out = kb.scalar("out", dtype=F32)
+    kb.fmadd(out, a, b, c).halt()
+
+    result = compile_kernel(kb.build(), HardwareCapabilities.from_configs(), assemble=False)
+    ops = _real_ops(result)
+    fp_ops = [op for op in ops if op.engine == "alu" and op.op in {"fmul", "fadd"}]
+
+    assert [op.op for op in fp_ops] == ["fmul", "fadd"]
+    assert fp_ops[0].dests[0] == fp_ops[1].srcs[0]
+
+
+def test_vfmadd_builder_expands_to_vector_fmul_then_fadd_with_temp():
+    kb = KernelBuilder("fp32_vfmadd")
+    va = kb.vector("va", dtype=F32)
+    vb = kb.vector("vb", dtype=F32)
+    vc = kb.vector("vc", dtype=F32)
+    out = kb.vector("out", dtype=F32)
+    kb.vfmadd(out, va, vb, vc).halt()
+
+    caps = HardwareCapabilities.from_configs(assembler_config=AssemblerConfig(vlen=8, scratch_size=256))
+    result = compile_kernel(kb.build(), caps, assemble=False)
+    ops = _real_ops(result)
+    fp_ops = [op for op in ops if op.engine == "valu" and op.op in {"fmul", "fadd"}]
+
+    assert [op.op for op in fp_ops] == ["fmul", "fadd"]
+    assert fp_ops[0].dests == fp_ops[1].srcs[: len(fp_ops[0].dests)]
 
 
 def test_tileweave_u16_large_block_preserves_element_width_and_chunks():

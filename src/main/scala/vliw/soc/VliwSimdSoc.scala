@@ -13,27 +13,32 @@ import vliw.core.VliwCore
  *
  * External interfaces:
  *   csrAxi   : AXI4-Lite slave — host-facing CSR register map (HostInterface)
- *   imemAxi  : AXI4-Lite slave — host writes instruction memory (broadcast to all cores or per-core)
- *   dmemAxi  : AXI4 slave      — host access to shared data memory
+ *   dmemAxi  : AXI4 master     — DDR data-memory port (connect to DDR controller / Zynq PS HP port)
  *   irq      : interrupt output — all cores halted
  *
  * Internal architecture:
- *   N × VliwCore    → per-core pipeline, engines, banked scratch
- *   MemorySubsystem → shared BRAM/URAM with AXI4 crossbar  (N core ports + 1 host port)
- *   HostInterface   → CSR register block with cycle counters and control
+ *   N × VliwCore       → per-core pipeline, engines, banked scratch
+ *   MemorySubsystem    → AXI4 crossbar arbitrating N core masters + 1 IMEM loader → 1 DDR master
+ *   ImemLoader         → DMA engine that copies program bundles from DDR into per-core IMEM
+ *   HostInterface      → CSR register block with cycle counters, control, and IMEM load regs
+ *
+ * Program and data loading flow:
+ *   1. Host writes program bundles and operand data into DDR (via Zynq PS memory controller).
+ *   2. Host sets IMEM_SRC_ADDR and IMEM_BUNDLE_COUNT CSRs.
+ *   3. Host writes CTRL with LOAD bit → ImemLoader DMA's bundles from DDR into on-chip IMEM.
+ *   4. Host writes CTRL with START bit → cores begin execution.
+ *   5. Cores pull data from DDR via LOAD/VLOAD and push results via STORE/VSTORE.
+ *   6. Host reads results directly from DDR after cores halt.
  */
 class VliwSimdSoc(cfg: VliwSocConfig) extends Component {
   setDefinitionName(s"VliwSimdSoc_${cfg.nCores}c")
 
   val io = new Bundle {
-    /** Host CSR access (control, status, config read-out) */
+    /** Host CSR access (control, status, config read-out, IMEM load control) */
     val csrAxi  = slave(AxiLite4(cfg.axiLiteConfig))
 
-    /** Host instruction memory write port */
-    val imemAxi = slave(AxiLite4(cfg.axiLiteConfig))
-
-    /** Host data memory access port */
-    val dmemAxi = slave(Axi4(cfg.axiConfig))
+    /** DDR data-memory master (connect to DDR controller / Zynq PS HP port) */
+    val dmemAxi = master(Axi4(cfg.ddrAxiConfig))
 
     /** Interrupt: asserted when all cores have halted */
     val irq = out Bool()
@@ -45,6 +50,10 @@ class VliwSimdSoc(cfg: VliwSocConfig) extends Component {
     new VliwCore(cfg, coreId = i)
   }
 
+  // ====================== IMEM Loader ======================
+
+  val imemLoader = new ImemLoader(cfg)
+
   // ====================== Memory Subsystem ======================
 
   val memSub = new MemorySubsystem(cfg)
@@ -54,8 +63,11 @@ class VliwSimdSoc(cfg: VliwSocConfig) extends Component {
     memSub.io.corePorts(i) <> cores(i).io.dmemAxi
   }
 
-  // Host data-memory port
-  memSub.io.hostPort <> io.dmemAxi
+  // Wire IMEM loader's AXI master → memory subsystem loader port
+  memSub.io.loaderPort <> imemLoader.io.axiMaster
+
+  // DDR master port → top-level
+  io.dmemAxi <> memSub.io.ddrPort
 
   // ====================== Host Interface (CSR) ======================
 
@@ -73,164 +85,20 @@ class VliwSimdSoc(cfg: VliwSocConfig) extends Component {
 
   io.irq := hostIf.io.irq
 
-  // ====================== IMEM loading via AXI4-Lite ======================
-  // 
-  // The host writes instruction bundles through the imemAxi port.
-  // Address encoding:
-  //   Bits [31 : imemAddrWidth + log2Up(bundleBytes) + coreSelWidth] : unused/reserved
-  //   Bits [coreSelWidth + imemAddrWidth + log2Up(bundleBytes) - 1 : imemAddrWidth + log2Up(bundleBytes)] : core select
-  //   Bits [imemAddrWidth + log2Up(bundleBytes) - 1 : log2Up(bundleBytes)] : instruction address
-  //   Bits [log2Up(bundleBytes) - 1 : 0] : word within bundle
-  //
-  // Since the bundle is wider than 32 bits, the host writes one 32-bit word 
-  // at a time. A small shim accumulates words and issues a full-width write 
-  // once the last word in a bundle is written.
-  //
-  // For v1 simplicity: bundle width may be large. We use a shift-register 
-  // accumulator that collects 32-bit chunks and commits on the last one.
+  // ====================== IMEM loader wiring ======================
 
-  val bundleBytes  = cfg.bundleWidth / 8
-  val wordsPerBundle = cfg.bundleWidth / cfg.axiLiteDataWidth
-  val wordAddrBits = if (wordsPerBundle > 1) log2Up(wordsPerBundle) else 0
-  val coreBits     = if (cfg.nCores > 1) log2Up(cfg.nCores) else 0
-  val bytesPerWord = cfg.axiLiteDataWidth / 8
-  val byteAddrBits = log2Up(bytesPerWord)
+  imemLoader.io.srcAddr     := hostIf.io.imemSrcAddr
+  imemLoader.io.bundleCount := hostIf.io.imemBundleCount
+  imemLoader.io.start       := hostIf.io.imemLoadStart
 
-  // AXI4-Lite write channel handling
-  val imemBusCtrl = new Area {
-    val axiLite = io.imemAxi
+  hostIf.io.imemLoaderBusy := imemLoader.io.busy
+  hostIf.io.imemLoaderDone := imemLoader.io.done
 
-    // Simple AXI4-Lite slave: accept writes, ACK immediately
-    val awReady = RegInit(True)
-    val wReady  = RegInit(True)
-    val bValid  = RegInit(False)
-
-    axiLite.aw.ready := awReady
-    axiLite.w.ready  := wReady
-    axiLite.b.valid  := bValid
-    axiLite.b.resp   := B"00"  // OKAY
-
-    // Read channel: not used, tie off
-    axiLite.ar.ready := False
-    axiLite.r.valid  := False
-    axiLite.r.data   := 0
-    axiLite.r.resp   := B"00"
-
-    // Capture AW and W
-    val awAddr = Reg(UInt(cfg.axiAddrWidth bits))
-    val wData  = Reg(Bits(cfg.axiLiteDataWidth bits))
-    val awFire = Bool()
-    val wFire  = Bool()
-    awFire := axiLite.aw.valid && axiLite.aw.ready
-    wFire  := axiLite.w.valid && axiLite.w.ready
-
-    when(awFire) { awAddr := axiLite.aw.addr }
-    when(wFire)  { wData  := axiLite.w.data }
-
-    // Both fired → process
-    val bothFired = RegInit(False)
-    val awDone    = RegInit(False)
-    val wDone     = RegInit(False)
-
-    when(awFire && wFire) {
-      bothFired := True
-      awDone    := False
-      wDone     := False
-      awReady   := False
-      wReady    := False
-    } elsewhen (awFire) {
-      awDone  := True
-      awReady := False
-    } elsewhen (wFire) {
-      wDone   := True
-      wReady  := False
-    }
-
-    when(awDone && wFire) {
-      bothFired := True
-      awDone    := False
-      wDone     := False
-      awReady   := False
-      wReady    := False
-    }
-    when(wDone && awFire) {
-      bothFired := True
-      awDone    := False
-      wDone     := False
-      awReady   := False
-      wReady    := False
-    }
-
-    // Bundle accumulator
-    val accumulator = Reg(Bits(cfg.bundleWidth bits)) init 0
-    val wordIdx     = if (wordsPerBundle > 1) {
-      (awAddr >> byteAddrBits).resize(wordAddrBits)
-    } else {
-      U(0, 1 bits)
-    }
-
-    val instrAddr = if (wordAddrBits > 0) {
-      (awAddr >> (byteAddrBits + wordAddrBits)).resize(cfg.imemAddrWidth)
-    } else {
-      (awAddr >> byteAddrBits).resize(cfg.imemAddrWidth)
-    }
-
-    val coreSelect = if (coreBits > 0) {
-      (awAddr >> (byteAddrBits + wordAddrBits + cfg.imemAddrWidth)).resize(coreBits)
-    } else {
-      U(0, 1 bits)
-    }
-
-    val isLastWord = if (wordsPerBundle > 1) (wordIdx === U(wordsPerBundle - 1)) else True
-
-    // Write accumulated word
-    when(bothFired) {
-      if (wordsPerBundle > 1) {
-        val lo = wordIdx * cfg.axiLiteDataWidth
-        for (b <- 0 until cfg.axiLiteDataWidth) {
-          accumulator(lo.resize(log2Up(cfg.bundleWidth)) + b) := wData(b)
-        }
-      } else {
-        accumulator := wData.resize(cfg.bundleWidth)
-      }
-    }
-
-    // Commit to IMEM when last word written
-    val commitValid = RegNext(bothFired && isLastWord) init False
-    val commitAddr  = RegNext(instrAddr)
-    val commitCore  = RegNext(coreSelect)
-    val commitData  = Reg(Bits(cfg.bundleWidth bits))
-
-    when(bothFired && isLastWord) {
-      // Build the final bundle with the last word included
-      commitData := accumulator
-      if (wordsPerBundle > 1) {
-        val lo = wordIdx * cfg.axiLiteDataWidth
-        for (b <- 0 until cfg.axiLiteDataWidth) {
-          commitData(lo.resize(log2Up(cfg.bundleWidth)) + b) := wData(b)
-        }
-      } else {
-        commitData := wData.resize(cfg.bundleWidth)
-      }
-    }
-
-    // Drive IMEM write ports
-    for (i <- 0 until cfg.nCores) {
-      cores(i).io.imemWrite.valid := commitValid && (if (coreBits > 0) commitCore === U(i) else True)
-      cores(i).io.imemWrite.payload.addr := commitAddr.resize(cfg.imemAddrWidth)
-      cores(i).io.imemWrite.payload.data := commitData
-    }
-
-    // B response
-    when(bothFired) {
-      bValid := True
-    }
-    when(axiLite.b.valid && axiLite.b.ready) {
-      bValid    := False
-      awReady   := True
-      wReady    := True
-      bothFired := False
-    }
+  // IMEM write: loader drives per-core IMEM write ports
+  for (i <- 0 until cfg.nCores) {
+    cores(i).io.imemWrite.valid        := imemLoader.io.imemWrite(i).valid
+    cores(i).io.imemWrite.payload.addr := imemLoader.io.imemWrite(i).payload.addr
+    cores(i).io.imemWrite.payload.data := imemLoader.io.imemWrite(i).payload.data
   }
 
   // ====================== Core reset from host ======================

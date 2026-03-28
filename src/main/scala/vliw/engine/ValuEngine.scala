@@ -72,11 +72,21 @@ class ValuEngine(cfg: VliwSocConfig) extends Component with EnginePlugin with Va
     val ew  = slot.ewidth
     val dw  = slot.dwidth
     val sgn = slot.isSigned
+    val isFp32 = slot.opcode === Fp32Opcode.FADD ||
+                 slot.opcode === Fp32Opcode.FSUB ||
+                 slot.opcode === Fp32Opcode.FMUL ||
+                 slot.opcode === Fp32Opcode.FMAX ||
+                 slot.opcode === Fp32Opcode.FMIN ||
+                 slot.opcode === Fp32Opcode.I2F ||
+                 slot.opcode === Fp32Opcode.F2I ||
+                 slot.opcode === Fp32Opcode.U2F ||
+                 slot.opcode === Fp32Opcode.F2U
 
     for (lane <- 0 until cfg.vlen) {
       val a = io.operandA(s)(lane)
       val b = io.operandB(s)(lane)
       val c = io.operandC(s)(lane)
+      val fp32Unit = new Fp32Unit(cfg)
 
       // ---- Per-lane divider (EW32 only, fire-and-forget) ----
       val divider    = new UnsignedDivider(cfg.dataWidth)
@@ -86,6 +96,12 @@ class ValuEngine(cfg: VliwSocConfig) extends Component with EnginePlugin with Va
       val isDiv = slot.opcode === AluOpcode.MOD ||
                   slot.opcode === AluOpcode.DIV ||
                   slot.opcode === AluOpcode.CDIV
+
+      fp32Unit.io.fire := slotValid && isFp32 && (ew === ElemWidth.EW32) && !fp32Unit.io.busy
+      fp32Unit.io.mode := slot.opcode
+      fp32Unit.io.a := a
+      fp32Unit.io.b := b
+      fp32Unit.io.tagIn := (slot.destBase + lane).resize(cfg.scratchAddrWidth)
 
       divider.io.start    := slotValid && isDiv && !divider.io.busy && (ew === ElemWidth.EW32)
       divider.io.dividend := Mux(slot.opcode === AluOpcode.CDIV,
@@ -295,11 +311,13 @@ class ValuEngine(cfg: VliwSocConfig) extends Component with EnginePlugin with Va
 
       // ---- Write port ----
       val destAddr = (slot.destBase + lane).resize(cfg.scratchAddrWidth)
-      val singleCycleWrite = slotValid && !isDiv
+      val singleCycleWrite = slotValid && !isDiv && !isFp32
 
-      io.writeReqs(s)(lane).valid := divider.io.done || singleCycleWrite
-      io.writeReqs(s)(lane).addr  := Mux(divider.io.done, divCapDest, destAddr)
-      io.writeReqs(s)(lane).data  := Mux(divider.io.done, divResult, result)
+      io.writeReqs(s)(lane).valid := divider.io.done || fp32Unit.io.done || singleCycleWrite
+      io.writeReqs(s)(lane).addr  := Mux(divider.io.done, divCapDest,
+                                      Mux(fp32Unit.io.done, fp32Unit.io.tagOut, destAddr))
+      io.writeReqs(s)(lane).data  := Mux(divider.io.done, divResult,
+                                      Mux(fp32Unit.io.done, fp32Unit.io.result, result))
     }
   }
 }

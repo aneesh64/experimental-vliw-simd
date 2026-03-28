@@ -5,18 +5,20 @@ Tests all 15 ALU opcodes including the multi-cycle DIV/MOD/CDIV
 which use the fire-and-forget UnsignedDivider.
 
 Port naming (from generated Verilog):
-    io_slots_0_valid, io_slots_0_opcode[4:0], io_slots_0_dest[10:0],
-  io_slots_0_src1[10:0], io_slots_0_src2[10:0]
-  io_valid
-  io_operandA_0[31:0], io_operandB_0[31:0]
-  io_writeReqs_0_valid, io_writeReqs_0_payload_addr[10:0],
-  io_writeReqs_0_payload_data[31:0]
+        io_slots_0_valid, io_slots_0_opcode[4:0], io_slots_0_dest[10:0],
+    io_slots_0_src1[10:0], io_slots_0_src2[10:0]
+    io_valid
+    io_operandA_0[31:0], io_operandB_0[31:0]
+    io_writeReqs_0_valid, io_writeReqs_0_payload_addr[10:0],
+    io_writeReqs_0_payload_data[31:0]
 """
 
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, ClockCycles
 import random
+import struct
+from verification.cocotb.golden_model import _f32_binop, _i32_to_f32_bits, _u32_to_f32_bits, _f32_to_i32_bits, _f32_to_u32_bits
 
 MASK32 = 0xFFFFFFFF
 
@@ -37,6 +39,19 @@ class Op:
     CDIV = 12
     MAX  = 13
     MIN  = 14
+    FADD = 18
+    FSUB = 19
+    FMUL = 20
+    FMAX = 21
+    FMIN = 22
+    I2F  = 23
+    F2I  = 24
+    U2F  = 25
+    F2U  = 26
+
+
+def f32_to_bits(value: float) -> int:
+    return struct.unpack("<I", struct.pack("<f", float(value)))[0]
 
 
 def expected_result(op, a, b):
@@ -90,6 +105,17 @@ async def fire_alu(dut, opcode, a, b, dest=5):
     # De-assert after 1 cycle
     dut.io_valid.value = 0
     dut.io_slots_0_valid.value = 0
+
+
+async def wait_fp_write(dut, latency, dest):
+    for cycle in range(latency - 1):
+        await RisingEdge(dut.clk)
+        assert int(dut.io_writeReqs_0_valid.value) == 0, f"FP32 op completed too early at cycle {cycle + 1}"
+
+    await RisingEdge(dut.clk)
+    assert int(dut.io_writeReqs_0_valid.value) == 1, f"FP32 op did not complete at latency {latency}"
+    assert int(dut.io_writeReqs_0_payload_addr.value) == dest
+    return int(dut.io_writeReqs_0_payload_data.value)
 
 
 async def check_single_cycle_result(dut, opcode, a, b, dest=5):
@@ -277,3 +303,109 @@ async def test_random_single_cycle(dut):
         await RisingEdge(dut.clk)
 
     dut._log.info("test_random_single_cycle: PASS (100 cases)")
+
+
+@cocotb.test()
+async def test_fp32_add_and_convert_smoke(dut):
+    """Smoke-test serialized FP32 add and conversion latency on AluEngine."""
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+    await reset(dut)
+
+    await fire_alu(dut, Op.FADD, f32_to_bits(1.5), f32_to_bits(2.25), dest=21)
+    for cycle in range(3):
+        await RisingEdge(dut.clk)
+        assert int(dut.io_writeReqs_0_valid.value) == 0, f"FADD completed too early at cycle {cycle + 1}"
+
+    await RisingEdge(dut.clk)
+    assert int(dut.io_writeReqs_0_valid.value) == 1, "FADD did not complete at 4-cycle latency"
+    assert int(dut.io_writeReqs_0_payload_addr.value) == 21
+    assert int(dut.io_writeReqs_0_payload_data.value) == f32_to_bits(3.75)
+
+    await fire_alu(dut, Op.I2F, 7, 0, dest=22)
+    for _ in range(3):
+        await RisingEdge(dut.clk)
+    await RisingEdge(dut.clk)
+    assert int(dut.io_writeReqs_0_valid.value) == 1, "I2F did not complete at 4-cycle latency"
+    assert int(dut.io_writeReqs_0_payload_addr.value) == 22
+    assert int(dut.io_writeReqs_0_payload_data.value) == f32_to_bits(7.0)
+
+    dut._log.info("test_fp32_add_and_convert_smoke: PASS")
+
+
+@cocotb.test()
+async def test_fp32_reference_vectors(dut):
+    """Check scalar FP32 ops against the golden-model reference."""
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+    await reset(dut)
+
+    binary_cases = [
+        (Op.FADD, "fadd", 4, [
+            (0x3F800000, 0x40000000),
+            (0x00000001, 0x00000001),
+            (0x7F800000, 0x3F800000),
+            (0x7F800000, 0xFF800000),
+            (0x80000000, 0x00000000),
+        ]),
+        (Op.FSUB, "fsub", 4, [
+            (0x40400000, 0x3FC00000),
+            (0x00000002, 0x00000001),
+            (0x7F800000, 0x7F800000),
+            (0xBF800000, 0x3F800000),
+        ]),
+        (Op.FMUL, "fmul", 5, [
+            (0x3FC00000, 0x40200000),
+            (0x00000001, 0x3F800000),
+            (0x7F800000, 0x00000000),
+            (0xBF800000, 0x40000000),
+        ]),
+        (Op.FMAX, "fmax", 4, [
+            (0x80000000, 0x00000000),
+            (0x7FC00000, 0x3F800000),
+            (0xBF800000, 0x3F000000),
+        ]),
+        (Op.FMIN, "fmin", 4, [
+            (0x80000000, 0x00000000),
+            (0x7FC00000, 0x3F800000),
+            (0xBF800000, 0x3F000000),
+        ]),
+    ]
+
+    dest = 40
+    for opcode, ref_name, latency, cases in binary_cases:
+        for a_bits, b_bits in cases:
+            await fire_alu(dut, opcode, a_bits, b_bits, dest=dest)
+            data = await wait_fp_write(dut, latency, dest)
+            exp = _f32_binop(ref_name, a_bits, b_bits)
+            assert data == exp, f"Op {ref_name}: got 0x{data:08x}, expected 0x{exp:08x}"
+            await RisingEdge(dut.clk)
+            dest += 1
+
+    conv_cases = [
+        (Op.I2F, 4, [0, 1, 0xFFFFFFFF, 0x80000000, 0x7FFFFFFF], _i32_to_f32_bits),
+        (Op.U2F, 4, [0, 1, 0xFFFFFFFF, 0x80000000, 0x7FFFFFFF], _u32_to_f32_bits),
+        (Op.F2I, 4, [0x00000001, 0x3FC00000, 0xBF800000, 0x7F800000, 0x7FC00000], _f32_to_i32_bits),
+        (Op.F2U, 4, [0x00000001, 0x3FC00000, 0xBF800000, 0x7F800000, 0x7FC00000], _f32_to_u32_bits),
+    ]
+
+    for opcode, latency, values, ref_fn in conv_cases:
+        for value in values:
+            await fire_alu(dut, opcode, value, 0, dest=dest)
+            data = await wait_fp_write(dut, latency, dest)
+            exp = ref_fn(value)
+            assert data == exp, f"Conv op {opcode}: got 0x{data:08x}, expected 0x{exp:08x}"
+            await RisingEdge(dut.clk)
+            dest += 1
+
+    rng = random.Random(321)
+    for opcode, ref_name, latency in ((Op.FADD, "fadd", 4), (Op.FSUB, "fsub", 4), (Op.FMUL, "fmul", 5)):
+        for _ in range(25):
+            a_bits = rng.getrandbits(32)
+            b_bits = rng.getrandbits(32)
+            await fire_alu(dut, opcode, a_bits, b_bits, dest=dest)
+            data = await wait_fp_write(dut, latency, dest)
+            exp = _f32_binop(ref_name, a_bits, b_bits)
+            assert data == exp, f"Random {ref_name}: got 0x{data:08x}, expected 0x{exp:08x}"
+            await RisingEdge(dut.clk)
+            dest += 1
+
+    dut._log.info("test_fp32_reference_vectors: PASS")

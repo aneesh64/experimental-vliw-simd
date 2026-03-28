@@ -48,6 +48,15 @@ ALU_OPCODES = {
     "cdiv": 12,
     "max": 13,
     "min": 14,
+    "fadd": 18,
+    "fsub": 19,
+    "fmul": 20,
+    "fmax": 21,
+    "fmin": 22,
+    "i2f": 23,
+    "f2i": 24,
+    "u2f": 25,
+    "f2u": 26,
 }
 
 VALU_EXTRA_OPCODES = {
@@ -115,6 +124,10 @@ MATRIX_OPCODES = {
     "mcompute":     7,
     "mcompute_acc": 8,
     "mzero":        9,
+    "mcompute_fp8_e4m3":     10,
+    "mcompute_fp8_e4m3_acc": 11,
+    "mcompute_fp8_e5m2":     12,
+    "mcompute_fp8_e5m2_acc": 13,
 }
 
 
@@ -177,6 +190,11 @@ class AssemblerConfig:
 def _pack_bits(value: int, width: int) -> int:
     """Mask value to width bits (unsigned)."""
     return value & ((1 << width) - 1)
+
+
+def f32_to_bits(value: float) -> int:
+    """Return the IEEE-754 binary32 encoding for a Python float."""
+    return struct.unpack("<I", struct.pack("<f", float(value)))[0]
 
 
 def encode_alu_slot(op: str, dest: int, src1: int, src2: int,

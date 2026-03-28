@@ -84,6 +84,7 @@ python tools/matrix_matmul_32x32_demo.py --emit-dir <artifact_dir>
 - [docs/DSL_DEVELOPER_GUIDE.md](docs/DSL_DEVELOPER_GUIDE.md)
 - [docs/DSL_HIGH_LEVEL_ROADMAP.md](docs/DSL_HIGH_LEVEL_ROADMAP.md)
 - [docs/DSL_EXAMPLE_MATRIX_MATMUL_32X32.md](docs/DSL_EXAMPLE_MATRIX_MATMUL_32X32.md)
+- [docs/DSL_EXAMPLE_TURBOQUANT_32X32.md](docs/DSL_EXAMPLE_TURBOQUANT_32X32.md)
 
 ## Repository Layout
 

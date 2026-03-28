@@ -50,11 +50,12 @@ digraph VliwCoreBlock {
       style="filled";
       fillcolor="#f7f1e3";
 
-      IMEM   [label="InstructionMemory", fillcolor="#efe7d2", color="#6a5a44"];
+      IMEM   [label="IMEM\n(Instruction Memory)", fillcolor="#efe7d2", color="#6a5a44"];
       FETCH  [label="FetchUnit", fillcolor="#efe7d2", color="#6a5a44"];
       DECODE [label="DecodeUnit", fillcolor="#efe7d2", color="#6a5a44"];
 
       { rank=same; IMEM; FETCH; DECODE; }
+      DMEM   [label="DMEM\n(Data Memory)", fillcolor="#efe7d2", color="#6a5a44", width=2.2, height=0.7];
     }
 
     SCRATCH [
@@ -106,8 +107,11 @@ digraph VliwCoreBlock {
   }
 
   AXI [label="External DMEM AXI", fillcolor="#fff8ec", color="#5f5543", width=2.4, height=0.72];
+  CDRIVER [label="C Driver\n(IMEM/DMEM Access)", shape=component, fillcolor="#f7f1e3", color="#b4a691", width=2.2, height=0.7];
 
   IMEM:e -> FETCH:w;
+  CDRIVER -> IMEM:w [style=dashed, color="#b4a691", fontcolor="#b4a691", label="load bundles"];
+  CDRIVER -> DMEM:w [style=dashed, color="#b4a691", fontcolor="#b4a691", label="read/write data"];
   FETCH:e -> DECODE:w;
 
   DECODE:n  -> ALU:w;
@@ -133,6 +137,7 @@ digraph VliwCoreBlock {
   CTRLBUS -> FETCH:s [style=dashed, color="#7a3f3f", arrowhead=normal, constraint=false, minlen=2];
 
   MEM:s -> AXI:w [xlabel="AXI bursts"];
+  MEM:e -> DMEM:w [xlabel="data port"];
 
   MEM:ne -> MATA:w   [xlabel="system DMA", minlen=2];
   MEM:e  -> MATB:w   [xlabel="system DMA", minlen=2];

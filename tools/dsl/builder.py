@@ -9,6 +9,7 @@ from .ir import (
     Buffer,
     CondJump,
     DType,
+    F32,
     Halt,
     Jump,
     Kernel,
@@ -19,12 +20,14 @@ from .ir import (
     MemorySpace,
     ReadCoreId,
     ScalarBinary,
+    ScalarConvert,
     ScalarLoad,
     ScalarSelect,
     ScalarStore,
     VectorBinary,
     VectorBroadcast,
     VectorCast,
+    VectorConvert,
     VectorLoad,
     VectorStore,
     U32,
@@ -217,6 +220,65 @@ class KernelBuilder:
     def min(self, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
         return self.binary("min", dest, lhs, rhs)
 
+    def _require_dtype(self, value: Buffer | str, expected: DType) -> None:
+        buf = self._buffer(value)
+        if buf.dtype != expected:
+            raise ValueError(f"Buffer '{buf.name}' requires dtype {expected}, got {buf.dtype}")
+
+    def _require_same_dtype(self, *values: Buffer | str) -> DType:
+        buffers = [self._buffer(value) for value in values]
+        dtype = buffers[0].dtype
+        if any(buf.dtype != dtype for buf in buffers[1:]):
+            names = ", ".join(buf.name for buf in buffers)
+            raise ValueError(f"Buffers must share dtype: {names}")
+        return dtype
+
+    def fp_binary(self, op: str, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
+        dtype = self._require_same_dtype(dest, lhs, rhs)
+        if dtype != F32:
+            raise ValueError(f"FP32 binary op '{op}' requires F32 buffers")
+        self._kernel.ops.append(ScalarBinary(op, self._name(dest), self._name(lhs), self._name(rhs)))
+        return self
+
+    def fadd(self, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
+        return self.fp_binary("fadd", dest, lhs, rhs)
+
+    def fsub(self, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
+        return self.fp_binary("fsub", dest, lhs, rhs)
+
+    def fmul(self, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
+        return self.fp_binary("fmul", dest, lhs, rhs)
+
+    def fmax(self, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
+        return self.fp_binary("fmax", dest, lhs, rhs)
+
+    def fmin(self, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
+        return self.fp_binary("fmin", dest, lhs, rhs)
+
+    def _convert(self, op: str, dest: Buffer | str, src: Buffer | str) -> "KernelBuilder":
+        self._kernel.ops.append(ScalarConvert(op, self._name(dest), self._name(src)))
+        return self
+
+    def i2f(self, dest: Buffer | str, src: Buffer | str) -> "KernelBuilder":
+        self._require_dtype(dest, F32)
+        return self._convert("i2f", dest, src)
+
+    def f2i(self, dest: Buffer | str, src: Buffer | str) -> "KernelBuilder":
+        self._require_dtype(src, F32)
+        return self._convert("f2i", dest, src)
+
+    def u2f(self, dest: Buffer | str, src: Buffer | str) -> "KernelBuilder":
+        self._require_dtype(dest, F32)
+        return self._convert("u2f", dest, src)
+
+    def f2u(self, dest: Buffer | str, src: Buffer | str) -> "KernelBuilder":
+        self._require_dtype(src, F32)
+        return self._convert("f2u", dest, src)
+
+    def fmadd(self, dest: Buffer | str, src_a: Buffer | str, src_b: Buffer | str, src_c: Buffer | str) -> "KernelBuilder":
+        temp = self.scalar(self._next_temp_name("fmadd_tmp"), dtype=F32)
+        return self.fmul(temp, src_a, src_b).fadd(dest, temp, src_c)
+
     def select(
         self,
         dest: Buffer | str,
@@ -279,6 +341,54 @@ class KernelBuilder:
         signed: int = 0,
     ) -> "KernelBuilder":
         return self.vector_binary("min", dest, lhs, rhs, ew=ew, signed=signed)
+
+    def vector_fp_binary(self, op: str, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
+        dtype = self._require_same_dtype(dest, lhs, rhs)
+        if dtype != F32:
+            raise ValueError(f"Vector FP32 op '{op}' requires F32 buffers")
+        self._kernel.ops.append(
+            VectorBinary(op, self._name(dest), self._name(lhs), self._name(rhs), ew=32, dw=32, signed=0)
+        )
+        return self
+
+    def vfadd(self, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
+        return self.vector_fp_binary("fadd", dest, lhs, rhs)
+
+    def vfsub(self, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
+        return self.vector_fp_binary("fsub", dest, lhs, rhs)
+
+    def vfmul(self, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
+        return self.vector_fp_binary("fmul", dest, lhs, rhs)
+
+    def vfmax(self, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
+        return self.vector_fp_binary("fmax", dest, lhs, rhs)
+
+    def vfmin(self, dest: Buffer | str, lhs: Buffer | str, rhs: Buffer | str) -> "KernelBuilder":
+        return self.vector_fp_binary("fmin", dest, lhs, rhs)
+
+    def _vector_convert(self, op: str, dest: Buffer | str, src: Buffer | str) -> "KernelBuilder":
+        self._kernel.ops.append(VectorConvert(op, self._name(dest), self._name(src)))
+        return self
+
+    def vi2f(self, dest: Buffer | str, src: Buffer | str) -> "KernelBuilder":
+        self._require_dtype(dest, F32)
+        return self._vector_convert("i2f", dest, src)
+
+    def vf2i(self, dest: Buffer | str, src: Buffer | str) -> "KernelBuilder":
+        self._require_dtype(src, F32)
+        return self._vector_convert("f2i", dest, src)
+
+    def vu2f(self, dest: Buffer | str, src: Buffer | str) -> "KernelBuilder":
+        self._require_dtype(dest, F32)
+        return self._vector_convert("u2f", dest, src)
+
+    def vf2u(self, dest: Buffer | str, src: Buffer | str) -> "KernelBuilder":
+        self._require_dtype(src, F32)
+        return self._vector_convert("f2u", dest, src)
+
+    def vfmadd(self, dest: Buffer | str, src_a: Buffer | str, src_b: Buffer | str, src_c: Buffer | str) -> "KernelBuilder":
+        temp = self.vector(self._next_temp_name("vfmadd_tmp"), length=self._buffer(dest).elements, dtype=F32)
+        return self.vfmul(temp, src_a, src_b).vfadd(dest, temp, src_c)
 
     def software_pipeline_binary(
         self,
@@ -487,6 +597,7 @@ class KernelBuilder:
         out: Buffer | str,
         *,
         accumulate: bool = False,
+        format: str = "int8",
     ) -> "KernelBuilder":
         self._kernel.ops.append(
             MatrixMultiply(
@@ -494,6 +605,7 @@ class KernelBuilder:
                 self._name(rhs),
                 self._name(out),
                 accumulate=accumulate,
+                format=format,
             )
         )
         return self

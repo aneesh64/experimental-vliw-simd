@@ -1,43 +1,45 @@
 /**
  * VLIW SoC Driver — C Implementation
+ *
+ * Program and data live in DDR.  The host writes bundles into DDR, then
+ * triggers the hardware IMEM loader via CSR registers to DMA them into
+ * on-chip instruction memory before starting execution.
  */
 
 #include "vliw_driver.h"
 #include <string.h>
 
-void vliw_init(vliw_handle_t *h, uint32_t *csr, uint32_t *imem, uint8_t *dmem) {
+void vliw_init(vliw_handle_t *h, uint32_t *csr, uint8_t *ddr) {
     h->csr_base = csr;
-    h->imem_base = imem;
-    h->dmem_base = dmem;
-    
+    h->ddr_base = ddr;
+
     /* Query config from hardware */
-    h->n_cores = vliw_csr_read(h, VLIW_NCORES);
-    h->vlen = vliw_csr_read(h, VLIW_VLEN);
+    h->n_cores      = vliw_csr_read(h, VLIW_NCORES);
+    h->vlen         = vliw_csr_read(h, VLIW_VLEN);
     h->scratch_size = vliw_csr_read(h, VLIW_SCRA_SIZE);
+    h->bundle_width = vliw_csr_read(h, VLIW_BWIDTH);
 }
 
-void vliw_imem_write_word(vliw_handle_t *h, uint32_t core, uint32_t addr, uint32_t data) {
-    /* Address encoding: [coreIdx] [instrAddr] [wordIdx within bundle]
-     * For simplicity, assume single word per bundle or packed word index
-     * Address = (core << (imemAddrWidth + 2)) | (addr << 2) | (wordIdx)
-     * Easiest: just offset by core and addr in 32-bit space
-     */
-    uint32_t offset = (core << 20) | addr;  /* Shift core to upper bits */
-    h->imem_base[offset] = data;
-}
+int vliw_load_program(vliw_handle_t *h, uint32_t ddr_addr,
+                       uint32_t bundle_count, uint32_t timeout) {
+    /* Set source address and bundle count in CSR */
+    vliw_csr_write(h, VLIW_IMEM_SRC_ADDR, ddr_addr);
+    vliw_csr_write(h, VLIW_IMEM_BUNDLE_COUNT, bundle_count);
 
-void vliw_imem_write_bundle(vliw_handle_t *h, uint32_t core, uint32_t addr,
-                             const uint8_t *bundle, size_t size) {
-    /* Write bundle in 32-bit chunks */
-    for (size_t i = 0; i < size; i += 4) {
-        uint32_t word = 0;
-        word |= (bundle[i + 0] << 0);
-        if (i + 1 < size) word |= (bundle[i + 1] << 8);
-        if (i + 2 < size) word |= (bundle[i + 2] << 16);
-        if (i + 3 < size) word |= (bundle[i + 3] << 24);
-        
-        vliw_imem_write_word(h, core, addr + i / 4, word);
+    /* Trigger IMEM load via CTRL.LOAD bit */
+    vliw_csr_write(h, VLIW_CTRL, VLIW_CTRL_LOAD);
+
+    /* Poll IMEM status until done */
+    uint32_t count = 0;
+    while (timeout == 0 || count < timeout) {
+        uint32_t imem_stat = vliw_csr_read(h, VLIW_IMEM_STATUS);
+        if (imem_stat & VLIW_IMEM_STAT_DONE) {
+            return 0;  /* Load complete */
+        }
+        count++;
     }
+
+    return -1;  /* Timeout */
 }
 
 void vliw_start(vliw_handle_t *h) {
@@ -47,12 +49,12 @@ void vliw_start(vliw_handle_t *h) {
 int vliw_wait_halted(vliw_handle_t *h, uint32_t timeout) {
     uint32_t count = 0;
     uint32_t all_halted_mask = 0;
-    
+
     /* Build mask for all cores */
     for (uint32_t i = 0; i < h->n_cores; i++) {
         all_halted_mask |= VLIW_STAT_HALTED(i);
     }
-    
+
     while (timeout == 0 || count < timeout) {
         uint32_t stat = vliw_csr_read(h, VLIW_STAT);
         if ((stat & all_halted_mask) == all_halted_mask) {
@@ -60,7 +62,7 @@ int vliw_wait_halted(vliw_handle_t *h, uint32_t timeout) {
         }
         count++;
     }
-    
+
     return -1;  /* Timeout */
 }
 
@@ -80,10 +82,10 @@ void vliw_reset(vliw_handle_t *h) {
     vliw_csr_write(h, VLIW_CTRL, VLIW_CTRL_RESET);
 }
 
-void vliw_dmem_read(vliw_handle_t *h, uint32_t addr, uint8_t *data, size_t len) {
-    memcpy(data, &h->dmem_base[addr], len);
+void vliw_ddr_read(vliw_handle_t *h, uint32_t offset, uint8_t *data, size_t len) {
+    memcpy(data, &h->ddr_base[offset], len);
 }
 
-void vliw_dmem_write(vliw_handle_t *h, uint32_t addr, const uint8_t *data, size_t len) {
-    memcpy(&h->dmem_base[addr], data, len);
+void vliw_ddr_write(vliw_handle_t *h, uint32_t offset, const uint8_t *data, size_t len) {
+    memcpy(&h->ddr_base[offset], data, len);
 }

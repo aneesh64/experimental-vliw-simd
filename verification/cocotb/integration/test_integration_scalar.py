@@ -1,4 +1,136 @@
 from test_integration_common import *
+from verification.cocotb.golden_model import (
+    _f32_binop,
+    _f32_to_i32_bits,
+    _f32_to_u32_bits,
+    _i32_to_f32_bits,
+    _u32_to_f32_bits,
+)
+
+
+@cocotb.test()
+async def test_fp32_scalar_core_path(dut):
+    """Scalar FP32 ops execute correctly through scheduler, core, and AXI storeback."""
+    harness = VliwCoreHarness(dut)
+    await harness.init()
+
+    sum_bits = _f32_binop("fadd", _i32_to_f32_bits(7), _i32_to_f32_bits(3))
+    prod_bits = _f32_binop("fmul", sum_bits, _i32_to_f32_bits(2))
+    back_to_int = _f32_to_i32_bits(prod_bits)
+
+    program = build_program([
+        S.const(0, 7),
+        S.const(1, 3),
+        S.const(2, 2),
+        S.i2f(10, 0),
+        S.i2f(11, 1),
+        S.i2f(12, 2),
+        S.fadd(13, 10, 11),
+        S.fmul(14, 13, 12),
+        S.f2i(15, 14),
+        S.const(20, 0),
+        S.store(20, 13),
+        S.add_imm(20, 20, 1),
+        S.store(20, 14),
+        S.add_imm(20, 20, 1),
+        S.store(20, 15),
+        S.halt(),
+    ])
+
+    await harness.load_program(program)
+    await harness.run(max_cycles=2000)
+
+    assert harness.axi_mem.read_word(0) == sum_bits, f"FADD expected 0x{sum_bits:08x}"
+    assert harness.axi_mem.read_word(1) == prod_bits, f"FMUL expected 0x{prod_bits:08x}"
+    assert harness.axi_mem.read_word(2) == back_to_int, f"F2I expected 0x{back_to_int:08x}"
+
+
+@cocotb.test()
+async def test_fp32_scalar_fmadd_pseudoop(dut):
+    """Scalar FMADD pseudo-op lowers correctly and executes through the full core path."""
+    harness = VliwCoreHarness(dut)
+    await harness.init()
+
+    a_bits = _i32_to_f32_bits(2)
+    b_bits = _i32_to_f32_bits(3)
+    c_bits = _i32_to_f32_bits(4)
+    prod_bits = _f32_binop("fmul", a_bits, b_bits)
+    out_bits = _f32_binop("fadd", prod_bits, c_bits)
+    out_i32 = _f32_to_i32_bits(out_bits)
+
+    program = build_program([
+        S.const(0, 2),
+        S.const(1, 3),
+        S.const(2, 4),
+        S.i2f(10, 0),
+        S.i2f(11, 1),
+        S.i2f(12, 2),
+        *S.fmadd(14, 10, 11, 12, temp=13),
+        S.f2i(15, 14),
+        S.const(20, 10),
+        S.store(20, 14),
+        S.add_imm(20, 20, 1),
+        S.store(20, 15),
+        S.halt(),
+    ])
+
+    await harness.load_program(program)
+    await harness.run(max_cycles=3000)
+
+    assert harness.axi_mem.read_word(10) == out_bits, f"FMADD expected 0x{out_bits:08x}"
+    assert harness.axi_mem.read_word(11) == out_i32, f"FMADD->F2I expected 0x{out_i32:08x}"
+
+
+@cocotb.test()
+async def test_fp32_scalar_conversion_and_extrema_path(dut):
+    """Scalar FP32 conversions and extrema ops execute correctly through the full core path."""
+    harness = VliwCoreHarness(dut)
+    await harness.init()
+
+    signed_src = (-17) & 0xFFFFFFFF
+    unsigned_src = 0xFFFFFFFE
+
+    i2f_bits = _i32_to_f32_bits(signed_src)
+    u2f_bits = _u32_to_f32_bits(unsigned_src)
+    fmax_bits = _f32_binop("fmax", i2f_bits, u2f_bits)
+    fmin_bits = _f32_binop("fmin", i2f_bits, u2f_bits)
+    f2u_bits = _f32_to_u32_bits(fmax_bits)
+    f2i_bits = _f32_to_i32_bits(fmin_bits)
+
+    program = build_program([
+        S.const(0, signed_src),
+        S.const(1, unsigned_src),
+        S.i2f(10, 0),
+        S.u2f(11, 1),
+        S.fmax(12, 10, 11),
+        S.fmin(13, 10, 11),
+        S.f2u(14, 12),
+        S.f2i(15, 13),
+        S.const(20, 100),
+        S.store(20, 10),
+        S.add_imm(20, 20, 1),
+        S.store(20, 11),
+        S.add_imm(20, 20, 1),
+        S.store(20, 12),
+        S.add_imm(20, 20, 1),
+        S.store(20, 13),
+        S.add_imm(20, 20, 1),
+        S.store(20, 14),
+        S.add_imm(20, 20, 1),
+        S.store(20, 15),
+        S.halt(),
+    ])
+
+    await harness.load_program(program)
+    await harness.run(max_cycles=3000)
+
+    assert harness.axi_mem.read_word(100) == i2f_bits, f"I2F expected 0x{i2f_bits:08x}"
+    assert harness.axi_mem.read_word(101) == u2f_bits, f"U2F expected 0x{u2f_bits:08x}"
+    assert harness.axi_mem.read_word(102) == fmax_bits, f"FMAX expected 0x{fmax_bits:08x}"
+    assert harness.axi_mem.read_word(103) == fmin_bits, f"FMIN expected 0x{fmin_bits:08x}"
+    assert harness.axi_mem.read_word(104) == f2u_bits, f"F2U expected 0x{f2u_bits:08x}"
+    assert harness.axi_mem.read_word(105) == f2i_bits, f"F2I expected 0x{f2i_bits:08x}"
+
 
 @cocotb.test()
 async def test_add_sub(dut):

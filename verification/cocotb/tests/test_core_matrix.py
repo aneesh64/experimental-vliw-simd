@@ -25,6 +25,7 @@ if str(INTEGRATION_DIR) not in sys.path:
 
 from tools.assembler import Assembler, AssemblerConfig
 from verification.cocotb.integration.harness import VliwCoreHarness
+from tools.dsl import encode_fp8_e4m3, encode_fp8_e5m2, golden_matrix_fp8_matmul
 
 
 ASM = Assembler(AssemblerConfig(n_matrix_slots=1))
@@ -271,3 +272,98 @@ async def test_matrix_enabled_core_replays_first_load_use_dependent_bundle(dut):
     assert harness.axi_mem.read_word(1400) == 18, (
         f"First dependent bundle expected 18, got {harness.axi_mem.read_word(1400)}"
     )
+
+
+@cocotb.test()
+async def test_matrix_fp8_e4m3_program_round_trip(dut):
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+
+    lhs = encode_fp8_e4m3([((row - col) / 4.0) for row in range(8) for col in range(8)])
+    rhs = encode_fp8_e4m3([
+        1.0 if row == col else (((row + col) % 5) - 2.0) / 8.0
+        for row in range(8)
+        for col in range(8)
+    ])
+    expected = golden_matrix_fp8_matmul(lhs, rhs, fmt="fp8_e4m3")
+
+    memory_words: dict[int, int] = {}
+    preload_u8_tile(memory_words, 0, lhs)
+    preload_u8_tile(memory_words, 16, rhs)
+
+    cocotb.start_soon(axi_memory_model(dut, memory_words))
+    await reset(dut)
+
+    program = [
+        assemble_bundle(matrix=[("mdmvin", 0, 0, 0, 0, 8, 8, 0)]),
+        assemble_bundle(),
+        assemble_bundle(matrix=[("mdmvin", 0, 16, 0, 0, 8, 8, 0b10)]),
+        assemble_bundle(),
+        assemble_bundle(matrix=[("mzero", 0, 0, 0, 0, 8, 8, 0)]),
+        assemble_bundle(),
+        assemble_bundle(matrix=[("mcompute_fp8_e4m3", 0, 0, 0, 0, 8, 8, 0)]),
+        assemble_bundle(),
+        assemble_bundle(matrix=[("mdmvout", 32, 0, 0, 0, 8, 8, 0b1)]),
+        assemble_bundle(),
+        assemble_bundle(flow=[("halt",)]),
+    ]
+
+    for addr, bundle in enumerate(program):
+        await write_imem(dut, addr, bundle)
+
+    await RisingEdge(dut.clk)
+    await start_core(dut)
+    await wait_halted(dut, max_cycles=10000)
+
+    assert read_words(memory_words, 32, 64) == expected, "FP8 E4M3 matrix program wrote unexpected results"
+
+
+@cocotb.test()
+async def test_matrix_fp8_e5m2_accumulate_program_round_trip(dut):
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+
+    lhs0 = encode_fp8_e5m2([((row + 1.0) / 8.0) for row in range(8) for _ in range(8)])
+    rhs0 = encode_fp8_e5m2([((col + 1.0) / 16.0) for _ in range(8) for col in range(8)])
+    lhs1 = encode_fp8_e5m2([((row * 2.0) - col + 1.0) / 16.0 for row in range(8) for col in range(8)])
+    rhs1 = encode_fp8_e5m2([((row + col + 1.0) / 32.0) for row in range(8) for col in range(8)])
+    expected_first = golden_matrix_fp8_matmul(lhs0, rhs0, fmt="fp8_e5m2")
+    expected = golden_matrix_fp8_matmul(lhs1, rhs1, fmt="fp8_e5m2", accum_seed_bits=expected_first)
+
+    memory_words: dict[int, int] = {}
+    preload_u8_tile(memory_words, 0, lhs0)
+    preload_u8_tile(memory_words, 16, rhs0)
+    preload_u8_tile(memory_words, 32, lhs1)
+    preload_u8_tile(memory_words, 48, rhs1)
+
+    cocotb.start_soon(axi_memory_model(dut, memory_words))
+    await reset(dut)
+
+    program = [
+        assemble_bundle(matrix=[("mdmvin", 0, 0, 0, 0, 8, 8, 0)]),
+        assemble_bundle(),
+        assemble_bundle(matrix=[("mdmvin", 0, 16, 0, 0, 8, 8, 0b10)]),
+        assemble_bundle(),
+        assemble_bundle(matrix=[("mzero", 0, 0, 0, 0, 8, 8, 0)]),
+        assemble_bundle(),
+        assemble_bundle(matrix=[("mcompute_fp8_e5m2", 0, 0, 0, 0, 8, 8, 0)]),
+        assemble_bundle(),
+        assemble_bundle(matrix=[("mdmvout", 64, 0, 0, 0, 8, 8, 0b1)]),
+        assemble_bundle(),
+        assemble_bundle(matrix=[("mdmvin", 0, 32, 0, 0, 8, 8, 0)]),
+        assemble_bundle(),
+        assemble_bundle(matrix=[("mdmvin", 0, 48, 0, 0, 8, 8, 0b10)]),
+        assemble_bundle(),
+        assemble_bundle(matrix=[("mcompute_fp8_e5m2_acc", 0, 0, 0, 0, 8, 8, 0)]),
+        assemble_bundle(),
+        assemble_bundle(matrix=[("mdmvout", 64, 0, 0, 0, 8, 8, 0b1)]),
+        assemble_bundle(),
+        assemble_bundle(flow=[("halt",)]),
+    ]
+
+    for addr, bundle in enumerate(program):
+        await write_imem(dut, addr, bundle)
+
+    await RisingEdge(dut.clk)
+    await start_core(dut)
+    await wait_halted(dut, max_cycles=20000)
+
+    assert read_words(memory_words, 64, 64) == expected, "FP8 E5M2 accumulate matrix program wrote unexpected results"

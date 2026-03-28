@@ -14,7 +14,12 @@ TOOLS_DIR = Path(__file__).resolve().parents[1]
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
-from scheduler import SchedulerConfig, VliwScheduler
+from scheduler import (
+    FP32_ADD_BUSY_CYCLES,
+    FP32_ADD_READ_LATENCY,
+    SchedulerConfig,
+    VliwScheduler,
+)
 
 
 def _has_engine(bundle: dict, engine: str) -> bool:
@@ -78,11 +83,43 @@ def test_scalar_store_to_vector_bank_isolated_from_vector_ops():
     )
 
 
+def test_scalar_fp32_pseudoop_spacing_accounts_for_wb_and_busy_cycles():
+    s = VliwScheduler(SchedulerConfig(mem_post_gap=0, valu_post_gap=0))
+    ops = [
+        s.const(0, 2),
+        s.const(1, 3),
+        s.const(2, 4),
+        s.i2f(10, 0),
+        s.i2f(11, 1),
+        s.i2f(12, 2),
+        *s.fmadd(14, 10, 11, 12, temp=13),
+        s.f2i(15, 14),
+        s.const(20, 0),
+        s.store(20, 14),
+        s.halt(),
+    ]
+
+    bundles = s.schedule(ops)
+
+    fadd_pc = _find_first_bundle_with_op(bundles, "alu", "fadd")
+    f2i_pc = _find_first_bundle_with_op(bundles, "alu", "f2i")
+    store_pc = _find_first_bundle_with_op(bundles, "store", "store")
+
+    assert fadd_pc >= 0 and f2i_pc >= 0 and store_pc >= 0, "Expected fadd, f2i, and store to be scheduled"
+    assert store_pc >= fadd_pc + FP32_ADD_READ_LATENCY, (
+        "Scalar STORE should wait for FP32 writeback visibility before reading FMADD output"
+    )
+    assert f2i_pc >= fadd_pc + FP32_ADD_BUSY_CYCLES + 1, (
+        "Scalar FP32 consumer should not re-issue while the serialized FP32 unit is still busy"
+    )
+
+
 def run_all_tests() -> bool:
     tests = [
         test_default_scalar_mem_can_pack_with_vector,
         test_scalar_load_from_vector_bank_isolated_from_vector_ops,
         test_scalar_store_to_vector_bank_isolated_from_vector_ops,
+        test_scalar_fp32_pseudoop_spacing_accounts_for_wb_and_busy_cycles,
     ]
 
     passed = 0

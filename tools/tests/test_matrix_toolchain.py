@@ -39,6 +39,18 @@ def test_matrix_scheduler_emits_matrix_bundle():
     assert compute_pc >= preload_pc
 
 
+def test_matrix_scheduler_emits_fp8_matrix_bundles():
+    sched = VliwScheduler(SchedulerConfig(n_matrix_slots=1, mem_post_gap=-1, valu_post_gap=-1))
+    bundles = sched.schedule([
+        sched.mcompute_fp8_e4m3(dest=0, src_a=0, src_b=0, src_c=0),
+        sched.mcompute_fp8_e5m2_acc(dest=0, src_a=0, src_b=0, src_c=0),
+        sched.halt(),
+    ])
+
+    assert _find_first_bundle_with_op(bundles, "matrix", "mcompute_fp8_e4m3") >= 0
+    assert _find_first_bundle_with_op(bundles, "matrix", "mcompute_fp8_e5m2_acc") >= 0
+
+
 def test_matrix_compute_can_coissue_with_alu_and_valu():
     sched = VliwScheduler(SchedulerConfig(
         n_matrix_slots=1,
@@ -100,6 +112,23 @@ def test_matrix_assembler_extends_bundle_width_and_encodes_slot():
 
     assert cfg.bundle_width >= 320
     assert bundle != 0
+
+
+def test_matrix_assembler_encodes_fp8_compute_slots():
+    cfg = AssemblerConfig(n_matrix_slots=1)
+    asm = Assembler(cfg)
+
+    bundle = asm.assemble({
+        "matrix": [("mcompute_fp8_e4m3", 128, 64, 96, 0, 8, 8, 0)],
+        "flow": [("halt",)],
+    })
+    bundle_acc = asm.assemble({
+        "matrix": [("mcompute_fp8_e5m2_acc", 128, 64, 96, 0, 8, 8, 0)],
+        "flow": [("halt",)],
+    })
+
+    assert bundle != 0
+    assert bundle_acc != 0
 
 
 def test_matrix_direct_transfer_encodes():

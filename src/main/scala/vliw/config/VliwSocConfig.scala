@@ -22,13 +22,13 @@ case class VliwSocConfig(
   nLoadSlots:      Int = 1,       // 1..2  memory load slots
   nStoreSlots:     Int = 1,       // 1..2  memory store slots
   nFlowSlots:      Int = 1,       // always 1 (architectural limit)
-  nMatrixSlots:    Int = 0,       // 0..1  matrix engine slots (8x8 int8 v1)
+  nMatrixSlots:    Int = 0,       // 0..1  matrix engine slots (8x8, 8-bit inputs, 32-bit accumulators)
 
   // ---- Vector configuration ----
   vlen:            Int = 8,       // lanes per vector operation
   dataWidth:       Int = 32,      // operand width in bits
 
-  // ---- Matrix engine configuration (v1 fixed 8x8 int8 -> int32) ----
+  // ---- Matrix engine configuration (v1 fixed 8x8, 8-bit inputs, 32-bit accumulators) ----
   matrixRows:      Int = 8,
   matrixCols:      Int = 8,
   matrixElemBits:  Int = 8,
@@ -77,6 +77,12 @@ case class VliwSocConfig(
 
   /** Divider latency in clock cycles (start → done). */
   def divLatency:      Int = dataWidth + 1  // 33 for 32-bit operands
+
+  /** FP32 add/sub/max/min/convert latency in clock cycles (start → done). */
+  def fp32AddLatency:  Int = 4
+
+  /** FP32 multiply latency in clock cycles (start → done). */
+  def fp32MulLatency:  Int = 5
 
   // ---- AXI-512 derived constants ----
   /** Bytes per AXI beat (512/8 = 64). */
@@ -142,6 +148,21 @@ case class VliwSocConfig(
     useRegion    = false
   )
 
+  /** AXI config for the DDR-facing master port (wider ID for N cores + 1 IMEM loader arbitration). */
+  def ddrAxiConfig: Axi4Config = Axi4Config(
+    addressWidth = axiAddrWidth,
+    dataWidth    = axiDataWidth,
+    idWidth      = axiIdWidth + log2Up(nCores + 1),
+    useBurst     = true,
+    useLen       = true,
+    useSize      = true,
+    useLock      = false,
+    useCache     = false,
+    useProt      = false,
+    useQos       = false,
+    useRegion    = false
+  )
+
   def axiLiteConfig: AxiLite4Config = AxiLite4Config(
     addressWidth = axiAddrWidth,
     dataWidth    = axiLiteDataWidth
@@ -160,8 +181,8 @@ case class VliwSocConfig(
   require(matrixScratchSize > 0, "matrixScratchSize must be positive")
   require(matrixAccumSize > 0, "matrixAccumSize must be positive")
   require(matrixRows == 8 && matrixCols == 8, "v1 matrix engine is fixed at 8x8")
-  require(matrixElemBits == 8, "v1 matrix engine element size is fixed at int8")
-  require(matrixAccumBits == 32, "v1 matrix accumulator width is fixed at int32")
+  require(matrixElemBits == 8, "v1 matrix engine element storage width is fixed at 8 bits")
+  require(matrixAccumBits == 32, "v1 matrix accumulator storage width is fixed at 32 bits")
   require(nAluSlots >= 1 && nAluSlots <= 12)
   require(nValuSlots >= 1 && nValuSlots <= 6)
   require(nLoadSlots >= 1 && nLoadSlots <= 2)

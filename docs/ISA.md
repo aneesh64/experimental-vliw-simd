@@ -2,7 +2,7 @@
 
 **Status:** Source-derived reference for the current SpinalHDL implementation  
 **Derived from:** `SlotBundles.scala`, `VliwSocConfig.scala`, `DecodeUnit.scala`, `FlowEngine.scala`, `MemoryEngine.scala`, `MatrixEngine.scala`, and `tools/assembler.py`  
-**Last Updated:** March 19, 2026
+**Last Updated:** March 28, 2026 — FP32 scalar/vector extension and pseudo-FMADD lowering
 
 ---
 
@@ -71,10 +71,18 @@ Examples:
 
 ## Address and Data Model
 
-- Scalar scratch state uses 32-bit words.
-- Vector operations use `VLEN` consecutive 32-bit scratch words starting at `destBase`, `src1Base`, `src2Base`, and `src3Base`.
+- **IMEM (Instruction Memory):**
+  - Addressed by bundle index, not byte address.
+  - Loaded via CSR (`IMBAS`, `IMWD`) or AXI-Lite writes.
+  - Bundles are written as 32-bit words; hardware auto-commits after the last word per bundle.
+- **DMEM (Data Memory):**
+  - Main data memory, accessible via AXI4 and optionally via CSR (`DMWA`, `DMWD`).
+  - Used for program data, results, and host communication.
+  - Supports both scalar and vector accesses.
+- **Scalar scratch state** uses 32-bit words.
+- **Vector operations** use `VLEN` consecutive 32-bit scratch words starting at `destBase`, `src1Base`, `src2Base`, and `src3Base`.
 - The default verified configuration uses `VLEN = 8`.
-- Instruction memory addresses are bundle indices, not byte addresses.
+- See DRIVER_API.md for C driver usage and memory protocol details.
 
 ---
 
@@ -155,7 +163,7 @@ Notes:
 ```
 
 Notes:
-- The v1 matrix engine is fixed at `8x8 int8 -> int32`.
+- The v1 matrix engine is fixed at `8x8` with 8-bit operand storage and 32-bit accumulator storage.
 - `tileRows` and `tileCols` are still encoded, but current hardware requires 8x8 configuration.
 
 ### FLOW Slot
@@ -199,6 +207,40 @@ Notes:
 
 Assembler aliases for ALU ops include symbolic forms such as `+`, `-`, `*`, `^`, `&`, `|`, `<<`, `>>`, `<`, `==`, `%`, and `//`.
 
+### FP32 Opcodes
+
+Opcode values `18..26` are shared between the scalar ALU and the EW32 VALU path.
+
+| Value | Mnemonic | Semantics |
+|------|------|------|
+| 18 | `fadd` | IEEE-754 FP32 add, round-to-nearest-even |
+| 19 | `fsub` | IEEE-754 FP32 subtract, round-to-nearest-even |
+| 20 | `fmul` | IEEE-754 FP32 multiply, round-to-nearest-even |
+| 21 | `fmax` | FP32 max with NaN handling defined by current RTL |
+| 22 | `fmin` | FP32 min with NaN handling defined by current RTL |
+| 23 | `i2f` | signed int32 to FP32 conversion |
+| 24 | `f2i` | FP32 to signed int32 conversion (truncate toward zero, saturating on overflow) |
+| 25 | `u2f` | unsigned int32 to FP32 conversion |
+| 26 | `f2u` | FP32 to unsigned int32 conversion (truncate toward zero, saturating on overflow) |
+
+Notes:
+- These are real FP32 datapath operations in the current RTL, not the earlier fixed-point approximation.
+- The scalar ALU accepts these opcodes directly.
+- The VALU accepts the same opcodes only for `ewidth = EW32`; packed FP32 subword modes are not defined.
+- FP divide is not implemented.
+- IEEE exception flags are not architecturally exposed.
+
+### FP32 Pseudo-Ops
+
+The software stack exposes fused-multiply-add style helpers, but they lower to ordinary FP32 instructions rather than a dedicated fused opcode.
+
+| Pseudo-op | Lowering |
+|------|------|
+| `fmadd dst, a, b, c` | `fmul tmp, a, b` then `fadd dst, tmp, c` |
+| `vfmadd dst, a, b, c` | `valu.fmul tmp, a, b` then `valu.fadd dst, tmp, c` |
+
+These pseudo-ops are therefore not fused IEEE FMA operations. Rounding occurs once after the multiply and again after the add.
+
 ### VALU Opcodes
 
 The VALU reuses ALU opcode values `0..14` for lane-wise vector and packed operations, then adds VALU-specific opcodes:
@@ -210,6 +252,7 @@ The VALU reuses ALU opcode values `0..14` for lane-wise vector and packed operat
 | 17 | `vcast` |
 
 For opcode values `0..14`, semantics depend on `ewidth`, `dwidth`, and `signed`.
+FP32 opcodes `18..26` are additionally valid for `ewidth = dwidth = EW32`.
 
 ### LOAD Opcodes
 
@@ -265,8 +308,12 @@ Opcodes 5–9 use the `dest` and `addrReg` fields of the load slot for their ope
 | 7 | `mcompute` | matrix multiply into accumulator |
 | 8 | `mcompute_acc` | matrix multiply accumulate |
 | 9 | `mzero` | clear accumulator tile |
+| 10 | `mcompute_fp8_e4m3` | FP8 E4M3 matrix multiply into FP32 accumulator |
+| 11 | `mcompute_fp8_e4m3_acc` | FP8 E4M3 matrix multiply accumulate into FP32 accumulator |
+| 12 | `mcompute_fp8_e5m2` | FP8 E5M2 matrix multiply into FP32 accumulator |
+| 13 | `mcompute_fp8_e5m2_acc` | FP8 E5M2 matrix multiply accumulate into FP32 accumulator |
 
-`mmload`, `mmstore`, and `mpreload` are encoded and tool-visible, but the current v1 execution path is centered on `mdmvin`, `mdmvout`, `mzero`, `mcompute`, and `mcompute_acc`.
+`mmload`, `mmstore`, and `mpreload` are encoded and tool-visible, but the current v1 execution path is centered on `mdmvin`, `mdmvout`, `mzero`, and the compute-family opcodes above.
 
 ---
 
@@ -336,8 +383,89 @@ Current v1 conventions from `SlotBundles.scala` and `MemoryEngine.scala`:
   - `dest` = accumulator base
   - `srcA` = operand-A local base
   - `srcB` = operand-B local base
+- `mcompute_fp8_e4m3` / `mcompute_fp8_e4m3_acc`
+  - same operand convention as `mcompute`
+  - interprets both operand tiles as FP8 E4M3 values
+  - accumulator memory stores IEEE-754 FP32 words
+- `mcompute_fp8_e5m2` / `mcompute_fp8_e5m2_acc`
+  - same operand convention as `mcompute`
+  - interprets both operand tiles as FP8 E5M2 values
+  - accumulator memory stores IEEE-754 FP32 words
 - `mzero`
   - clears the addressed accumulator tile
+
+#### FP8 Format Reference
+
+Both FP8 formats pack one element per byte in matrix-local operand memory, stored row-major
+(row index is the outer dimension). The `[sign | exponent | mantissa]` field order applies
+to both variants.
+
+**E4M3 — 1 sign, 4 exponent, 3 mantissa**
+
+| Field    | Bits  |
+|----------|-------|
+| Sign     | [7]   |
+| Exponent | [6:3] |
+| Mantissa | [2:0] |
+
+- Exponent bias: **7**
+- Normal value: $(-1)^s \times 2^{e-7} \times 1.\text{mmm}_2$
+- Subnormal ($e = 0$): $(-1)^s \times 2^{-6} \times 0.\text{mmm}_2$
+- Dynamic range: ~±1.95 × 10⁻³ to **±448**
+- **No Inf encoding.** All-ones exponent with any mantissa is **NaN** (`0x7F` / `0xFF`), following the ML FP8 convention (OCP MX spec).
+- Maximum finite magnitude: 448 (`0x7E` / `0xFE`)
+
+**E5M2 — 1 sign, 5 exponent, 2 mantissa**
+
+| Field    | Bits  |
+|----------|-------|
+| Sign     | [7]   |
+| Exponent | [6:2] |
+| Mantissa | [1:0] |
+
+- Exponent bias: **15**
+- Normal value: $(-1)^s \times 2^{e-15} \times 1.\text{mm}_2$
+- Subnormal ($e = 0$): $(-1)^s \times 2^{-14} \times 0.\text{mm}_2$
+- Dynamic range: ~±6.10 × 10⁻⁵ to **±57344**
+- **Inf:** exponent field = `11111`, mantissa = `00` — value is $\pm\infty$
+- **NaN:** exponent field = `11111`, mantissa ≠ `00`
+- Maximum finite magnitude: 57344 (`0x7B` / `0xFB`)
+
+**Compute model**
+
+Each matrix-local operand element is decoded from its 8-bit FP8 encoding to a full FP32
+value in the MAC stage. The per-MAC product is then accumulated into the 32-bit FP32
+accumulator word:
+
+```
+accum[i][j] += fp32(A_fp8[i][k]) * fp32(B_fp8[k][j])   for k in 0..7
+```
+
+For `mcompute_fp8_e4m3_acc` and `mcompute_fp8_e5m2_acc`, the existing accumulator value
+is read back first and the products are summed on top of it. For the non-`_acc` variants,
+the accumulator destination words are treated as zero prior to accumulation for that tile.
+
+See `MatrixEngine.v` wires `fpA_E4M3_shift`, `fpB_E4M3_shift`, `fpProductE4M3`,
+`fpA_E5M2_shift`, `fpB_E5M2_shift`, `fpProductE5M2` for the hardware decode path.
+
+**NaN and special-value propagation**
+
+- **E4M3:** If either operand byte is NaN (`0x7F` or `0xFF`), the FP32 product is NaN;
+  the accumulator inherits a quiet NaN for that output element.
+- **E5M2:** If either operand is Inf, the product follows IEEE-754 Inf × 0 = NaN and
+  Inf × finite = Inf rules. If either operand is NaN, the product is NaN.
+- NaN in the accumulator is sticky — subsequent `_acc` operations on a NaN-poisoned
+  accumulator element continue to produce NaN.
+
+**Choosing E4M3 vs E5M2**
+
+| Criterion | E4M3 | E5M2 |
+|-----------|------|------|
+| Mantissa precision | Higher (3 bits → ~1% relative error) | Lower (2 bits → ~3% relative error) |
+| Exponent range | Narrower (bias 7, max 448) | Wider (bias 15, max 57344) |
+| Inf representation | Not available | Available |
+| Typical ML use | Weights and activations with bounded range | Gradients or values with large dynamic range |
+| Max finite value | 448 | 57344 |
 
 Flag conventions:
 - `flags[0] = 1` selects accumulator memory, otherwise operand scratch
@@ -388,6 +516,10 @@ Common tuple forms in `tools/assembler.py`:
 - `scopy_v2m`: `("scopy_v2m", dest_mat_base, src_vec_base)` — copy `VLEN` words vector scratch → matrix-local
 - `scopy_v2s`: `("scopy_v2s", dest_scalar, src_vec)` — copy 1 word vector scratch → scalar scratch
 - `scopy_s2v`: `("scopy_s2v", dest_vec, src_scalar)` — copy 1 word scalar scratch → vector scratch
+- `mcompute_fp8_e4m3`: `("mcompute_fp8_e4m3", dest, srcA, srcB[, srcC[, tileRows[, tileCols[, flags]]]])`
+- `mcompute_fp8_e4m3_acc`: `("mcompute_fp8_e4m3_acc", dest, srcA, srcB[, srcC[, tileRows[, tileCols[, flags]]]])`
+- `mcompute_fp8_e5m2`: `("mcompute_fp8_e5m2", dest, srcA, srcB[, srcC[, tileRows[, tileCols[, flags]]]])`
+- `mcompute_fp8_e5m2_acc`: `("mcompute_fp8_e5m2_acc", dest, srcA, srcB[, srcC[, tileRows[, tileCols[, flags]]]])`
 
 ---
 

@@ -51,6 +51,23 @@ class AluEngine(cfg: VliwSocConfig) extends Component with EnginePlugin {
                 slot.opcode === AluOpcode.DIV ||
                 slot.opcode === AluOpcode.CDIV
 
+    val isFp32 = slot.opcode === Fp32Opcode.FADD ||
+           slot.opcode === Fp32Opcode.FSUB ||
+           slot.opcode === Fp32Opcode.FMUL ||
+           slot.opcode === Fp32Opcode.FMAX ||
+           slot.opcode === Fp32Opcode.FMIN ||
+           slot.opcode === Fp32Opcode.I2F ||
+           slot.opcode === Fp32Opcode.F2I ||
+           slot.opcode === Fp32Opcode.U2F ||
+           slot.opcode === Fp32Opcode.F2U
+
+    val fp32Unit = new Fp32Unit(cfg)
+    fp32Unit.io.fire := slotValid && isFp32 && !fp32Unit.io.busy
+    fp32Unit.io.mode := slot.opcode
+    fp32Unit.io.a := a
+    fp32Unit.io.b := b
+    fp32Unit.io.tagIn := slot.dest
+
     divider.io.start    := slotValid && isDiv && !divider.io.busy
     divider.io.dividend := Mux(slot.opcode === AluOpcode.CDIV,
                                (a + b - 1).resize(cfg.dataWidth), a)
@@ -91,8 +108,10 @@ class AluEngine(cfg: VliwSocConfig) extends Component with EnginePlugin {
 
     // ---- Write-port mux: divider.done takes priority ----
     // Compiler ensures no conflict (done never coincides with a valid non-div write).
-    io.writeReqs(i).valid := divider.io.done || (slotValid && !isDiv)
-    io.writeReqs(i).addr  := Mux(divider.io.done, divCapDest, slot.dest)
-    io.writeReqs(i).data  := Mux(divider.io.done, divResult, result)
+    io.writeReqs(i).valid := divider.io.done || fp32Unit.io.done || (slotValid && !isDiv && !isFp32)
+    io.writeReqs(i).addr  := Mux(divider.io.done, divCapDest,
+                              Mux(fp32Unit.io.done, fp32Unit.io.tagOut, slot.dest))
+    io.writeReqs(i).data  := Mux(divider.io.done, divResult,
+                              Mux(fp32Unit.io.done, fp32Unit.io.result, result))
   }
 }

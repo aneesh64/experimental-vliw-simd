@@ -28,6 +28,14 @@ if str(Path(__file__).parent) not in sys.path:
 import cocotb
 
 from assembler import Assembler, AssemblerConfig
+from dsl import (
+    HardwareCapabilities,
+    build_turboquant_score_32x32_kernel,
+    compile_kernel,
+    golden_turboquant_scores_32x32,
+    pack_matrix_matmul_32x32_u32_tiles,
+    pack_matrix_matmul_32x32_u8_tiles,
+)
 from scheduler import VliwScheduler, SchedulerConfig
 from harness import VliwCoreHarness
 from verification.cocotb.config import load_test_config
@@ -60,6 +68,16 @@ S = VliwScheduler(SchedulerConfig(
 def build_program(ops, verbose=False):
     bundles_dicts = S.schedule(ops, verbose=verbose)
     return ASM.assemble_program(bundles_dicts)
+
+
+def _pack_u8_bytes_to_words(values: list[int]) -> list[int]:
+    words = []
+    for index in range(0, len(values), 4):
+        word = 0
+        for byte_index, value in enumerate(values[index: index + 4]):
+            word |= (int(value) & 0xFF) << (byte_index * 8)
+        words.append(word)
+    return words
 
 
 @cocotb.test(skip=False)
@@ -209,4 +227,69 @@ async def test_driver_vector_operations(dut):
 
     cocotb.log.info(f"Vector operations test completed in {cycles} cycles")
     assert cycles > 0
+
+
+@cocotb.test(skip=CFG.n_matrix_slots < 1)
+async def test_driver_turboquant_matrix_score_golden(dut):
+    """
+    Test 6: TurboQuant-style matrix scoring via driver flow.
+
+    Encoded inputs are preloaded into AXI memory, the compiled matrix-heavy
+    kernel is loaded through IMEM, and the output score matrix is compared
+    against the shared Python golden model.
+    """
+    harness = VliwCoreHarness(dut)
+
+    keys_row_major = [(((row * 5) - (col * 3) + 7) % 9) - 4 for row in range(32) for col in range(32)]
+    queries_row_major = [(((row * 2) + (col * 5) + 1) % 9) - 4 for row in range(32) for col in range(32)]
+    golden = golden_turboquant_scores_32x32(keys_row_major, queries_row_major)
+    harness.axi_mem.preload(0, _pack_u8_bytes_to_words(golden["coarse_keys_tiles"]))
+    harness.axi_mem.preload(256, _pack_u8_bytes_to_words(golden["coarse_queries_tiles"]))
+    harness.axi_mem.preload(512, _pack_u8_bytes_to_words(golden["residual_keys_tiles"]))
+    harness.axi_mem.preload(768, _pack_u8_bytes_to_words(golden["residual_queries_tiles"]))
+    await harness.init()
+
+    caps = HardwareCapabilities.from_configs(
+        scheduler_config=SchedulerConfig(
+            n_alu_slots=CFG.n_alu_slots,
+            n_valu_slots=CFG.n_valu_slots,
+            n_load_slots=CFG.n_load_slots,
+            n_store_slots=CFG.n_store_slots,
+            n_flow_slots=CFG.n_flow_slots,
+            n_matrix_slots=CFG.n_matrix_slots,
+            mem_post_gap=CFG.mem_post_gap,
+        ),
+        assembler_config=AssemblerConfig(
+            n_alu_slots=CFG.n_alu_slots,
+            n_valu_slots=CFG.n_valu_slots,
+            n_load_slots=CFG.n_load_slots,
+            n_store_slots=CFG.n_store_slots,
+            n_flow_slots=CFG.n_flow_slots,
+            n_matrix_slots=CFG.n_matrix_slots,
+            vlen=CFG.vlen,
+            scratch_size=CFG.scratch_size,
+            imem_depth=CFG.imem_depth,
+        ),
+    )
+    result = compile_kernel(
+        build_turboquant_score_32x32_kernel(),
+        caps,
+        assemble=True,
+        bindings={
+            "coarse_keys_tiles": 0,
+            "coarse_queries_tiles": 256,
+            "residual_keys_tiles": 512,
+            "residual_queries_tiles": 768,
+            "out_tiles": 1024,
+        },
+    )
+    assert result.binary_bundles is not None
+
+    await harness.load_program(result.binary_bundles)
+    cycles = await harness.run(max_cycles=200000)
+
+    expected = golden["score_tiles"]
+    actual = [harness.axi_mem.read_word(1024 + index) for index in range(1024)]
+    cocotb.log.info(f"TurboQuant driver-flow test completed in {cycles} cycles")
+    assert actual == expected, "TurboQuant driver-flow output did not match the golden model"
 

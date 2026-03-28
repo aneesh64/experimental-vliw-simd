@@ -6,6 +6,132 @@
 
 ---
 
+## FP8 Matrix Compute Extension (March 28, 2026)
+
+### Summary
+
+Added four FP8 matrix multiply opcodes to the Matrix Engine, enabling low-precision
+neural-network inference workloads on 8-bit floating-point operands with FP32 accumulation.
+Both the OCP MX-compatible **E4M3** format (higher mantissa precision, bounded range) and
+the **E5M2** format (wider dynamic range, Inf/NaN representable) are supported.
+
+---
+
+## FP32 Integration Runner and Coverage Expansion (March 28, 2026)
+
+### Summary
+
+Expanded full-core FP32 integration coverage and added a dedicated `fp32` suite alias to
+`verification/cocotb/integration/run_integration.py` so the scalar/vector FP32 regressions can
+be run with a single focused command.
+
+### Added
+
+- **Runner alias:** `python verification/cocotb/integration/run_integration.py --modules fp32`
+- **Scalar full-core FP32 regression:** conversion + extrema path covering `i2f`, `u2f`,
+   `fmax`, `fmin`, `f2u`, and `f2i`
+- **Vector full-core FP32 regression:** lane-wise conversion + extrema path covering the same
+   opcode family under `EW32`
+
+### Validation Command
+
+```bash
+C:\Users\uanee\miniconda3\python.exe .\verification\cocotb\integration\run_integration.py --modules fp32 fp32
+```
+
+This focused suite now covers:
+- scalar FP32 arithmetic path
+- scalar FMADD pseudo-op lowering
+- scalar conversion/extrema path
+- vector FP32 arithmetic path
+- vector VFMADD pseudo-op lowering
+- vector conversion/extrema path
+
+### RTL Changes
+
+- **`MatrixEngine.scala` / `MatrixEngine.v`** — Added opcode decode branches for opcodes
+  10–13. Each FP8 path introduces two independent combinatorial decode trees:
+  - `fpA_E4M3_shift` / `fpB_E4M3_shift` — decode operand bytes from E4M3 format
+  - `fpA_E5M2_shift` / `fpB_E5M2_shift` — decode operand bytes from E5M2 format
+  - `fpProductE4M3` / `fpProductE5M2` — FP32 products before accumulation
+  The existing `MatrixState_MAC` state-machine loop is reused; the opcode selects which
+  decode tree feeds the multiplier. Accumulator memory remains unchanged (32-bit FP32 words).
+
+### ISA Changes
+
+- **New MATRIX opcodes:**
+
+  | Opcode | Mnemonic | Semantics |
+  |--------|----------|-----------|
+  | 10 | `mcompute_fp8_e4m3` | FP8 E4M3 matrix multiply into FP32 accumulator |
+  | 11 | `mcompute_fp8_e4m3_acc` | FP8 E4M3 matrix multiply-accumulate |
+  | 12 | `mcompute_fp8_e5m2` | FP8 E5M2 matrix multiply into FP32 accumulator |
+  | 13 | `mcompute_fp8_e5m2_acc` | FP8 E5M2 matrix multiply-accumulate |
+
+- Assembler tuple form matches `mcompute`:
+  `(op, dest, srcA, srcB[, srcC[, tileRows[, tileCols[, flags]]]])`
+
+### Format Details
+
+- **E4M3** `[s|eeee|mmm]`: bias=7, max finite ±448, no Inf, `0x7F`/`0xFF` = NaN
+- **E5M2** `[s|eeeee|mm]`: bias=15, max finite ±57344, Inf at exp=31/man=`00`, NaN at exp=31/man≠`00`
+- Both formats: one byte per element, row-major in matrix-local operand memory
+- Compute: `accum[i][j] += fp32(A[i][k]) * fp32(B[k][j])` for k in 0..7
+
+### Constraints and Known Behavior
+
+- Mixing int8 and FP8 compute opcodes on the same accumulator tile without an intervening
+  `mzero` produces undefined results. Always zero before switching compute type.
+- NaN is sticky: once an accumulator element is NaN, subsequent `_acc` operations
+  on that element remain NaN.
+- `mdmvin`/`mdmvout` alignment requirement (64-byte aligned DRAM base) is unchanged.
+
+### Documentation
+
+- Updated `docs/ISA.md`: added `#### FP8 Format Reference` subsection under `### MATRIX`
+  operational semantics, covering bit layouts, dynamic ranges, compute model, NaN propagation,
+  and E4M3 vs E5M2 selection guidance.
+- Updated `docs/ARCHITECTURE.md`: expanded Matrix Engine bullet, added FP8 rows to the
+  Latency Summary table, and added Phase 5+ FP8 extension section.
+- Updated `docs/STATUS.md`: added FP8 to baseline hardware status.
+
+---
+
+## TurboQuant-Style 32x32 Score Example (March 26, 2026)
+
+### Summary
+
+Added a documented TurboQuant-style `32x32` score example that couples a Python golden model,
+a matrix-engine-focused DSL kernel, a standalone artifact emitter, a C driver example, and RTL
+integration coverage.
+
+### Added
+
+- **Golden model and encoder:** `golden_turboquant_scores_32x32()` and
+   `encode_turboquant_matrix_32x32()` in `tools/dsl/examples/matrix_kernels.py`
+- **Matrix-focused kernel:** `build_turboquant_score_32x32_kernel()`
+- **Standalone emitter/demo:** `tools/turboquant_demo.py`
+- **Driver example:** `drivers/example_turboquant_32x32.c`
+- **Worked example doc:** `docs/DSL_EXAMPLE_TURBOQUANT_32X32.md`
+- **Checked-in emitted artifacts:** `generated/turboquant_32x32_demo/`
+
+### Artifact flow
+
+The TurboQuant emitter now writes both:
+- `turboquant_32x32_instruction_bundles.txt` for bundle-level inspection
+- `turboquant_32x32_imem_words.txt` for hardware-facing IMEM loading
+
+It also emits the packed coarse and residual DMEM images, packed and row-major expected outputs,
+and a metadata summary.
+
+### Validation
+
+- Python example tests cover the emitter and artifact set
+- RTL DSL integration validates the kernel directly against the golden model
+- RTL driver integration validates the host-style preload and readback path
+
+---
+
 ## HALT Pipeline Flush Fix (March 17, 2026)
 
 ### Summary
